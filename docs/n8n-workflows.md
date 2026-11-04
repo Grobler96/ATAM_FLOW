@@ -18,6 +18,7 @@ data your existing syncs already land in Supabase.
 | ATAM_FLOW · Supplier discrepancy escalation | `A8r66X2xwPBfpRGF` | weekdays 08:10 (unpublished) | n/a | n/a |
 | ATAM_FLOW · Artwork download and store | `kvgqKRD7dVWOJkoa` | every 15 min (unpublished) | n/a | n/a |
 | ATAM_FLOW · Artwork actions | `nkOanz4G48WKPv1k` | n/a (unpublished) | `/webhook/atam-flow/artwork` | admin, manager, production |
+| ATAM_FLOW · Supplier and producer selection | `9omdNalZkjKEYAy1` | n/a (unpublished) | `/webhook/atam-flow/selection` | admin, manager |
 | ATAM_FLOW · Verify caller (sub-workflow) | `lALM3G47uOizvD9t` | n/a | n/a | n/a |
 
 ## How a dashboard call is secured
@@ -59,3 +60,7 @@ See [purchasing.md](purchasing.md). Tested live: communications sender (nothing 
 ## Artwork (built 4 Nov 2026, unpublished)
 
 See [artwork.md](artwork.md). The download workflow ran clean live with nothing pending; the actual download and bucket upload path has not been exercised with a real file yet.
+
+## Selection (built 4 Nov 2026, unpublished)
+
+See [selection.md](selection.md). The access check was exercised live (invalid token refused); the recommend path needs a signed-in user and has been tested only through the database round-trip.
