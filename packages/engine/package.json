@@ -1,0 +1,7 @@
+{
+  "name": "@atam-flow/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure scheduling/allocation logic for ATAM_FLOW (no I/O). Embedded verbatim in n8n Code nodes.",
+  "scripts": { "test": "node --test \"test/*.test.js\"" }
+}

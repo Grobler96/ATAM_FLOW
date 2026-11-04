@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.pgdata/
+# n8n exports must be secret-stripped before commit; raw exports stay local
+n8n/workflows/*.raw.json
+e2e/shots/

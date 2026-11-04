@@ -1,0 +1,119 @@
+// End-to-end check of the main UI in a real browser with the whole backend mocked (synthetic data only).
+// Usage: npm run build && node e2e/exceptions.e2e.mjs      (screenshots: $SHOTS or ./e2e/shots)
+import { createRequire } from 'node:module';
+import { spawn } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import * as F from './fixtures2.mjs';
+import { history } from './fixtures.mjs';
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright');
+const SHOTS = process.env.SHOTS || new URL('./shots', import.meta.url).pathname; mkdirSync(SHOTS, { recursive: true });
+const PORT = 4173, APP = `http://localhost:${PORT}/`, SB = 'https://aobosyvlhgkxhjxkfzlz.supabase.co', N8N = 'https://atamcpi.app.n8n.cloud';
+const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'u1', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
+const session = { access_token: jwt, token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r', user: { id: 'u1', aud: 'authenticated', role: 'authenticated', email: 'sam@atam.test', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
+const VIEWS = { ui_orders: F.orders, ui_order_lines: F.orderLines, ui_allocation_decisions: F.decisions, ui_allocation: [], ui_production_queue: F.queue, ui_machines: F.machines, ui_stock: F.stock, ui_shortages: F.shortages, ui_purchase_orders: F.pos, ui_po_lines: F.poLines, ui_overdue_pos: [],
+  ui_supplier_discrepancies: F.discrepancies, ui_suppliers: F.suppliers, ui_selection: F.selection, ui_producers: F.producers, ui_tp_movements: F.movements, ui_tp_orders: F.tpOrders, ui_tp_discrepancies: F.tpDisc, ui_producer_held_stock: F.held, ui_custody: F.custody, ui_unit_trace: [], ui_bins: F.bins,
+  ui_artwork_status: F.artStatus, ui_artwork_versions: F.artVersions, ui_job_packs: F.jobPacks, ui_communications: F.comms, ui_labels: [], ui_settings: F.settings, ui_sync_runs: F.syncRuns, ui_notifications: F.notifications, ui_exceptions: F.exceptions, ui_order_accountability: F.accountability, ui_stock_movements: F.stockMoves };
+const selectionResult = { ok: true, version: 'sel-1', order_ref: '#700102', explanation: 'Recommended: Ralawise + Stitchworks Embroidery. Total cost £211.00.', recommended_key: 'k1', selected_key: 'k1', rejected: [{ what: 'Portwest', reason: 'does not list 1 of the 1 SKUs needed' }],
+  options: [{ key: 'k1', supplier_plan: 'Ralawise', route: { name: 'Stitchworks Embroidery', type: 'producer', supplier_direct_to_producer: false }, costs: { total: 211, blanks: 100, supplier_delivery: 5, decoration: 90, transport_to_producer: 8, transport_back: 8, stock_on_hand_value: 0 }, revenue: 400, profit: 189, margin_pct: 47.3, cost_per_unit: 10.55, timeline: { total_days: 9, ready_date: '2026-11-13', slack_days: 4 }, risk: { score: 18, flags: [{ code: 'unknown_producer_reliability', text: 'no performance record yet' }] }, score: 81, incomplete: false, late: false, labels: ['Recommended', 'Cheapest'], score_parts: {} },
+    { key: 'k2', supplier_plan: 'Ralawise', route: { name: 'In-house', type: 'internal', supplier_direct_to_producer: false }, costs: { total: 0, blanks: 100, supplier_delivery: 5, decoration: 0, transport_to_producer: 0, transport_back: 0, stock_on_hand_value: 0 }, revenue: 400, profit: 0, margin_pct: null, cost_per_unit: null, timeline: { total_days: 6, ready_date: '2026-11-10', slack_days: 7 }, risk: { score: 12, flags: [{ code: 'incomplete', text: 'some costs are missing (no rate for embroidery)' }] }, score: 40, incomplete: true, late: false, labels: [], score_parts: {} }] };
+
+let failures = 0; const ok = (c, m) => { if (c) console.log('  ok  ' + m); else { failures += 1; console.log('  FAIL ' + m); } };
+async function newPage(browser, o = {}) {
+  const ctx = await browser.newContext({ viewport: o.viewport || { width: 1440, height: 900 }, deviceScaleFactor: o.dsf || 1, acceptDownloads: true });
+  const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200))); const st = { role: o.role ?? 'manager', n8n: [], n8nStatus: o.n8nStatus ?? 200, badLogin: o.badLogin ?? false, exStatus: o.exStatus === undefined ? new Date(Date.now() - 600000).toISOString() : o.exStatus };
+  await page.route(`${SB}/**`, async (route) => {
+    const req = route.request(), u = new URL(req.url()); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    const json = (b, s = 200) => route.fulfill({ status: s, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(b) });
+    if (u.pathname.startsWith('/auth/v1/token')) return st.badLogin ? json({ error: 'invalid_grant', error_description: 'Invalid login credentials' }, 400) : json(session);
+    if (u.pathname.startsWith('/auth/v1/user')) return json(session.user); if (u.pathname.startsWith('/auth/v1/logout')) return route.fulfill({ status: 204, headers: cors });
+    const rpc = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/);
+    if (rpc) { const body = req.postDataJSON?.() ?? {}; if (rpc[1] === 'ui_my_role') return json(st.role); if (rpc[1] === 'ui_activity') return json(F.activity); if (rpc[1] === 'ui_search') return json(F.searchHits(body.p_q ?? '')); if (rpc[1] === 'ui_order_history') return json(F.orderHistory); return json([]); }
+    const m = u.pathname.match(/\/rest\/v1\/(\w+)/); if (!m) return json([]); const v = m[1];
+    if (v === 'ui_status') return json({ last_detection_at: st.exStatus, server_time: new Date().toISOString() });
+    if (v === 'ui_exception_history') return json(history.map((h) => ({ ...h, exception_id: 'x' })));
+    if (v === 'ui_order_accountability' && u.search.includes('order_ref')) return json({ order_id: 'o-1' });
+    return json(VIEWS[v] ?? []);
+  });
+  await page.route(`${N8N}/**`, async (route) => {
+    const req = route.request(); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    const path = new URL(req.url()).pathname.split('/').pop(); const body = req.postDataJSON?.() ?? {}; st.n8n.push({ path, auth: req.headers()['authorization'], body });
+    await new Promise((r) => setTimeout(r, path.startsWith('run-') ? 700 : 0));
+    const out = path === 'selection' && body.action === 'recommend' ? selectionResult : path === 'run-allocation' ? { ok: true, summary: { orders_considered: 48, allocate: 10, partial: 5, hold: 3, blocked: 30 } } : path === 'run-exceptions' ? { ok: true, detection: { open_now: 13, critical_open: 3 } } : { ok: true };
+    return route.fulfill({ status: st.n8nStatus, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(st.n8nStatus === 404 ? {} : out) });
+  });
+  return { ctx, page, st };
+}
+async function signIn(page, hash = '') {
+  await page.goto(APP + hash); await page.getByLabel('Email').fill('sam@atam.test'); await page.getByLabel('Password').fill('secret'); await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.locator('.sidebar').waitFor(); await page.waitForTimeout(250);
+}
+const shot = (page, n) => page.screenshot({ path: join(SHOTS, n + '.png') });
+const goto = async (page, hash) => { await page.evaluate((h) => { location.hash = h; }, hash); await page.waitForTimeout(350); };
+const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { cwd: new URL('..', import.meta.url).pathname, stdio: 'ignore' });
+await new Promise((r) => setTimeout(r, 2500));
+const browser = await chromium.launch();
+try {
+  console.log('sign-in'); { const { page, ctx } = await newPage(browser, { badLogin: true }); await page.goto(APP); await page.getByLabel('Email').fill('x@y.z'); await page.getByLabel('Password').fill('no'); await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByRole('alert').waitFor(); ok((await page.getByRole('alert').innerText()).includes('do not match'), 'wrong password explained'); await shot(page, '00-login'); await ctx.close(); }
+
+  const { page, ctx, st } = await newPage(browser, { dsf: 1 }); await signIn(page);
+  console.log('shell');
+  ok((await page.locator('.nav a').count()) === 12, 'sidebar lists the 12 sections'); ok((await page.locator('.nav a[aria-current=page]').innerText()).includes('Command Centre'), 'Command Centre is current');
+  ok((await page.locator('.nav a', { hasText: 'Exceptions' }).locator('.badge').innerText()) === '3', 'sidebar shows the critical exception count');
+  await page.keyboard.press('/'); await page.getByRole('dialog', { name: 'Command palette' }).waitFor(); ok(true, 'press / opens the command palette');
+  await page.getByLabel('Search or run a command').fill('700101'); await page.waitForSelector('.palette .res >> text=#700101'); ok(true, 'palette finds an order from the live search');
+  await page.keyboard.press('Enter'); await page.waitForFunction(() => location.hash.startsWith('#/orders/700101')); ok(true, 'Enter jumps to the order'); await page.getByRole('dialog').first().waitFor(); await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+k'); await page.getByLabel('Search or run a command').fill('allocate'); ok((await page.locator('.palette .res', { hasText: 'Allocate stock' }).count()) === 1, 'palette offers workflow actions'); await page.keyboard.press('Escape');
+  await page.keyboard.press('g'); await page.keyboard.press('s'); await page.waitForFunction(() => location.hash === '#/stock'); ok(true, 'g then s goes to Stock'); await page.keyboard.press('g'); await page.keyboard.press('h'); await page.waitForTimeout(200);
+  await page.getByRole('button', { name: 'Collapse sidebar' }).first().click(); await page.waitForTimeout(300); ok(await page.locator('.app.collapsed').count() === 1, 'sidebar collapses'); await page.getByRole('button', { name: 'Collapse sidebar' }).first().click();
+
+  console.log('command centre'); await goto(page, '#/');
+  ok((await page.locator('.kpi').count()) >= 10, 'ten KPI tiles'); const overdue = F.orders.filter((o) => o.is_overdue).length;
+  ok((await page.locator('.kpi', { hasText: 'Overdue orders' }).locator('.kpi-value').innerText()) === String(overdue), 'overdue KPI matches the data');
+  ok((await page.locator('.kpi', { hasText: 'Current bottleneck' }).count()) === 1, 'bottleneck tile'); await shot(page, '01-command-centre');
+  await page.locator('.kpi', { hasText: 'Overdue orders' }).click(); await page.waitForFunction(() => location.hash.includes('view=overdue')); await page.waitForSelector('.dt-row');
+  ok((await page.locator('.dt-row').count()) === overdue, 'KPI drills to exactly the overdue orders'); await goto(page, '#/');
+  ok((await page.getByText('What needs attention now').count()) === 1 && (await page.locator('text=Order at risk of missing dispatch').count()) >= 1, 'priority panel lists the urgent issue'); ok(/critical/i.test(await page.locator('.panel', { hasText: 'What needs attention now' }).locator('.status').first().innerText()), 'critical first');
+  await page.locator('button', { hasText: /^#1/ }).first().click(); ok((await page.getByText('Why this order, now').count()) === 1, 'production pulse explains the sequence');
+  ok((await page.getByText('Third-party pulse').count()) === 1 && (await page.getByText('Stock pulse').count()) === 1 && (await page.getByText('Recent activity').count()) === 1, 'third-party, stock and activity panels');
+
+  console.log('orders'); await goto(page, '#/orders'); await page.waitForSelector('.dt-row');
+  const open = F.orders.filter((o) => o.order_status !== 'dispatched').length; ok((await page.locator('.dt-foot').innerText()).includes(`of ${open}`), 'all open orders loaded');
+  ok((await page.locator('.dt .chip', { hasText: 'Due today' }).count()) === 1 && (await page.locator('.dt .chip', { hasText: 'Blocked by stock' }).count()) === 1, 'default saved views present');
+  await page.locator('.dt .chip', { hasText: 'Blocked by stock' }).click(); const blocked = F.orders.filter((o) => o.order_status === 'awaiting_stock').length; ok((await page.locator('.dt-foot').innerText()).startsWith(`Showing ${blocked}`), 'Blocked by stock view filters');
+  await page.locator('.dt .chip', { hasText: 'All open' }).click(); await page.getByRole('button', { name: /^Status/ }).click(); await page.getByRole('listbox', { name: 'Status' }).getByText('On hold').click(); ok((await page.locator('.dt-foot').innerText()).startsWith('Showing ' + F.orders.filter((o) => o.order_status === 'on_hold').length), 'column filter works'); await page.getByRole('button', { name: 'Clear' }).click();
+  await page.getByLabel('Search this list').fill('Acme'); ok((await page.locator('.dt-row').count()) === F.orders.filter((o) => o.customer_name.includes('Acme')).length, 'instant search'); await page.getByLabel('Search this list').fill('');
+  await page.getByRole('button', { name: 'Sort by Value' }).click(); const v1 = await page.locator('.dt-row').first().locator('div').nth(11).innerText(); ok(/£/.test(v1), 'sorting by value works');
+  await page.getByRole('button', { name: 'Save view' }).click(); await page.getByPlaceholder('Name this view').fill('My urgent'); await page.getByRole('button', { name: 'Save', exact: true }).click(); ok((await page.locator('.dt .chip', { hasText: 'My urgent' }).count()) === 1, 'custom view saved'); await page.reload(); await page.waitForSelector('.dt-row'); ok((await page.locator('.dt .chip', { hasText: 'My urgent' }).count()) === 1, 'saved view survives a reload');
+  await page.getByLabel('Select all shown').check(); ok((await page.getByRole('toolbar', { name: 'Bulk actions' }).count()) === 1 && (await page.getByRole('button', { name: 'Send to producer' }).isDisabled()), 'bulk bar appears; unbuilt actions are disabled'); const dl = page.waitForEvent('download'); await page.getByRole('button', { name: /Export \d+/ }).click(); ok((await dl).suggestedFilename().startsWith('orders-'), 'CSV export'); await page.getByRole('button', { name: 'Clear selection' }).click();
+  await shot(page, '02-orders');
+  await page.locator('.dt-row').first().click(); await page.getByRole('dialog').waitFor(); ok(/orders\/7\d+/.test(page.url()), 'order opens in a drawer with its own address'); ok((await page.getByRole('dialog').getByRole('tab').count()) === 9, 'nine detail tabs'); ok((await page.getByText('Why the system says this').count()) === 1, 'explainability panel'); await shot(page, '03-order-detail');
+  for (const t of ['Lines & stock', 'Artwork', 'Production', 'Producer', 'Purchasing', 'Warehouse', 'Exceptions', 'History']) { await page.getByRole('tab', { name: new RegExp('^' + t) }).click(); await page.waitForTimeout(80); }
+  await page.getByRole('tab', { name: /^Production/ }).click(); const hasOverride = await page.getByRole('button', { name: /Override position/ }).count(); if (hasOverride) { await page.getByRole('button', { name: /Override position/ }).first().click(); ok(await page.getByRole('button', { name: 'Save override' }).isDisabled(), 'override needs a reason'); await page.getByLabel(/Why are you overriding/).fill('Customer escalated'); await page.getByRole('button', { name: 'Save override' }).click(); await page.waitForTimeout(250); ok(st.n8n.at(-1).path === 'production' && st.n8n.at(-1).body.params.reason === 'Customer escalated', 'override sends the reason to the audited action'); }
+  await page.getByRole('tab', { name: /^Purchasing/ }).click(); await page.getByRole('button', { name: 'Compare options' }).click(); await page.getByRole('button', { name: 'Compare options' }).last().click(); await page.getByText('Recommendation').waitFor(); ok((await page.locator('.modal tbody tr').count()) === 2, 'supplier/producer options compared'); await page.locator('.modal tbody tr').nth(1).click(); ok(await page.getByText('some costs are missing').count() > 0, 'switching options is instant and explains incomplete ones'); await shot(page, '04-compare'); await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
+
+  console.log('workflows'); await goto(page, '#/'); await page.getByRole('button', { name: /Quick actions/ }).click(); await page.getByRole('menuitem', { name: /Allocate stock/ }).click();
+  await page.getByText('Running: Allocate stock').waitFor(); ok(true, 'running state shows'); await page.getByText('Allocate stock: done').waitFor(); ok((await page.locator('.toast', { hasText: 'Allocate stock: done' }).innerText()).includes('48 order(s) considered'), 'result summary and link in the success toast'); ok(st.n8n.some((c) => c.path === 'run-allocation' && c.auth === `Bearer ${jwt}`), 'workflow called with the login token'); await shot(page, '05-workflow-toast');
+  await ctx.close();
+  { const { page: p2, ctx: c2 } = await newPage(browser, { n8nStatus: 404 }); await signIn(p2); await p2.getByRole('button', { name: /Quick actions/ }).click(); await p2.getByRole('menuitem', { name: /Sync stock/ }).click(); await p2.getByText(/not switched on yet/).waitFor(); ok(true, 'an unpublished workflow is explained, not a silent failure'); await c2.close(); }
+
+  console.log('other pages'); const { page: pg, ctx: cg, st: sg } = await newPage(browser); await signIn(pg);
+  await goto(pg, '#/production'); await pg.waitForSelector('[aria-label="Production board"]'); ok((await pg.locator('[role=listitem]').count()) === 8, 'kanban has the 8 columns'); await shot(pg, '06-production-board');
+  await pg.getByRole('tab', { name: 'Schedule' }).click(); await pg.waitForSelector('[aria-label="Machine timeline"]'); ok((await pg.locator('.dt-row').count()) > 5, 'schedule lists steps with the system position alongside'); await shot(pg, '07-schedule'); await pg.getByRole('tab', { name: 'Machines' }).click(); await pg.getByText('Embroidery machine 1').waitFor(); ok(true, 'machine cards'); await shot(pg, '07b-machines');
+  await goto(pg, '#/stock'); await pg.waitForSelector('.dt-row'); await pg.locator('.dt .chip', { hasText: 'Low stock' }).click(); ok((await pg.locator('.dt-row').count()) > 0, 'stock views'); await pg.locator('.dt-row').first().click(); await pg.getByRole('dialog').waitFor(); ok((await pg.getByText('Reorder recommendation').count()) === 1, 'stock detail with reorder recommendation'); await pg.keyboard.press('Escape'); await shot(pg, '08-stock');
+  await goto(pg, '#/purchasing'); await pg.waitForSelector('.dt-row'); await pg.locator('.dt-row').first().click(); await pg.getByRole('dialog').waitFor(); ok((await pg.getByText('Lines').count()) >= 1, 'PO detail'); await pg.keyboard.press('Escape'); await pg.getByRole('tab', { name: /Emails/ }).click(); await pg.getByRole('button', { name: /Approve/ }).isDisabled().then((d) => ok(d, 'an email with no recipient cannot be approved')); await shot(pg, '09-purchasing');
+  await goto(pg, '#/producers'); await pg.waitForSelector('.dt-row'); await pg.locator('.dt-row').first().click(); await pg.getByRole('dialog').waitFor(); ok((await pg.getByText('Emergency contact').count()) === 1, 'producer detail'); await pg.keyboard.press('Escape'); await pg.getByRole('tab', { name: 'Movements' }).click(); ok((await pg.locator('.dt-row').count()) === 2, 'movements list'); await shot(pg, '10-producers');
+  await goto(pg, '#/warehouse'); await pg.waitForSelector('.dt-row'); ok((await pg.locator('.dt-row').count()) === 6, 'bins list'); await goto(pg, '#/artwork'); await pg.waitForSelector('.dt-row'); ok((await pg.locator('.dt-row').count()) === 20, 'artwork readiness list'); await shot(pg, '11-artwork');
+  await goto(pg, '#/exceptions'); await pg.waitForSelector('.dt-row'); await pg.locator('.dt-row').first().click(); await pg.getByRole('dialog').waitFor(); await pg.getByRole('button', { name: /Take it/ }).click(); await pg.getByRole('button', { name: 'Assign', exact: true }).click(); await pg.waitForTimeout(300); ok(sg.n8n.at(-1).path === 'exceptions' && sg.n8n.at(-1).body.action === 'assign', 'exceptions can be worked from the new page'); await pg.keyboard.press('Escape'); await shot(pg, '12-exceptions');
+  await goto(pg, '#/labels'); ok((await pg.getByText('No labels generated yet').count()) === 1, 'labels empty state explains what is missing'); await goto(pg, '#/analytics'); await pg.waitForSelector('svg'); ok((await pg.getByText('Orders by due date').count()) === 1, 'analytics charts'); await shot(pg, '13-analytics'); await goto(pg, '#/settings'); ok((await pg.getByText('selection.config').count()) === 1, 'settings lists engine configuration'); await cg.close();
+
+  console.log('roles, offline, mobile');
+  { const { page: pv, ctx: cv } = await newPage(browser, { role: 'viewer' }); await signIn(pv); await pv.getByRole('button', { name: /Quick actions/ }).click(); ok(await pv.getByRole('menuitem', { name: /Allocate stock/ }).isDisabled(), 'viewers cannot run workflows'); await cv.close(); }
+  { const { page: po, ctx: co } = await newPage(browser); await signIn(po); await co.setOffline(true); await po.waitForSelector('text=Offline'); ok(true, 'offline state is shown in the status bar'); await co.close(); }
+  { const { page: pm, ctx: cm } = await newPage(browser, { viewport: { width: 390, height: 844 }, dsf: 2 }); await signIn(pm); ok(!(await pm.locator('.sidebar').isVisible()) || (await pm.locator('.sidebar').boundingBox()).x < 0, 'sidebar is off-canvas on a phone'); ok((await pm.locator('.kpi').first().isVisible()), 'KPIs visible on a phone'); await shot(pm, '14-mobile-home'); await pm.getByRole('button', { name: 'Open menu' }).click(); await pm.waitForTimeout(350); await shot(pm, '15-mobile-menu'); await cm.close(); }
+} finally { await browser.close(); server.kill(); }
+console.log(failures ? `\n${failures} check(s) FAILED` : '\nALL E2E CHECKS PASSED'); process.exit(failures ? 1 : 0);
