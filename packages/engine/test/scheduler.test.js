@@ -127,3 +127,18 @@ test('already-overdue work alone does not declare a bottleneck', () => {
   assert.equal(plan.bottleneck, null);
   assert.equal(plan.summary.steps_late, 1);               // still reported as late
 });
+
+test('DecoNetwork holds (stock, PO, artwork, on hold) block scheduling with a specific reason', () => {
+  const plan = buildPlan(base({
+    orders: [order('ok', { stock_secured: true }), order('stk', { hold_reason: 'awaiting stock (DecoNetwork status)' }),
+             order('art', { hold_reason: 'awaiting artwork (DecoNetwork status)' })],
+    steps: [step('ok', 'embroidery', 60), step('stk', 'embroidery', 60), step('art', 'embroidery', 60)] }));
+  assert.deepEqual(seq(plan), ['ok']);
+  assert.deepEqual(plan.blocked.map((b) => b.reason).sort(), ['awaiting artwork (DecoNetwork status)', 'awaiting stock (DecoNetwork status)']);
+});
+
+test('orders whose garments are already secured by DecoNetwork get the stock-ready bonus', () => {
+  const plan = buildPlan(base({ orders: [order('a', { stock_secured: true }), order('b')], steps: [step('a', 'embroidery', 60), step('b', 'embroidery', 60)] }));
+  assert.equal(plan.steps.find((s) => s.order_id === 'a').score_breakdown.stock_ready, 15);
+  assert.equal(plan.steps.find((s) => s.order_id === 'b').score_breakdown.stock_ready, undefined);
+});

@@ -77,7 +77,9 @@ language sql stable security definer set search_path = flow, public as $$
     'orders', coalesce((select jsonb_agg(jsonb_build_object('id', o.id, 'order_ref', o.order_ref,
                   'customer_name', o.customer_name, 'due_date', o.due_date, 'priority', o.priority, 'is_vip', o.is_vip,
                   'order_status', o.order_status, 'alloc_state', o.alloc_state, 'artwork_status', o.artwork_status,
-                  'proof_status', o.proof_status)) from open_orders o), '[]'::jsonb),
+                  'proof_status', o.proof_status, 'stock_secured', o.stock_secured,
+                  'hold_reason', (select m.block_reason from flow.deco_status_map m where m.code = o.deco_status and m.blocks_production)))
+                from open_orders o), '[]'::jsonb),
     'steps', coalesce((select jsonb_agg(jsonb_build_object('order_id', s.order_id, 'method_code', s.method,
                   'units', s.units, 'run_min', s.run_min, 'colours', s.colours, 'garment_types', s.types))
                 from (select l.order_id, mth.method,

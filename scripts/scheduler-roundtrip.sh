@@ -17,21 +17,23 @@ check() { $PSQL -v ON_ERROR_STOP=1 -q -c "$1" >/dev/null; }   # raises inside DO
 
 # ---- fixtures (absolute dates so the run is repeatable; FIXED_NOW is Monday 09 Nov 2026 08:00) ----
 $PSQL -v ON_ERROR_STOP=1 -q <<'SQL'
-insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, total_units, order_status) values
-  ('S1','#S1','Alpha','2026-11-11 12:00+00',40,'awaiting_stock'),
-  ('S2','#S2','Beta', '2026-11-20 12:00+00',20,'awaiting_stock'),
-  ('S3','#S3','Gamma','2026-11-12 12:00+00',10,'on_hold'),
-  ('S4','#S4','Delta','2026-11-06 12:00+00',15,'awaiting_stock');
+insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, total_units, order_status, deco_status, stock_secured) values
+  ('S1','#S1','Alpha','2026-11-11 12:00+00',40,'ready_for_production',1,true),
+  ('S2','#S2','Beta', '2026-11-20 12:00+00',20,'ready_for_production',1,true),
+  ('S3','#S3','Gamma','2026-11-12 12:00+00',10,'on_hold',7,false),
+  ('S4','#S4','Delta','2026-11-06 12:00+00',15,'ready_for_production',1,true),
+  ('S5','#S5','Epsilon','2026-11-10 12:00+00',12,'awaiting_stock',9,false);
 insert into flow.order_lines (deco_workflow_item_id, order_id, sku, colour, garment_type, qty_required, decoration_methods, stitches_per_piece)
 select v.wi, o.id, 'SK-' || v.wi, 'Navy', 'Polos', v.q, v.m::text[], 6000
-from (values ('SL1','S1',40,'{dtf,embroidery}'),('SL2','S2',20,'{embroidery}'),('SL3','S3',10,'{embroidery}'),('SL4','S4',15,'{embroidery}')) v(wi, oid, q, m)
+from (values ('SL1','S1',40,'{dtf,embroidery}'),('SL2','S2',20,'{embroidery}'),('SL3','S3',10,'{embroidery}'),('SL4','S4',15,'{embroidery}'),('SL5','S5',12,'{embroidery}')) v(wi, oid, q, m)
 join flow.orders o on o.deco_order_id = v.oid;
 SQL
 
 echo "pass 1"; R1=$(pass); echo "$R1"
 check "do \$\$ begin
-  if (select count(*) from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id in ('S1','S2','S3','S4')) <> 5 then raise exception 'expected 5 steps'; end if;
-  if not exists (select 1 from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S3' and js.status='blocked' and js.blocked_reason='order is on hold') then raise exception 'on-hold order not reported blocked'; end if;
+  if (select count(*) from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id in ('S1','S2','S3','S4','S5')) <> 6 then raise exception 'expected 6 steps'; end if;
+  if not exists (select 1 from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S3' and js.status='blocked' and js.blocked_reason='order is on hold in DecoNetwork') then raise exception 'on-hold order not reported blocked'; end if;
+  if not exists (select 1 from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S5' and js.status='blocked' and js.blocked_reason like 'awaiting stock%') then raise exception 'awaiting-stock order should be blocked with its reason'; end if;
   if exists (select 1 from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id in ('S1','S2','S4') and (js.machine_id is null or js.reason is null or js.planned_start is null)) then raise exception 'scheduled step missing machine/reason/time'; end if;
   if (select risk_score from flow.orders where deco_order_id='S4') < 95 then raise exception 'overdue order should have risk >= 95'; end if;
   if (select js.status from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S1' and js.method_code='dtf') <> 'ready' then raise exception 'first step should be ready'; end if;

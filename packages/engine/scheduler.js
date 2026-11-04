@@ -84,7 +84,7 @@ function urgency(job, ctx) {
   }
   if (job.priority >= 1) parts.priority = ({ 1: 0.4, 2: 1, 3: 2 }[Math.min(job.priority, 3)]) * W.rush_bonus;
   if (job.vip) parts.vip = W.vip_bonus;
-  if (job.alloc_state === 'full') parts.stock_ready = W.stock_ready_bonus;
+  if (job.alloc_state === 'full' || job.stock_secured) parts.stock_ready = W.stock_ready_bonus;   // garments already secured
   let total = 0;
   for (const k in parts) total += parts[k];
   return { total: round1(total), parts };
@@ -129,7 +129,8 @@ function buildJobs(input, S) {
     let dueEnd = null;
     if (o.due_date) { const p = localParts(Date.parse(o.due_date), S.timezone); dueEnd = zonedToUtc(p.y, p.m, p.d, 23, 59, S.timezone); }
     let orderBlock = null;
-    if (o.order_status === 'on_hold') orderBlock = 'order is on hold';
+    if (o.hold_reason) orderBlock = o.hold_reason;           // DecoNetwork status: on hold / awaiting stock / PO / artwork
+    else if (o.order_status === 'on_hold') orderBlock = 'order is on hold';
     else if (o.order_status === 'blocked') orderBlock = 'order is blocked';
     else if (S.blocked_statuses.includes(String(o.artwork_status || '').toLowerCase())) orderBlock = `artwork ${o.artwork_status}`;
     else if (S.blocked_statuses.includes(String(o.proof_status || '').toLowerCase())) orderBlock = `proof ${o.proof_status}`;
@@ -139,7 +140,7 @@ function buildJobs(input, S) {
       jobs.push({
         key: oid + '|' + s.method_code, order_id: oid, order_ref: o.order_ref, customer: o.customer_name || '', method: s.method_code,
         units: Number(s.units || 0), run_min: Number(s.run_min || 0), colours: s.colours || [], garment_types: s.garment_types || [],
-        dueEnd, priority: Number(o.priority || 0), vip: !!o.is_vip, alloc_state: o.alloc_state, step_index: i,
+        dueEnd, priority: Number(o.priority || 0), vip: !!o.is_vip, alloc_state: o.alloc_state, stock_secured: !!o.stock_secured, step_index: i,
         dep: i > 0 ? oid + '|' + steps[i - 1].method_code : null, order_remaining_min: remaining,
         blocked: orderBlock || (activeMethods.has(s.method_code) ? null : `no active machine for ${s.method_code}`),
         pin_rank: pin ? Number(pin.pin_rank || 1) : null, pin_note: pin ? pin.note : null, pin_by: pin ? pin.set_by : null

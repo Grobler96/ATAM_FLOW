@@ -47,8 +47,11 @@ at weekends. A job's setup is the method's setup time if it is first on the mach
 
 ## Blocked work (never scheduled, always listed with a reason)
 
-Order on hold / blocked; artwork or proof marked missing/pending/rejected (fields are not populated yet); no active machine
-for a method; a blocked earlier step; stock not allocated *(only if `stock_gate` = `require_allocation`; default `ignore`)*.
+Driven mainly by the **DecoNetwork order status**: on hold (7), awaiting purchase order (8), awaiting stock (9) and awaiting artwork (10)
+all block scheduling, with the reason shown ("awaiting stock (DecoNetwork status)"). Orders at "ready for production" (1) already have
+their garments secured by DecoNetwork and get the stock-ready bonus. Also blocked: a method with no active machine, a blocked earlier
+step, and (if populated) artwork/proof marked missing/pending/rejected. The optional `stock_gate = require_allocation` is for when the
+allocation engine should decide stock readiness instead.
 
 ## Manual override
 
@@ -59,4 +62,4 @@ and the reason says who pinned it and why. Clearing the pin restores the recomme
 ## Known limits (v1)
 
 Machine speed is not modelled beyond the minutes-per-unit estimates; no bank-holiday calendar; no operator availability;
-stock readiness and artwork/approval status are ignored until those data exist; packing is not scheduled.
+artwork/proof detail beyond DecoNetwork's own status is not captured yet; packing is not scheduled.

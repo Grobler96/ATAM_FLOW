@@ -1,20 +1,22 @@
 # Assumptions and open questions
 
-## Needs your answer (affects Phase 3 correctness)
+## Answered (4 Nov 2026)
 
-1. **Does DecoNetwork already deduct stock for orders in production?** Your existing "working stock" concept
-   (`sku_working_stock`, added to on-hand for stock value) suggests `inv_lvl` excludes garments already pulled
-   for in-progress orders. If so, allocating those orders again would double-count. We need to know *at which
-   order stage* DecoNetwork deducts stock, so the allocation engine only reserves for orders where it has not.
-2. **SKU coverage.** Only 201 of 598 open order lines have a SKU present in `sku_inventory` (308 SKUs in stock).
-   The rest are presumably supplier-delivered-to-order or listed under different SKUs. Placeholder stock rows
-   (qty 0) are created so these show as shortages; we need to decide how supplier stock (Ralawise/Portwest feeds)
-   and drop-ship lines should be treated.
-3. **DecoNetwork status codes** (`flow.deco_status_map`, all flagged assumed except 3 = shipped). Please confirm
-   what 1, 2, 4, 6, 7, 8, 9 mean and which are "open".
-4. **Dismissed orders.** Orders dismissed in ATAM GO are treated as inactive in ATAM_FLOW.
-5. **Credential hygiene.** DecoNetwork username/password are stored in plain text inside existing n8n HTTP nodes.
-   Recommend rotating them and moving to an n8n credential. ATAM_FLOW workflows will not contain them.
+- **Stock deduction:** DecoNetwork takes stock out when an order is placed *if the item is in stock*. So `qty_on_hand` is already net of
+  in-stock orders, orders at status 1/2 are already secured (`stock_secured`), and allocation only concerns orders **awaiting stock (9)
+  or a purchase order (8)**. No double counting.
+- **Status codes:** 1 ready for production · 2 ready for shipping · 3 shipped · 4 cancelled · 6 removed · 7 on hold · 8 awaiting purchase
+  order · 9 awaiting stock · 10 awaiting artwork. Held in `flow.deco_status_map`; none are assumed any more.
+
+## Still open
+
+1. **When goods are received against a PO, does DecoNetwork automatically attach them to the waiting order and move it to status 1?**
+   If yes, ATAM_FLOW only needs to *predict and prioritise*; if no, a person must move the order in DecoNetwork after our recommendation.
+2. **Why are 77 orders (5,357 units) on hold?** Payment, proof, customer request? It is the largest pile, and a "what-if" load forecast
+   for it could be useful.
+3. **SKU coverage.** 350 SKUs on open order lines are not in `sku_inventory` (placeholders created). Are these supplier-delivered or
+   listed under different SKUs?
+4. **Credential hygiene.** DecoNetwork username/password are stored in plain text inside existing n8n HTTP nodes. Recommend rotating.
 
 ## Assumptions made (all editable)
 
@@ -30,3 +32,4 @@
 - ~~Apply migrations to the live project~~ Done 4 Nov 2026 (migrations 1-7; syncs verified idempotent on live data).
 - Add `flow` to **Exposed schemas** (Supabase → Settings → API) before the dashboard (Phase 4). Not needed for n8n: it uses `public.flow_*` wrappers.
 - Decide roles for the non-superuser ATAM GO users (only superusers are seeded as admins).
+- Apply `supabase/pending/*` (contain delete/drop statements, so Supabase asks for an interactive confirmation).

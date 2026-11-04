@@ -59,6 +59,26 @@ select pg_temp.assert((select (j->>'orders_updated')::int from r3) = 1, 'source 
 select pg_temp.assert((select total_units = 50 and priority = 2 and is_vip and order_status='in_production' and production_notes='keep me'
                        from flow.orders where deco_order_id='1001'), 'sync updates source fields, never flow-owned ones');
 
+-- DecoNetwork status drives pre-production state; only a CHANGE of DecoNetwork status moves it
+select pg_temp.assert((select order_status = 'on_hold' and not stock_secured from flow.orders where deco_order_id='1004'), 'status 7 maps to on_hold');
+select pg_temp.assert((select order_status = 'in_production' from flow.orders where deco_order_id='1001'), 'manual in_production survives while DecoNetwork status is unchanged');
+reset role;
+update public.upcoming_orders set order_status = 1, synced_at = now() where order_id='1004';
+set role service_role;
+select flow.sync_orders('test');
+select pg_temp.assert((select order_status = 'ready_for_production' and stock_secured from flow.orders where deco_order_id='1004'), 'status 1 = ready for production, stock secured by DecoNetwork');
+reset role;
+update public.upcoming_orders set order_status = 10, synced_at = now() where order_id='1004';
+set role service_role;
+select flow.sync_orders('test');
+select pg_temp.assert((select order_status = 'blocked' and artwork_status = 'awaiting' and not stock_secured from flow.orders where deco_order_id='1004'), 'status 10 = blocked awaiting artwork');
+reset role;
+update public.upcoming_orders set order_status = 1, synced_at = now() where order_id='1004';
+set role service_role;
+select flow.sync_orders('test');
+select pg_temp.assert((select order_status = 'ready_for_production' and artwork_status is null from flow.orders where deco_order_id='1004'), 'artwork hold clears when DecoNetwork moves on');
+select pg_temp.assert((select count(*) from flow.deco_status_map where is_assumed) = 0, 'no assumed status codes remain');
+
 -- order later ships in DecoNetwork -> closed + dispatched
 reset role;
 update public.upcoming_orders set date_shipped = now(), order_status = 3 where order_id='1001';
