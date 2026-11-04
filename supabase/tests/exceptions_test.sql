@@ -151,3 +151,20 @@ do $$ begin begin update flow.exception_actions set note = 'tampered' where id =
 -- keep later suites isolated
 update flow.orders set is_active = false where deco_order_id in ('E1','E2','E3','E4');
 \echo exceptions tests passed
+
+-- ---- 14. browser access: signed-in members read the dashboard views; strangers and anonymous users get nothing ----
+insert into flow.user_roles values ('00000000-0000-0000-0000-0000000000e1', 'manager') on conflict do nothing;
+select flow.exceptions_detect_all();
+select pg_temp.assert((select count(*) from flow.flow_runs where workflow = 'exceptions') >= 1, 'each detection run is recorded');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+select pg_temp.assert((select public.ui_my_role()) = 'manager', 'the page can learn the signed-in role');
+select pg_temp.assert((select count(*) from public.ui_exceptions) > 0 and (select count(*) from public.ui_exception_types) > 10 and (select last_detection_at is not null from public.ui_status), 'a member can read exceptions, types and last-checked time');
+select pg_temp.assert((select count(*) from public.ui_order_accountability) > 0 and (select count(*) from public.ui_exception_history) > 0, 'accountability and history views readable');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000ff', false);
+select pg_temp.assert((select count(*) from public.ui_exceptions) = 0 and public.ui_my_role() is null, 'a signed-in stranger with no role sees nothing');
+reset role;
+set role anon;
+do $$ begin begin perform count(*) from public.ui_exceptions; raise exception 'anonymous could read exceptions'; exception when insufficient_privilege then null; end; end $$;
+reset role;
+\echo ui view tests passed

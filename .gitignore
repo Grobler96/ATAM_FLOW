@@ -8,3 +8,4 @@ dist/
 .pgdata/
 # n8n exports must be secret-stripped before commit; raw exports stay local
 n8n/workflows/*.raw.json
+e2e/shots/

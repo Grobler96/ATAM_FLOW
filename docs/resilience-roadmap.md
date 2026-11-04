@@ -46,7 +46,7 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 | R8 | Order-change detection and impact assessment | |
 | R9 | Courier monitoring and claims | |
 | R10 | Manual override set | |
-| R11 | **Dashboard**: Exceptions page first, then the home page (morning / day / evening), purchasing, artwork, selection, third-party, metrics; phone-friendly | Built alongside from R1 so each step can be used and tested with real logins |
+| R11 (Exceptions page **done 4 Nov 2026**, see [dashboard.md](dashboard.md)) | **Dashboard**: Exceptions page first, then the home page (morning / day / evening), purchasing, artwork, selection, third-party, metrics; phone-friendly | Built alongside from R1 so each step can be used and tested with real logins |
 | R12 | **Producer portal** (receipt confirmation, stages, queries, evidence) raising into exceptions | Needs R1 and R4 |
 | R13 | Metrics views | |
 
