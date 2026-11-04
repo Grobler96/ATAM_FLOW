@@ -1,13 +1,13 @@
 # n8n workflow map
 
 All ATAM_FLOW workflows are prefixed `ATAM_FLOW ·`, live in the same n8n project as the existing syncs, are
-**unpublished until approved**, report failures to the shared error workflow (`Shared Error Alert`), and call
+**published 4 Nov 2026** (~1,200 scheduled executions/month: 720 + 240 + 240), report failures to the shared error workflow (`Shared Error Alert`), and call
 Supabase through the existing `Supabase account 2` credential. No DecoNetwork credentials are used: they read the
 data your existing syncs already land in Supabase.
 
 | Workflow | ID | Schedule | Dashboard webhook (POST) | Roles |
 |---|---|---|---|---|
-| ATAM_FLOW · Sync orders | `CdfptK05bxoJeGEq` | every 30 min | `/webhook/atam-flow/sync-orders` | admin, manager |
+| ATAM_FLOW · Sync orders | `CdfptK05bxoJeGEq` | hourly at :10 (after the hourly order sync) | `/webhook/atam-flow/sync-orders` | admin, manager |
 | ATAM_FLOW · Sync stock | `15NSypPzcIXKcfPA` | every 3 h at :40 (after inventory sync at :10) | `/webhook/atam-flow/sync-stock` | admin, manager, warehouse |
 | ATAM_FLOW · Sync purchase orders | `9mNTEKLk7lVV3d8h` | every 3 h at :50 (after PO sync at :20) | `/webhook/atam-flow/sync-purchase-orders` | admin, manager, warehouse |
 | ATAM_FLOW · Verify caller (sub-workflow) | `lALM3G47uOizvD9t` | n/a | n/a | n/a |
