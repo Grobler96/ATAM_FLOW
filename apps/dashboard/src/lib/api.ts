@@ -49,3 +49,6 @@ async function call(path: string, body: unknown): Promise<ActionResult> {
 
 export const exceptionAction = (action: string, params: Record<string, unknown>): Promise<ActionResult> => call('exceptions', { action, params });
 export const runCheckNow = (): Promise<ActionResult> => call('run-exceptions', {});
+
+// Generic call to any ATAM_FLOW action webhook that takes {action, params} (purchasing, artwork, selection, exceptions ...).
+export const exceptionActionTo = (path: string, action: string, params: Record<string, unknown>): Promise<ActionResult> => call(path, { action, params });

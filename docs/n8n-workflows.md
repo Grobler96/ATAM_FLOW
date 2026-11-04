@@ -21,6 +21,7 @@ data your existing syncs already land in Supabase.
 | ATAM_FLOW · Supplier and producer selection | `9omdNalZkjKEYAy1` | n/a (unpublished) | `/webhook/atam-flow/selection` | admin, manager |
 | ATAM_FLOW · Exception detector and escalation | `ZPEjWqfNDOqpDPCo` | every 30 min (unpublished) | `/webhook/atam-flow/run-exceptions` | admin, manager, warehouse, production |
 | ATAM_FLOW · Exception actions | `K7aWo67bi7nqEqiQ` | n/a (unpublished) | `/webhook/atam-flow/exceptions` | all roles (write-off, cancel, reopen: manager/admin) |
+| ATAM_FLOW · Production actions | `JcMSouGUgIpqqiZF` | n/a (unpublished) | `/webhook/atam-flow/production` | admin, manager, production |
 | ATAM_FLOW · Verify caller (sub-workflow) | `lALM3G47uOizvD9t` | n/a | n/a | n/a |
 
 ## How a dashboard call is secured
@@ -70,3 +71,7 @@ See [selection.md](selection.md). The access check was exercised live (invalid t
 ## Exceptions (built 4 Nov 2026, unpublished)
 
 See [exceptions.md](exceptions.md). The detector workflow ran clean live (a repeat run changed nothing); the actions webhook has been tested through the database functions only.
+
+## Production actions (built 4 Nov 2026, unpublished)
+
+`pin` (position + mandatory reason) and `unpin`, calling the audited `flow_set_schedule_override` / `flow_clear_schedule_override`. Used by the Orders drawer. See [ui.md](ui.md).

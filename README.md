@@ -15,7 +15,7 @@ runs in **n8n**; data lives in **Supabase** (`flow` schema); the dashboard is a 
 | `supabase/tests/` | Local behavioural tests (idempotency, double-allocation guard, RLS) |
 | `scripts/test-db.sh` | Runs migrations + tests against a throwaway local Postgres |
 | `n8n/workflows/` | Exported n8n workflows (secrets stripped) |
-| `apps/dashboard/` | Dashboard (Exceptions page built; see docs/dashboard.md) |
+| `apps/dashboard/` | Main internal UI / command centre (see docs/ui.md) |
 | `packages/engine/` | Reference TypeScript for scoring/scheduling with unit tests (Phase 3) |
 | `docs/` | Architecture, data model, scoring/sequencing, third-party production, n8n workflow map, assumptions |
 

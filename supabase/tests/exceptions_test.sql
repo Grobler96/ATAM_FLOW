@@ -168,3 +168,22 @@ set role anon;
 do $$ begin begin perform count(*) from public.ui_exceptions; raise exception 'anonymous could read exceptions'; exception when insufficient_privilege then null; end; end $$;
 reset role;
 \echo ui view tests passed
+
+-- ---- 15. command-centre read models: members see them, strangers and anonymous users do not ----
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+select pg_temp.assert((select count(*) from public.ui_orders) > 0 and (select count(*) from public.ui_stock) > 0 and (select count(*) from public.ui_machines) > 0 and (select count(*) from public.ui_producers) > 0, 'orders, stock, machines and producers readable');
+select pg_temp.assert((select count(*) from public.ui_purchase_orders) > 0 and (select count(*) from public.ui_po_lines) > 0 and (select count(*) from public.ui_order_lines) > 0, 'purchasing and order lines readable');
+select pg_temp.assert((select count(*) from public.ui_search('exc')) > 0 and (select count(*) from public.ui_search('E')) = 0, 'search works and needs at least two characters');
+select pg_temp.assert((select count(*) from public.ui_activity(20)) > 0, 'activity feed readable');
+select pg_temp.assert((select count(*) from public.ui_stock_movements) >= 0, 'stock movement history readable');
+select pg_temp.assert((select count(*) from public.ui_sync_runs) > 0 and (select count(*) from public.ui_notifications) > 0, 'sync freshness and notifications readable');
+select pg_temp.assert((select count(*) from public.ui_order_history((select id from public.ui_orders limit 1))) >= 0, 'order history callable');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000ff', false);
+select pg_temp.assert((select count(*) from public.ui_orders) = 0 and (select count(*) from public.ui_search('exc')) = 0 and (select count(*) from public.ui_activity(20)) = 0, 'a signed-in stranger gets nothing from views or functions');
+reset role;
+set role anon;
+do $$ begin begin perform count(*) from public.ui_orders; raise exception 'anonymous could read orders'; exception when insufficient_privilege then null; end; end $$;
+do $$ begin begin perform count(*) from public.ui_search('exc'); raise exception 'anonymous could search'; exception when insufficient_privilege then null; end; end $$;
+reset role;
+\echo command centre read model tests passed

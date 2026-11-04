@@ -1,5 +1,7 @@
 # Dashboard
 
+> The dashboard has grown into the full internal command centre: see [ui.md](ui.md). This file keeps the publishing steps and the original Exceptions-page notes.
+
 `apps/dashboard`: Vite + React + TypeScript, static build, hash routing, mobile first. First page: **Exceptions & issues**.
 
 ## What the Exceptions page does
