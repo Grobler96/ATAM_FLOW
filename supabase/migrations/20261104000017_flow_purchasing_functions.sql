@@ -713,7 +713,8 @@ left join flow.producers pr on pr.id = mv.producer_id;
 -- n8n wrappers + permissions
 -- ---------------------------------------------------------------------------
 create or replace function public.flow_po_requirements(p_order_ids uuid[] default null) returns jsonb
-language sql security definer set search_path = flow, public as $$ select coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) from flow.po_requirements(p_order_ids) r where r.qty_needed > 0 $$;
+language sql security definer set search_path = flow, public as $$
+  select jsonb_build_object('ok', true, 'lines', coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb)) from flow.po_requirements(p_order_ids) r where r.qty_needed > 0 $$;
 create or replace function public.flow_create_purchase_order(p_supplier uuid, p_lines jsonb, p_actor text, p_opts jsonb default '{}'::jsonb) returns jsonb
 language sql security definer set search_path = flow, public as $$ select flow.create_purchase_order(p_supplier, p_lines, p_actor, p_opts) $$;
 create or replace function public.flow_create_po_for_orders(p_supplier uuid, p_order_ids uuid[], p_actor text, p_opts jsonb default '{}'::jsonb) returns jsonb
