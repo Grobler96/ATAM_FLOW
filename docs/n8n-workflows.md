@@ -30,8 +30,8 @@ returns `ok:false` raises an error so Daniel and Oliver are emailed (6-hour cool
 
 ## Pending
 
-- `supabase/pending/…_flow_caller_role_json.sql` makes the role lookup return an object. Optional hardening;
-  the verify workflow already accepts both shapes.
+- ~~`flow_caller_role` returns an object~~ applied 4 Nov 2026 (migration 8). The verify workflow accepts both shapes,
+  so nothing else needed changing.
 - `supabase/pending/20261104000009_flow_scheduler.sql` (scheduler tables, `flow.scheduler_input()`, `flow.apply_schedule()`, pins, queue view)
   is written and tested locally (14 engine tests plus a full database round trip) but **not applied to the live project yet**:
   Supabase asked for an interactive confirmation that nobody was there to answer. The scheduler n8n workflow is built after it is applied.
