@@ -10,6 +10,7 @@ data your existing syncs already land in Supabase.
 | ATAM_FLOW · Sync orders | `CdfptK05bxoJeGEq` | hourly at :10 (after the hourly order sync) | `/webhook/atam-flow/sync-orders` | admin, manager |
 | ATAM_FLOW · Sync stock | `15NSypPzcIXKcfPA` | every 3 h at :40 (after inventory sync at :10) | `/webhook/atam-flow/sync-stock` | admin, manager, warehouse |
 | ATAM_FLOW · Sync purchase orders | `9mNTEKLk7lVV3d8h` | every 3 h at :50 (after PO sync at :20) | `/webhook/atam-flow/sync-purchase-orders` | admin, manager, warehouse |
+| ATAM_FLOW · Production scheduler | `qpPBi8l8b1Aq2TfH` | hourly at :20 (after the orders sync) | `/webhook/atam-flow/run-scheduler` | admin, manager, production |
 | ATAM_FLOW · Verify caller (sub-workflow) | `lALM3G47uOizvD9t` | n/a | n/a | n/a |
 
 ## How a dashboard call is secured
@@ -28,10 +29,12 @@ returns `ok:false` raises an error so Daniel and Oliver are emailed (6-hour cool
 - Webhook with an invalid token: denied via the 401 path, sync not run.
 - Not yet tested: the *allowed* path with a real user token (needs a signed-in dashboard user).
 
-## Pending
+## Production scheduler (built 4 Nov 2026, **unpublished**)
 
-- ~~`flow_caller_role` returns an object~~ applied 4 Nov 2026 (migration 8). The verify workflow accepts both shapes,
-  so nothing else needed changing.
-- `supabase/pending/20261104000009_flow_scheduler.sql` (scheduler tables, `flow.scheduler_input()`, `flow.apply_schedule()`, pins, queue view)
-  is written and tested locally (14 engine tests plus a full database round trip) but **not applied to the live project yet**:
-  Supabase asked for an interactive confirmation that nobody was there to answer. The scheduler n8n workflow is built after it is applied.
+Flow: `flow_scheduler_input` (Postgres) → **Code node running `packages/engine/scheduler.js`** → `flow_apply_schedule` (Postgres).
+The Code node holds a copy of the engine; regenerate it with `node scripts/engine-literal.mjs` whenever the engine changes
+(a Code node cannot import repo files). Tested live: first run planned 99 orders / 116 steps / 22 batches; the second run
+changed nothing. Publishing it would add about 720 executions a month.
+
+Dashboard webhooks for pins (`flow_set_schedule_override` / `flow_clear_schedule_override`) exist as database functions and still
+need their own n8n webhook workflows (Phase 4).

@@ -366,7 +366,7 @@ function buildPlan(input) {
     bottleneck, utilisation,
     summary: { orders_planned: orders.length, steps_scheduled: steps.length - blocked.length, steps_blocked: blocked.length,
       steps_late: steps.filter((s) => s.is_late).length, batches: batches.length, pins_applied: jobs.filter((j) => j.pin_rank != null).length,
-      stock_gate: S.stock_gate, notes: S.stock_gate === 'ignore' ? ['Stock availability is not yet considered (allocation engine pending).'] : [] } };
+      stock_gate: S.stock_gate, notes: S.stock_gate === 'ignore' ? ['Stock readiness follows the DecoNetwork order status: orders awaiting stock, a PO or artwork are held.'] : [] } };
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { buildPlan, localParts, zonedToUtc, buildWindows, place };
