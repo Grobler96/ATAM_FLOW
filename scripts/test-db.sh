@@ -16,5 +16,9 @@ run "$PGBIN/pg_ctl -D $WORK/data -o '-p $PORT -k $WORK -c listen_addresses=' -l 
 PSQL="$PGBIN/psql -h $WORK -p $PORT -U postgres -v ON_ERROR_STOP=1 -q"
 run "$PSQL -d postgres -c 'create database flowtest'"
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/bootstrap_local.sql"
-for f in "$ROOT"/supabase/migrations/*.sql; do echo "applying $(basename "$f")"; run "$PSQL -d flowtest -f $f"; done
+# applied migrations first, then supabase/pending (written + tested but not yet applied to the live project)
+for f in "$ROOT"/supabase/migrations/*.sql "$ROOT"/supabase/pending/*.sql; do echo "applying $(basename "$f")"; run "$PSQL -d flowtest -f $f"; done
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/sync_test.sql" || { run "$PSQL -d flowtest -c \"select workflow,status,error from flow.flow_runs order by started_at desc limit 3\"" || true; exit 1; }
+
+NODE="$(command -v node)"
+run "env PSQL='$PSQL -d flowtest' ROOT='$ROOT' WORK='$WORK' NODE='$NODE' FIXED_NOW=2026-11-09T08:00:00Z bash $ROOT/scripts/scheduler-roundtrip.sh"
