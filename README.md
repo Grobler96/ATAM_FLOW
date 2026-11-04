@@ -17,7 +17,7 @@ runs in **n8n**; data lives in **Supabase** (`flow` schema); the dashboard is a 
 | `n8n/workflows/` | Exported n8n workflows (secrets stripped) |
 | `apps/dashboard/` | Frontend (Phase 4) |
 | `packages/engine/` | Reference TypeScript for scoring/scheduling with unit tests (Phase 3) |
-| `docs/` | Architecture, data model, assumptions |
+| `docs/` | Architecture, data model, scoring/sequencing, third-party production, n8n workflow map, assumptions |
 
 ## Run the database tests
 
@@ -29,3 +29,9 @@ scripts/test-db.sh
 
 Nothing secret is stored in this repo. Frontend uses the Supabase publishable key only; the service-role key and
 DecoNetwork credentials live in n8n credentials. See `.env.example`.
+
+## Where things are
+
+- [docs/third-party-production.md](docs/third-party-production.md): outsourced production and chain of custody
+- [docs/scoring-and-sequencing.md](docs/scoring-and-sequencing.md): how the production scheduler decides
+- [docs/n8n-workflows.md](docs/n8n-workflows.md): workflow map and webhooks

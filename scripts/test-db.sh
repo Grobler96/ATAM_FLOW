@@ -23,3 +23,4 @@ run "$PSQL -d flowtest -f $ROOT/supabase/tests/sync_test.sql" || { run "$PSQL -d
 
 NODE="$(command -v node)"
 run "env PSQL='$PSQL -d flowtest' ROOT='$ROOT' WORK='$WORK' NODE='$NODE' FIXED_NOW=2026-11-09T08:00:00Z bash $ROOT/scripts/scheduler-roundtrip.sh"
+run "$PSQL -d flowtest -f $ROOT/supabase/tests/third_party_test.sql"

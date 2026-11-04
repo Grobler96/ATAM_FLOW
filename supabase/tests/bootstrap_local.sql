@@ -38,3 +38,6 @@ create table public.purchase_orders (
   date_raised timestamptz, date_delivery timestamptz, date_received timestamptz, qty_ordered int, qty_received int,
   sub_total numeric, tax numeric, total numeric, lines jsonb, synced_at timestamptz);
 create table public.product_type_rules (id int generated always as identity primary key, priority int, pattern text, product_type text);
+
+create table public.sku_costs (sku text primary key, product_name text, unit_cost numeric, last_cost_date timestamptz, updated_at timestamptz);
+insert into public.sku_costs values ('POLO-BLK-M','Polo',4.5,now(),now()),('POLO-WHT-M','Polo',4.2,now(),now());
