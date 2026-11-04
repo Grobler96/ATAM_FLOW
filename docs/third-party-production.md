@@ -47,7 +47,7 @@ Some orders are decorated by outside producers. ATAM_FLOW buys and books in the 
 
 ## Still to build
 
-1. **Allocation engine** (awaiting-stock orders) and **routing engine** (internal vs which producer vs split vs hold, with reasons) – routes are
+1. **Routing engine** (the allocation engine is built: see allocation.md) (internal vs which producer vs split vs hold, with reasons) – routes are
    currently created when a consignment is created; the engine will create *recommended* routes for a manager to confirm.
 2. **n8n workflows**: Third-Party Dispatch / Outbound Movement, Producer Receipt Confirmation, Producer Return Processing, Exception Handler
    (notifications), Producer Performance Sync, plus the overdue-return alert schedule.

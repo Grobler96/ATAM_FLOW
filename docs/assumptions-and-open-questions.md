@@ -14,9 +14,11 @@
    If yes, ATAM_FLOW only needs to *predict and prioritise*; if no, a person must move the order in DecoNetwork after our recommendation.
 2. **Why are 77 orders (5,357 units) on hold?** Payment, proof, customer request? It is the largest pile, and a "what-if" load forecast
    for it could be useful.
-3. **SKU coverage.** 350 SKUs on open order lines are not in `sku_inventory` (placeholders created). Are these supplier-delivered or
+3. **Are POs raised per order?** Many PO quantities equal the waiting order's need, which suggests DecoNetwork raises POs for specific orders. The stored PO lines carry no order reference, so the engine matches by SKU. If DecoNetwork's PO lines include the order ID we can match exactly.
+4. **SKU coverage.** 350 SKUs on open order lines are not in `sku_inventory` (placeholders created). Are these supplier-delivered or
    listed under different SKUs?
-4. **Credential hygiene.** DecoNetwork username/password are stored in plain text inside existing n8n HTTP nodes. Recommend rotating.
+5. **Stale POs.** 16 open POs are past their expected date (5 more than a month late). Were they received but not booked in? See `flow.v_overdue_pos`.
+6. **Credential hygiene.** DecoNetwork username/password are stored in plain text inside existing n8n HTTP nodes. Recommend rotating.
 
 ## Assumptions made (all editable)
 

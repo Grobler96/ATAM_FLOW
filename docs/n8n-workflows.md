@@ -11,6 +11,7 @@ data your existing syncs already land in Supabase.
 | ATAM_FLOW · Sync stock | `15NSypPzcIXKcfPA` | every 3 h at :40 (after inventory sync at :10) | `/webhook/atam-flow/sync-stock` | admin, manager, warehouse |
 | ATAM_FLOW · Sync purchase orders | `9mNTEKLk7lVV3d8h` | every 3 h at :50 (after PO sync at :20) | `/webhook/atam-flow/sync-purchase-orders` | admin, manager, warehouse |
 | ATAM_FLOW · Production scheduler | `qpPBi8l8b1Aq2TfH` | hourly at :20 (after the orders sync) | `/webhook/atam-flow/run-scheduler` | admin, manager, production |
+| ATAM_FLOW · Stock allocation | `Suo7pqWysaZSXqyX` | hourly at :55 (**unpublished**) | `/webhook/atam-flow/run-allocation` | admin, manager, warehouse |
 | ATAM_FLOW · Verify caller (sub-workflow) | `lALM3G47uOizvD9t` | n/a | n/a | n/a |
 
 ## How a dashboard call is secured
@@ -38,3 +39,9 @@ changed nothing. Publishing it would add about 720 executions a month.
 
 Dashboard webhooks for pins (`flow_set_schedule_override` / `flow_clear_schedule_override`) exist as database functions and still
 need their own n8n webhook workflows (Phase 4).
+
+## Stock allocation (built 4 Nov 2026, **unpublished**)
+
+Flow: `flow_allocation_input` -> Code node running `packages/engine/allocator.js` -> `flow_apply_allocation`. Regenerate the embedded engine with
+`node scripts/engine-literal.mjs allocator`. Tested live: first run 175 reservations / 77 decisions; second run changed nothing.
+Publishing adds about 720 executions a month. See [allocation.md](allocation.md).
