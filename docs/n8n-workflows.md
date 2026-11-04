@@ -16,6 +16,8 @@ data your existing syncs already land in Supabase.
 | ATAM_FLOW · Purchasing actions | `0r4taz0NlJ3KOlO4` | n/a (unpublished) | `/webhook/atam-flow/purchasing` | admin, manager |
 | ATAM_FLOW · Communications sender | `jtKw9WQmjPY8G3Vw` | every 2 h at :25 (unpublished) | n/a | n/a |
 | ATAM_FLOW · Supplier discrepancy escalation | `A8r66X2xwPBfpRGF` | weekdays 08:10 (unpublished) | n/a | n/a |
+| ATAM_FLOW · Artwork download and store | `kvgqKRD7dVWOJkoa` | every 15 min (unpublished) | n/a | n/a |
+| ATAM_FLOW · Artwork actions | `nkOanz4G48WKPv1k` | n/a (unpublished) | `/webhook/atam-flow/artwork` | admin, manager, production |
 | ATAM_FLOW · Verify caller (sub-workflow) | `lALM3G47uOizvD9t` | n/a | n/a | n/a |
 
 ## How a dashboard call is secured
@@ -53,3 +55,7 @@ Publishing adds about 720 executions a month. See [allocation.md](allocation.md)
 ## Purchasing (built 4 Nov 2026, unpublished)
 
 See [purchasing.md](purchasing.md). Tested live: communications sender (nothing to send) and escalation (nothing overdue) ran clean. Goods-in and purchasing actions were tested in SQL; their webhooks need a signed-in dashboard user to exercise end to end.
+
+## Artwork (built 4 Nov 2026, unpublished)
+
+See [artwork.md](artwork.md). The download workflow ran clean live with nothing pending; the actual download and bucket upload path has not been exercised with a real file yet.

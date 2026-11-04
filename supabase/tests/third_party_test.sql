@@ -5,6 +5,8 @@ $$ begin if not coalesce(cond, false) then raise exception 'ASSERT FAILED: %', m
 create or replace function pg_temp.custody(p_line uuid, p_state text) returns int language sql as
 $$ select coalesce(sum(qty), 0)::int from flow.stock_custody where order_line_id = p_line and location_state = p_state::flow.custody_state $$;
 
+-- artwork gating is tested in artwork_test.sql; switch it off for these custody tests
+update flow.flow_settings set value = jsonb_set(value, '{enforce_before_dispatch}', 'false') where key = 'artwork.options';
 -- ---- fixtures ----
 insert into flow.producers (code, name, address, contact_name, turnaround_days, can_direct_dispatch, capable_methods, special_instructions) values
   ('STW', 'Stitchworks Embroidery', '1 Mill Street, Leeds', 'Sam', 3, true, '{embroidery}', 'Left chest only, no backing show-through'),
