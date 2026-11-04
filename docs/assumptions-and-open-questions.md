@@ -27,6 +27,6 @@
 
 ## Deployment steps that need a human
 
-- Apply migrations to the live project (additive: creates the `flow` schema only).
-- Add `flow` to **Exposed schemas** (Supabase → Settings → API) so the dashboard and n8n can reach it.
+- ~~Apply migrations to the live project~~ Done 4 Nov 2026 (migrations 1-7; syncs verified idempotent on live data).
+- Add `flow` to **Exposed schemas** (Supabase → Settings → API) before the dashboard (Phase 4). Not needed for n8n: it uses `public.flow_*` wrappers.
 - Decide roles for the non-superuser ATAM GO users (only superusers are seeded as admins).
