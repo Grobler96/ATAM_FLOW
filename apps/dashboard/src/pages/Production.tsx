@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Button, EmptyState, Panel, Progress, Segmented, Skeleton, Status, Tag } from '../ui/primitives';
+import { MachinesView } from './MachinesView';
+import { Button, EmptyState, Panel, Segmented, Skeleton, Status, Tag } from '../ui/primitives';
 import { DataTable, type Column, type ViewDef } from '../ui/DataTable';
 import { useView } from '../data/store';
 import { href, navigate, tableStateFromQuery, type Route } from '../router';
@@ -106,21 +107,4 @@ function ScheduleView({ queue, loading, error, retry, route }: { queue: QueueRow
     <Panel flush><DataTable<QueueRow> rows={queue} columns={cols} rowKey={(q) => q.step_id} loading={loading} error={error} onRetry={retry} views={views} storageKey="schedule" exportName="schedule" searchText={(q) => [q.order_ref, q.customer_name, q.method_code, q.machine_code, q.reason].join(' ')}
       onRowClick={(q) => navigate('orders/' + q.order_ref.replace('#', ''))} defaultSort={{ col: 'pos', dir: 1 }} initial={tableStateFromQuery(route)} rowTone={(q) => (q.is_late ? 'critical' : q.is_overridden ? 'medium' : '')} /></Panel>
   </>);
-}
-
-function MachinesView({ machines, queue, loading }: { machines: MachineRow[]; queue: QueueRow[]; loading: boolean }) {
-  const max = Math.max(1, ...machines.map((m) => m.queued_minutes));
-  if (loading) return <Skeleton h={200} r={14} />;
-  return (<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-    {machines.map((m) => { const mine = queue.filter((q) => q.machine_code === m.code && q.status !== 'complete'); const affected = [...new Set(mine.filter((q) => q.is_late).map((q) => q.order_ref))]; return (
-      <Panel key={m.id} title={m.name} actions={<Status tone={m.is_active ? 'good' : 'critical'}>{m.is_active ? 'Operational' : 'Offline'}</Status>}>
-        <div className="stack"><div className="row" style={{ justifyContent: 'space-between' }}><span className="muted">{METHOD_LABEL[m.method_code] ?? m.method_code}</span><span className="dim num">{m.units_per_hour ? `${m.units_per_hour} units/h` : 'rate not set'}</span></div>
-          <div><div className="row" style={{ justifyContent: 'space-between', fontSize: 12 }}><span>Queue</span><span className="num">{m.queued_jobs + m.in_progress_jobs} jobs · {m.queued_units} units · {(m.queued_minutes / 60).toFixed(1)} h</span></div><Progress value={(m.queued_minutes / max) * 100} tone={m.late_jobs ? 'warn' : ''} /></div>
-          <div className="row" style={{ justifyContent: 'space-between' }}><span className="muted">Busy until</span><span className="num">{m.busy_until ? dateTime(m.busy_until) : 'idle'}</span></div>
-          <div className="row" style={{ justifyContent: 'space-between' }}><span className="muted">Predicted late jobs</span><span className={`num ${m.late_jobs ? 'bad' : ''}`}>{m.late_jobs}</span></div>
-          {affected.length > 0 && <div className="row wrap" style={{ gap: 4 }}>{affected.slice(0, 6).map((r) => <a key={r} className="tag mono" href={href('orders/' + r.replace('#', ''))}>{r}</a>)}</div>}
-          {m.notes && <p className="dim">{m.notes}</p>}</div>
-      </Panel>); })}
-    <Panel title="Not tracked yet" icon="info"><p className="muted">Machine status (limited, maintenance, breakdown), downtime history, maintenance schedules, operators and backup machines are part of the next resilience step. Capacity figures here are placeholders until real machines and shifts are set up.</p></Panel>
-  </div>);
 }

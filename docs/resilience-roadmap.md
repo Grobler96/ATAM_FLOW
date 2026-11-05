@@ -38,7 +38,7 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 |---|---|---|
 | R1 (**done 4 Nov 2026**, see [exceptions.md](exceptions.md)) | **Exceptions engine**: entity, detectors for everything we already track, ownership and next-action rule, escalation, completion blocking, integrity check, linked comms | Foundation; everything else raises into it |
 | R2 | Integration health: failed or missed sync / workflow runs raise exceptions; watchdog | Cheap, high value |
-| R3 | Machines and downtime: richer machine model, downtime records, impact analysis, recovery options | |
+| R3 (**done 5 Nov 2026**, see [machine-downtime.md](machine-downtime.md)) | Machines and downtime: richer machine model, downtime records, impact analysis, recovery options | Reduced-capacity planning, operators, maintenance schedules, cost/customer-message impact still to do |
 | R4 | Producer risk: scores, checkpoints, suspend / unresponsive handling, exposure and recovery | |
 | R5 | Supplier resilience: auto-chase, Approved Alternatives, substitution rules, reliability stats | |
 | R6 | Artwork rule additions and exception raising | |
