@@ -9,7 +9,7 @@ jobs:
   engines:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: npm test
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/dashboard } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: apps/dashboard/package-lock.json }
       - run: npm ci
@@ -27,7 +27,7 @@ jobs:
   database:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Install PostgreSQL 16
@@ -38,7 +38,7 @@ jobs:
   n8n-exports:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node scripts/check-n8n-exports.mjs
