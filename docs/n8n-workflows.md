@@ -95,3 +95,7 @@ See [supplier-resilience.md](supplier-resilience.md). refresh_stats, add_alterna
 ## Quality actions (built 5 Nov 2026, unpublished)
 
 See [quality-rework.md](quality-rework.md). record_check, open_rework, rework (start / assign / complete / cancel / replacement), set_criterion.
+
+## Producer risk actions and Daily housekeeping (built 5 Nov 2026, unpublished)
+
+See [producer-risk.md](producer-risk.md). Producer risk actions: suspend, resume, record_contact, set_limits, job_sheet. Daily housekeeping runs at 06:15.

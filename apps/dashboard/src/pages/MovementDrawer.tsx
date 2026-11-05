@@ -7,6 +7,7 @@ import { dateTime } from '../lib/format';
 import { shortDate, TP_STATUS_LABEL } from '../lib/domain';
 import { canBookReturn, canCancel, canCheck, EVENT_LABEL, LIFECYCLE, nextSteps, type StepDef } from '../lib/movements';
 import { whAction } from '../lib/warehouse';
+import { prAction } from '../lib/producerRisk';
 import { OrderLink } from '../components/common';
 import { CheckDialog, DirectDispatchDialog, ResolveDialog, ReturnDialog, StepDialog } from '../components/MovementDialogs';
 import { ReasonDialog } from '../components/WarehouseDialogs';
@@ -35,6 +36,7 @@ export function MovementDrawer({ code, onClose }: { code: string; onClose: () =>
           {!direct && canCheck(m.status) && <Button size="sm" variant="primary" disabled={dis} title={why} onClick={() => setDlg({ k: 'check' })}>Check returned goods</Button>}
           {direct && ['received_by_producer', 'in_production', 'production_complete'].includes(m.status) && <Button size="sm" variant="primary" disabled={dis} title={why} onClick={() => setDlg({ k: 'direct' })}>Producer shipped to customer</Button>}
           <Button size="sm" icon="labels" disabled={dis} title={why} onClick={() => void labels()}>Generate labels</Button>
+          {m.status !== 'cancelled' && <Button size="sm" disabled={dis} title={why} onClick={async () => { const r: any = await prAction('job_sheet', { code }); toast.push(r.ok === false ? { tone: 'bad', title: 'Could not draft the job sheet', body: String(r.error) } : r.already_queued ? { tone: 'info', title: 'Already waiting', body: String(r.message) } : { tone: 'good', title: 'Job sheet drafted', body: r.no_recipient ? 'This producer has no email address yet, so it is saved as a draft. Add one, then approve it under Emails.' : 'Review and approve it under Purchasing → Emails. Nothing has been sent.', href: '#/purchasing', linkLabel: 'Open Emails' }); void refreshAll(); }}>Draft job sheet email</Button>}
           {canCancel(m.status) && <Button size="sm" variant="danger" disabled={dis} title={why} onClick={() => setDlg({ k: 'cancel' })}>Cancel consignment</Button>}
         </div>
         {steps.length === 0 && !canBookReturn(m.status) && !canCheck(m.status) && !canCancel(m.status) && <p className="dim">{m.status === 'closed' || m.status === 'checked' ? 'This consignment is complete.' : m.status === 'cancelled' ? 'This consignment was cancelled.' : 'Nothing to do on this consignment right now.'}</p>}

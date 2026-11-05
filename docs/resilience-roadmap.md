@@ -39,7 +39,7 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 | R1 (**done 4 Nov 2026**, see [exceptions.md](exceptions.md)) | **Exceptions engine**: entity, detectors for everything we already track, ownership and next-action rule, escalation, completion blocking, integrity check, linked comms | Foundation; everything else raises into it |
 | R2 (**already covered by R1**, found on re-check 5 Nov 2026) | Integration health: the `sync` detector raises *Integration run failed* and *Integration has not run* from `flow_runs`; it runs with every exception detection | Only remaining work is publishing the detector workflow so it runs on a schedule; no raw-response log beyond snapshots |
 | R3 (**done 5 Nov 2026**, see [machine-downtime.md](machine-downtime.md)) | Machines and downtime: richer machine model, downtime records, impact analysis, recovery options | Reduced-capacity planning, operators, maintenance schedules, cost/customer-message impact still to do |
-| R4 | Producer risk: scores, checkpoints, suspend / unresponsive handling, exposure and recovery | |
+| R4 (**done 5 Nov 2026**, see [producer-risk.md](producer-risk.md)) | Producer risk: scores, checkpoints, suspend / unresponsive handling, exposure and recovery | Producer portal (R12) still to do |
 | R5 (**done 5 Nov 2026**, see [supplier-resilience.md](supplier-resilience.md)) | Supplier resilience: chase drafts, Approved Alternatives, shortage advice, reliability stats, supplier offers | Scheduled auto-chase, price/invoice handling, applying a substitution in DecoNetwork still to do |
 | R6 | Artwork rule additions and exception raising | |
 | R7 (**done 5 Nov 2026**, see [quality-rework.md](quality-rework.md)) | QC gates and rework jobs | Real checklists, auto-advancing order status, claims against producers/suppliers still to do |
@@ -48,7 +48,7 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 | R10 | Manual override set | |
 | R11 (Exceptions page **done 4 Nov 2026**, see [dashboard.md](dashboard.md)) | **Dashboard**: Exceptions page first, then the home page (morning / day / evening), purchasing, artwork, selection, third-party, metrics; phone-friendly | Built alongside from R1 so each step can be used and tested with real logins |
 | R12 | **Producer portal** (receipt confirmation, stages, queries, evidence) raising into exceptions | Needs R1 and R4 |
-| R13 | Metrics views | |
+| R13 (**done 5 Nov 2026**, see [producer-risk.md](producer-risk.md)) | Metrics views | Margin and cost-of-exceptions metrics still to do |
 
 Acceptance questions 1-13 are tracked against these steps in the README when the work lands.
 
