@@ -4,6 +4,7 @@ import { Button, Field } from '../ui/primitives';
 import { useView, refreshAll } from '../data/store';
 import { useCtx } from '../data/context';
 import { whAction } from '../lib/warehouse';
+import { exceptionActionTo } from '../lib/api';
 import type { BinRow, OrderToBinRow, OrderRow } from '../data/types';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
@@ -68,9 +69,9 @@ export function CreateBinsDialog({ onClose }: { onClose: () => void }) {
 }
 
 // Anything that needs a short written reason: release, empty, status change, move.
-export function ReasonDialog({ title, intro, confirm, action, params, presets, extra, onClose }: { title: string; intro: string; confirm: string; action: string; params: Record<string, unknown>; presets: string[]; extra?: React.ReactNode; onClose: () => void }) {
+export function ReasonDialog({ title, intro, confirm, action, params, presets, extra, onClose, path = 'warehouse' }: { path?: string; title: string; intro: string; confirm: string; action: string; params: Record<string, unknown>; presets: string[]; extra?: React.ReactNode; onClose: () => void }) {
   const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const toast = useToast();
-  async function go() { setBusy(true); setErr(null); const r = await whAction(action, { ...params, reason }); setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'That did not work.')); return; } done(toast, title, r.note); onClose(); }
+  async function go() { setBusy(true); setErr(null); const r = await exceptionActionTo(path, action, { ...params, reason }); setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'That did not work.')); return; } done(toast, title, r.note); onClose(); }
   return (
     <Modal open onClose={onClose} title={title}>
       <div className="stack"><p>{intro}</p>{extra}

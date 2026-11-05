@@ -79,3 +79,7 @@ See [exceptions.md](exceptions.md). The detector workflow ran clean live (a repe
 ## Warehouse actions (built 5 Nov 2026, unpublished)
 
 See [warehouse.md](warehouse.md). One webhook, many actions: suggest_bin, assign_bin, move_order, release_bin, set_bin_status, create_bins, set_stock_location, generate_order_labels, generate_labels, mark_printed, print_failed. Role checks and mandatory reasons are enforced twice: in the workflow and again inside the database functions.
+
+## Movement actions (built 5 Nov 2026, unpublished)
+
+See [producer-movements.md](producer-movements.md). One webhook: upsert_producer, set_rate, create_movement, scan (pick/pack/dispatch and producer-side steps), record_return, check_return, direct_dispatch, resolve_discrepancy, cancel_movement.

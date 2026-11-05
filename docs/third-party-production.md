@@ -49,8 +49,7 @@ Some orders are decorated by outside producers. ATAM_FLOW buys and books in the 
 
 1. **Routing engine** (the allocation engine is built: see allocation.md) (internal vs which producer vs split vs hold, with reasons) – routes are
    currently created when a consignment is created; the engine will create *recommended* routes for a manager to confirm.
-2. **n8n workflows**: Third-Party Dispatch / Outbound Movement, Producer Receipt Confirmation, Producer Return Processing, Exception Handler
-   (notifications), Producer Performance Sync, plus the overdue-return alert schedule.
-3. **Dashboard**: Third-Party Production page, KPIs, quick actions, scanning UI.
-4. **Printing**: render the label payloads (A4 and thermal), job sheet email to the producer, photo/document upload to the movement `evidence`.
+2. **n8n workflows**: dispatch, receipt and return handling are built as "Movement actions" (unpublished, see [producer-movements.md](producer-movements.md)). Still to build: producer receipt confirmation by the producer, Exception Handler notifications, Producer Performance Sync, the overdue-return alert schedule.
+3. **Dashboard**: movement screens built; scanning by camera/scanner and KPIs still to build.
+4. **Printing**: labels print from the Labels page ([warehouse.md](warehouse.md)). Still to build: job sheet email to the producer, photo/document upload to the movement `evidence`.
 5. **Scheduler integration**: exclude third-party-routed lines from the internal schedule.
