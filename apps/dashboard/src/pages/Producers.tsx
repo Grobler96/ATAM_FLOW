@@ -1,6 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmptyState, Facts, Panel, Segmented, Status, Tag } from '../ui/primitives';
 import { Drawer } from '../ui/overlay';
+import { Button } from '../ui/primitives';
+import { useCtx } from '../data/context';
+import { MovementDrawer } from './MovementDrawer';
+import { CreateMovementDialog, ResolveDialog } from '../components/MovementDialogs';
+import { ProducerDialog, RateDialog, type RateRow } from '../components/ProducerDialogs';
 import { DataTable, type Column, type ViewDef } from '../ui/DataTable';
 import { useView } from '../data/store';
 import { navigate, tableStateFromQuery, type Route } from '../router';
@@ -13,6 +18,7 @@ type Mode = 'producers' | 'movements' | 'held' | 'discrepancies';
 
 export function ProducersPage({ route }: { route: Route }) {
   const prod = useView<ProducerRow>('ui_producers'), moves = useView<MovementRow>('ui_tp_movements'), held = useView<HeldRow>('ui_producer_held_stock'), disc = useView<DiscRow>('ui_tp_discrepancies');
+  const { canAct, senior } = useCtx(); const [dlg, setDlg] = useState<null | 'producer' | 'movement'>(null); const [resolve, setResolve] = useState<DiscRow | null>(null); const [presetProducer, setPresetProducer] = useState<string | undefined>(); useEffect(() => { const h = (e: Event) => { setPresetProducer((e as CustomEvent<{ producer?: string }>).detail?.producer); setDlg('movement'); }; window.addEventListener('atamflow:new-movement', h); return () => window.removeEventListener('atamflow:new-movement', h); }, []);
   const [mode, setMode] = useState<Mode>('producers'); const open = route.path[1] === 'movement' ? null : route.path[1]; const moveOpen = route.path[1] === 'movement' ? route.path[2] : null;
   const risk = (p: ProducerRow) => (p.late_returns > 0 || (p.on_time_rate != null && p.on_time_rate < 80) ? 'High' : p.on_time_rate == null ? 'Unknown' : 'Low');
   const pcols: Column<ProducerRow>[] = [
@@ -34,45 +40,46 @@ export function ProducersPage({ route }: { route: Route }) {
     { id: 'rcpt', header: 'Receipt', width: '110px', render: (m) => m.received_by_producer_at ? <Status tone="good" plain>Confirmed</Status> : <span className="dim">—</span>, csv: (m) => m.received_by_producer_at }, { id: 'dd', header: 'Discrepancies', width: '110px', render: (m) => (m.open_discrepancies ? <Status tone="critical">{m.open_discrepancies}</Status> : <span className="dim">—</span>), csv: (m) => m.open_discrepancies }
   ];
   const noProducers = !prod.loading && prod.rows.length === 0;
-  const emptyProducers = <EmptyState icon="producers" title="No producers set up yet">Add your third-party decorators (name, methods, turnaround, rate card) and every outbound movement, return and discrepancy will be tracked here.</EmptyState>;
+  const emptyProducers = <EmptyState icon="producers" title="No producers set up yet" action={senior ? <Button variant="primary" onClick={() => setDlg('producer')}>Add a producer</Button> : undefined}>Add your third-party decorators (name, methods, turnaround, rate card) and every outbound movement, return and discrepancy will be tracked here.</EmptyState>;
   const heldRows = useMemo(() => held.rows, [held.rows]);
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Producers</h1><p>Third-party decorators: who has what, what is due back, and how reliable they are.</p></div>
-        <Segmented label="Producer section" value={mode} options={[{ id: 'producers', label: 'Producers' }, { id: 'movements', label: 'Movements' }, { id: 'held', label: 'Stock held' }, { id: 'discrepancies', label: `Discrepancies (${disc.rows.length})` }]} onChange={setMode} /></div>
+        <div className="row wrap"><Button variant="primary" icon="plus" disabled={!canAct} title={canAct ? '' : 'Your role cannot create movements'} onClick={() => setDlg('movement')}>New movement</Button><Button icon="producers" disabled={!senior} title={senior ? '' : 'Only a manager or admin can add producers'} onClick={() => setDlg('producer')}>Add producer</Button><Segmented label="Producer section" value={mode} options={[{ id: 'producers', label: 'Producers' }, { id: 'movements', label: 'Movements' }, { id: 'held', label: 'Stock held' }, { id: 'discrepancies', label: `Discrepancies (${disc.rows.length})` }]} onChange={setMode} /></div></div>
       {mode === 'producers' && <Panel flush><DataTable<ProducerRow> rows={prod.rows} columns={pcols} rowKey={(p) => p.id} loading={prod.loading} error={prod.error} onRetry={() => void prod.refresh()} storageKey="producers" exportName="producers" searchText={(p) => [p.name, p.code, p.capable_methods.join(' ')].join(' ')}
         onRowClick={(p) => navigate('producers/' + p.id)} empty={emptyProducers} defaultSort={{ col: 'name', dir: 1 }} /></Panel>}
       {mode === 'movements' && <Panel flush><DataTable<MovementRow> rows={moves.rows} columns={mcols} rowKey={(m) => m.movement_id} loading={moves.loading} error={moves.error} onRetry={() => void moves.refresh()} views={mviews} storageKey="movements" exportName="producer-movements" defaultTab="open"
         searchText={(m) => [m.movement_code, m.producer_name, (m.order_refs ?? []).join(' '), m.tracking_ref].join(' ')} rowTone={(m) => (m.is_overdue ? 'critical' : m.open_discrepancies ? 'high' : '')} empty={<EmptyState icon="truck" title="No producer movements yet">Outbound consignments, returns and direct dispatches appear here once goods go to a producer.</EmptyState>} initial={tableStateFromQuery(route)} defaultSort={{ col: 'disp', dir: -1 }} /></Panel>}
       {mode === 'held' && <Panel title="Stock held by producers" flush>{heldRows.length === 0 ? <EmptyState icon="stock" title="Nothing is with a producer">Producer-held stock never counts as available warehouse stock; it appears here while goods are out.</EmptyState> :
         <div className="stack" style={{ gap: 0 }}>{heldRows.map((h, i) => <div key={i} className="row wrap" style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', justifyContent: 'space-between' }}><b>{h.producer_name}</b><span className="mono">{h.sku}</span><Tag>{CUSTODY_LABEL[h.location_state] ?? h.location_state}</Tag><span className="num">{h.qty}</span><OrderTags refs={h.orders} max={3} /></div>)}</div>}</Panel>}
-      {mode === 'discrepancies' && <Panel title="Open producer discrepancies" flush>{disc.rows.length === 0 ? <EmptyState icon="check" title="No open producer discrepancies" /> : disc.rows.map((d) => <div key={d.id} className="row wrap" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', justifyContent: 'space-between' }}><b>{d.producer_name}</b><span className="mono">{d.movement_code}</span><span>{d.disc_type} · {d.qty} · {d.order_ref} {d.customer_name}</span>{d.blocks_completion && <Status tone="high" plain>Blocks completion</Status>}</div>)}</Panel>}
+      {mode === 'discrepancies' && <Panel title="Open producer discrepancies" flush>{disc.rows.length === 0 ? <EmptyState icon="check" title="No open producer discrepancies" /> : disc.rows.map((d) => <div key={d.id} className="row wrap" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', justifyContent: 'space-between' }}><b>{d.producer_name}</b><span className="mono">{d.movement_code}</span><span>{d.disc_type} · {d.qty} · {d.order_ref} {d.customer_name}</span>{d.blocks_completion && <Status tone="high" plain>Blocks completion</Status>}<a className="btn sm" href={'#/producers/movement/' + d.movement_code}>Open</a><Button size="sm" disabled={!senior} title={senior ? '' : 'Only a manager or admin can resolve a discrepancy'} onClick={() => setResolve(d)}>Resolve…</Button></div>)}</Panel>}
       {noProducers && mode === 'producers' && <p className="dim">Producer rate cards are needed before the selection engine can recommend a producer.</p>}
       {open && <ProducerDrawer id={open} onClose={() => navigate('producers')} />}
-      {moveOpen && <Drawer open onClose={() => navigate('producers')} title={<span className="mono">{moveOpen}</span>}><MovementDetail code={moveOpen} moves={moves.rows} /></Drawer>}
+      {moveOpen && <MovementDrawer code={moveOpen} onClose={() => navigate('producers')} />}
+      {dlg === 'movement' && <CreateMovementDialog presetProducer={presetProducer} onClose={() => { setDlg(null); setPresetProducer(undefined); }} />}{dlg === 'producer' && <ProducerDialog onClose={() => setDlg(null)} />}{resolve && <ResolveDialog id={resolve.id} label={`${resolve.disc_type} on ${resolve.order_ref}`} onClose={() => setResolve(null)} />}
     </div>
   );
 }
 
-function MovementDetail({ code, moves }: { code: string; moves: MovementRow[] }) {
-  const m = moves.find((x) => x.movement_code === code); if (!m) return <EmptyState icon="search" title="Movement not found" />;
-  return <Facts items={[['Producer', m.producer_name], ['Type', m.movement_type.replace(/_/g, ' ')], ['Status', TP_STATUS_LABEL[m.status] ?? m.status], ['Units sent', m.units_sent], ['Back (good)', m.units_received_good], ['Damaged / rejected', `${m.units_damaged} / ${m.units_rejected}`], ['Outstanding', m.units_outstanding], ['Dispatched', shortDate(m.dispatch_date)], ['Expected back', shortDate(m.expected_return_date)], ['Courier', m.carrier], ['Tracking', m.tracking_ref], ['Receipt confirmed', m.received_by_producer_at ? new Date(m.received_by_producer_at).toLocaleString('en-GB') : 'Not yet']]} />;
-}
 
 function ProducerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const { senior } = useCtx(); const rates = useView<RateRow>('ui_producer_rates'); const [dlg, setDlg] = useState<null | { k: 'edit' } | { k: 'rate'; rate?: RateRow }>(null);
   const prod = useView<ProducerRow>('ui_producers'), moves = useView<MovementRow>('ui_tp_movements'), held = useView<HeldRow>('ui_producer_held_stock');
   const p = prod.rows.find((x) => x.id === id); if (!p) return <Drawer open onClose={onClose} title="Producer"><EmptyState icon="search" title="Producer not found" /></Drawer>;
   const mv = moves.rows.filter((m) => m.producer_id === id), hs = held.rows.filter((h) => h.producer_id === id);
   return (
     <Drawer open onClose={onClose} wide title={p.name} subtitle={<Status tone={p.is_active ? 'good' : 'critical'}>{p.is_active ? 'Active' : 'Inactive'}</Status>}>
       <div className="stack" style={{ gap: 16 }}>
+        <div className="row wrap"><Button size="sm" disabled={!senior} title={senior ? '' : 'Only a manager or admin can edit producers'} onClick={() => setDlg({ k: 'edit' })}>Edit producer</Button><Button size="sm" variant="primary" onClick={() => { location.hash = '#/producers'; window.dispatchEvent(new CustomEvent('atamflow:new-movement', { detail: { producer: id } })); }}>New movement</Button></div>
         <Facts items={[['Contact', p.contact_name], ['Email', p.email], ['Phone', p.phone], ['Address', p.address], ['Standard turnaround', `${p.turnaround_days} days`], ['Weekly capacity', p.weekly_capacity_units ? `${p.weekly_capacity_units} units` : 'not set'], ['Direct dispatch', p.can_direct_dispatch ? 'Yes' : 'No'], ['Emergency contact', 'Not recorded'], ['Backup producers', 'Not recorded']]} />
         <section className="stack"><h3>Capability</h3><div className="row wrap">{p.capable_methods.map((m) => <Tag key={m}>{METHOD_LABEL[m] ?? m}</Tag>)}</div></section>
+        <section className="stack"><div className="row"><h3 className="grow">Rate card</h3><Button size="sm" disabled={!senior} title={senior ? '' : 'Only a manager or admin can change rates'} onClick={() => setDlg({ k: 'rate' })}>Add rate</Button></div>{rates.rows.filter((r) => r.producer_id === id).length === 0 ? <p className="dim">No rates yet. The selection engine cannot price this producer until at least one is added.</p> : rates.rows.filter((r) => r.producer_id === id).map((r) => <div key={r.id} className="row" style={{ justifyContent: 'space-between' }}><b>{METHOD_LABEL[r.method] ?? r.method}</b><span className="num">{money(r.unit_price)} {r.basis === 'per_piece' ? 'per piece per area' : 'per 1,000 stitches'}{r.setup_fee ? ` · setup ${money(r.setup_fee)}` : ''}{r.min_job_charge ? ` · min ${money(r.min_job_charge)}` : ''}</span><Button size="sm" variant="ghost" disabled={!senior} onClick={() => setDlg({ k: 'rate', rate: r })}>Edit</Button></div>)}</section>
         <section className="stack"><h3>Performance</h3><Facts items={[['On-time return rate', pct(p.on_time_rate)], ['Average turnaround', p.avg_turnaround_days ? `${p.avg_turnaround_days} days` : '—'], ['Discrepancy rate', pct(p.discrepancy_rate)], ['Overdue returns', p.late_returns], ['Orders blocked', p.orders_blocked], ['Quality pass rate', 'Not tracked yet']]} /></section>
         <section className="stack"><h3>Stock held ({p.units_held} units · {money(p.value_held)})</h3>{hs.length === 0 ? <p className="dim">Nothing held.</p> : hs.map((h, i) => <div key={i} className="row" style={{ justifyContent: 'space-between' }}><span className="mono">{h.sku}</span><Tag>{CUSTODY_LABEL[h.location_state] ?? h.location_state}</Tag><span className="num">{h.qty}</span></div>)}</section>
         <section className="stack"><h3>Movements ({mv.length})</h3>{mv.length === 0 ? <p className="dim">No movements yet.</p> : mv.slice(0, 15).map((m) => <div key={m.movement_id} className="row" style={{ justifyContent: 'space-between' }}><a className="mono" href={'#/producers/movement/' + m.movement_code}>{m.movement_code}</a><Status tone={m.is_overdue ? 'critical' : 'info'}>{TP_STATUS_LABEL[m.status] ?? m.status}</Status><span className="num dim">{m.units_sent} sent · back {shortDate(m.expected_return_date)}</span></div>)}</section>
         {(p.quality_notes || p.special_instructions) && <section className="stack"><h3>Notes</h3>{p.quality_notes && <p className="muted">{p.quality_notes}</p>}{p.special_instructions && <p className="muted">{p.special_instructions}</p>}</section>}
       </div>
+      {dlg?.k === 'edit' && <ProducerDialog id={id} onClose={() => setDlg(null)} />}{dlg?.k === 'rate' && <RateDialog producerId={id} rate={dlg.rate} onClose={() => setDlg(null)} />}
     </Drawer>
   );
 }
