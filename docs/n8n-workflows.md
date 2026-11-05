@@ -75,3 +75,7 @@ See [exceptions.md](exceptions.md). The detector workflow ran clean live (a repe
 ## Production actions (built 4 Nov 2026, unpublished)
 
 `pin` (position + mandatory reason) and `unpin`, calling the audited `flow_set_schedule_override` / `flow_clear_schedule_override`. Used by the Orders drawer. See [ui.md](ui.md).
+
+## Warehouse actions (built 5 Nov 2026, unpublished)
+
+See [warehouse.md](warehouse.md). One webhook, many actions: suggest_bin, assign_bin, move_order, release_bin, set_bin_status, create_bins, set_stock_location, generate_order_labels, generate_labels, mark_printed, print_failed. Role checks and mandatory reasons are enforced twice: in the workflow and again inside the database functions.

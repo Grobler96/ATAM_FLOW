@@ -20,6 +20,8 @@ import { ProducersPage } from '../pages/Producers';
 import { WarehousePage } from '../pages/Warehouse';
 import { ArtworkPage } from '../pages/Artwork';
 import { ExceptionsPage } from '../pages/Exceptions';
+import { GoodsInPage } from '../pages/GoodsIn';
+import { GenerateLabelsDialog } from '../components/GenerateLabelsDialog';
 import { LabelsPage } from '../pages/Labels';
 import { AnalyticsPage } from '../pages/Analytics';
 import { SettingsPage } from '../pages/Settings';
@@ -34,7 +36,7 @@ export function AppShell({ session }: { session: Session }) {
 function Frame() {
   const route = useRoute(); const { email } = useCtx(); const runner = useRunner();
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('atamflow.collapsed') === '1'; } catch { return false; } });
-  const [mobileOpen, setMobileOpen] = useState(false); const [palette, setPalette] = useState(false); const [poOpen, setPoOpen] = useState(false); const [help, setHelp] = useState(false); const [poPreset, setPoPreset] = useState<string[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false); const [palette, setPalette] = useState(false); const [poOpen, setPoOpen] = useState(false); const [help, setHelp] = useState(false); const [poPreset, setPoPreset] = useState<string[]>([]); const [labelDlg, setLabelDlg] = useState<{ type?: string; refs?: string[] } | null>(null);
   const chord = useRef(0);
   useEffect(() => { try { localStorage.setItem('atamflow.collapsed', collapsed ? '1' : '0'); } catch { /* storage unavailable */ } }, [collapsed]);
   useEffect(() => setMobileOpen(false), [route.raw]);
@@ -53,23 +55,25 @@ function Frame() {
   }, []);
 
   useEffect(() => { const h = (e: Event) => { setPoPreset((e as CustomEvent<string[]>).detail ?? []); setPoOpen(true); }; window.addEventListener('atamflow:create-po', h); return () => window.removeEventListener('atamflow:create-po', h); }, []);
+  useEffect(() => { const h = (e: Event) => setLabelDlg((e as CustomEvent<{ type?: string; refs?: string[] }>).detail ?? {}); window.addEventListener('atamflow:generate-labels', h); return () => window.removeEventListener('atamflow:generate-labels', h); }, []);
   const closePalette = useCallback(() => setPalette(false), []);
   const page = route.path[0] ?? 'home';
   return (
     <div className={`app ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`}>
       <Sidebar route={route} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <div className="main">
-        <TopBar onMenu={() => setMobileOpen((o) => !o)} onCollapse={() => setCollapsed((c) => !c)} onSearch={() => setPalette(true)} onCreatePo={() => { setPoPreset([]); setPoOpen(true); }} onRun={(d) => void runner.run(d)} running={runner.running} canRun={runner.can} email={email} />
+        <TopBar onMenu={() => setMobileOpen((o) => !o)} onCollapse={() => setCollapsed((c) => !c)} onSearch={() => setPalette(true)} onCreatePo={() => { setPoPreset([]); setPoOpen(true); }} onGenerateLabels={() => setLabelDlg({})} onRun={(d) => void runner.run(d)} running={runner.running} canRun={runner.can} email={email} />
         <main className="content" id="main">
           {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
-          {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}
-          {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage />}{page === 'analytics' && <AnalyticsPage />}{page === 'settings' && <SettingsPage />}
+          {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'goods-in' && <GoodsInPage />}
+          {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'settings' && <SettingsPage />}
           {!NAV.some((n) => n.id === page) && <div className="state"><h3>Page not found</h3><a href="#/">Back to the Command Centre</a></div>}
         </main>
         <StatusBar />
       </div>
       {palette && <CommandPalette onClose={closePalette} onRun={(d) => void runner.run(d)} canRun={runner.can} onCreatePo={() => setPoOpen(true)} />}
       {poOpen && <CreatePoDialog open onClose={() => { setPoOpen(false); setPoPreset([]); }} presetOrders={poPreset} />}
+      {labelDlg && <GenerateLabelsDialog open onClose={() => setLabelDlg(null)} presetType={labelDlg.type} presetRefs={labelDlg.refs} />}
       <Modal open={help} onClose={() => setHelp(false)} title="Keyboard shortcuts">
         <div className="facts" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div><dt>Search / command palette</dt><dd><kbd>/</kbd> or <kbd>Ctrl/⌘</kbd> <kbd>K</kbd></dd></div><div><dt>Close panel</dt><dd><kbd>Esc</kbd></dd></div>

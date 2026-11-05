@@ -26,6 +26,6 @@ export interface NavItem { id: string; label: string; icon: string; chord: strin
 export const NAV: NavItem[] = [
   { id: 'home', label: 'Command Centre', icon: 'home', chord: 'h' }, { id: 'orders', label: 'Orders', icon: 'orders', chord: 'o' }, { id: 'production', label: 'Production', icon: 'production', chord: 'p' },
   { id: 'stock', label: 'Stock', icon: 'stock', chord: 's' }, { id: 'purchasing', label: 'Purchasing', icon: 'purchasing', chord: 'u' }, { id: 'producers', label: 'Producers', icon: 'producers', chord: 'r' },
-  { id: 'warehouse', label: 'Warehouse / Bins', icon: 'warehouse', chord: 'w' }, { id: 'artwork', label: 'Artwork & Job Packs', icon: 'artwork', chord: 'a' }, { id: 'exceptions', label: 'Exceptions', icon: 'exceptions', chord: 'e' },
+  { id: 'goods-in', label: 'Goods in', icon: 'stock', chord: 'i' }, { id: 'warehouse', label: 'Warehouse / Bins', icon: 'warehouse', chord: 'w' }, { id: 'artwork', label: 'Artwork & Job Packs', icon: 'artwork', chord: 'a' }, { id: 'exceptions', label: 'Exceptions', icon: 'exceptions', chord: 'e' },
   { id: 'labels', label: 'Labels', icon: 'labels', chord: 'l' }, { id: 'analytics', label: 'Analytics', icon: 'analytics', chord: 'n' }, { id: 'settings', label: 'Settings', icon: 'settings', chord: 't' }
 ];

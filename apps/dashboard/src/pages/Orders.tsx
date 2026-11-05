@@ -79,9 +79,9 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'po', label: 'Create PO', icon: 'purchasing', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:create-po', { detail: r.filter((o) => o.order_status === 'awaiting_stock').map((o) => o.id) })) : undefined, disabledReason: 'Your role cannot create POs' },
     { id: 'esc', label: 'Escalate (raise issue)', icon: 'exceptions', run: canAct ? (r) => void raise(r) : undefined, disabledReason: 'Your role cannot raise issues' },
     { id: 'send', label: 'Send to producer', icon: 'truck', disabledReason: 'Needs the producer-movement workflow, which is not built yet' },
-    { id: 'labels', label: 'Generate labels', icon: 'labels', disabledReason: 'Needs the label workflow, which is not built yet' },
+    { id: 'labels', label: 'Generate labels', icon: 'labels', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:generate-labels', { detail: { type: 'order', refs: r.map((o) => o.order_ref) } })) : undefined, disabledReason: 'Your role cannot generate labels' },
     { id: 'status', label: 'Update status', icon: 'check', disabledReason: 'Order status follows DecoNetwork and the engines; manual status changes are not built yet' },
-    { id: 'bin', label: 'Assign bin', icon: 'warehouse', disabledReason: 'Needs the bin-assignment workflow, which is not built yet' }
+    { id: 'bin', label: 'Assign bin', icon: 'warehouse', run: canAct ? () => navigate('warehouse') : undefined, disabledReason: 'Your role cannot change bins' }
   ];
   async function raise(r: OrderVM[]) {
     const res = await exceptionActionTo('exceptions', 'raise', { category: 'order', severity: 'high', description: `Escalated from the Orders list: ${r.map((o) => o.order_ref).join(', ')}`, links: r.map((o) => ({ type: 'order', id: o.id })) });
