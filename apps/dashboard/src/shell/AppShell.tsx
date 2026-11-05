@@ -21,6 +21,8 @@ import { WarehousePage } from '../pages/Warehouse';
 import { ArtworkPage } from '../pages/Artwork';
 import { ExceptionsPage } from '../pages/Exceptions';
 import { CreateMovementDialog } from '../components/MovementDialogs';
+import { QualityPage } from '../pages/Quality';
+import { RecordCheckDialog } from '../components/QualityDialogs';
 import { GoodsInPage } from '../pages/GoodsIn';
 import { GenerateLabelsDialog } from '../components/GenerateLabelsDialog';
 import { LabelsPage } from '../pages/Labels';
@@ -37,7 +39,7 @@ export function AppShell({ session }: { session: Session }) {
 function Frame() {
   const route = useRoute(); const { email } = useCtx(); const runner = useRunner();
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('atamflow.collapsed') === '1'; } catch { return false; } });
-  const [mobileOpen, setMobileOpen] = useState(false); const [palette, setPalette] = useState(false); const [poOpen, setPoOpen] = useState(false); const [help, setHelp] = useState(false); const [poPreset, setPoPreset] = useState<string[]>([]); const [moveDlg, setMoveDlg] = useState<{ orders?: string[] } | null>(null); const [labelDlg, setLabelDlg] = useState<{ type?: string; refs?: string[] } | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false); const [palette, setPalette] = useState(false); const [poOpen, setPoOpen] = useState(false); const [help, setHelp] = useState(false); const [poPreset, setPoPreset] = useState<string[]>([]); const [qcDlg, setQcDlg] = useState<{ orderId?: string } | null>(null); const [moveDlg, setMoveDlg] = useState<{ orders?: string[] } | null>(null); const [labelDlg, setLabelDlg] = useState<{ type?: string; refs?: string[] } | null>(null);
   const chord = useRef(0);
   useEffect(() => { try { localStorage.setItem('atamflow.collapsed', collapsed ? '1' : '0'); } catch { /* storage unavailable */ } }, [collapsed]);
   useEffect(() => setMobileOpen(false), [route.raw]);
@@ -58,6 +60,7 @@ function Frame() {
   useEffect(() => { const h = (e: Event) => { setPoPreset((e as CustomEvent<string[]>).detail ?? []); setPoOpen(true); }; window.addEventListener('atamflow:create-po', h); return () => window.removeEventListener('atamflow:create-po', h); }, []);
   useEffect(() => { const h = (e: Event) => setLabelDlg((e as CustomEvent<{ type?: string; refs?: string[] }>).detail ?? {}); window.addEventListener('atamflow:generate-labels', h); return () => window.removeEventListener('atamflow:generate-labels', h); }, []);
   useEffect(() => { const h = (e: Event) => setMoveDlg((e as CustomEvent<{ orders?: string[] }>).detail ?? {}); window.addEventListener('atamflow:send-to-producer', h); return () => window.removeEventListener('atamflow:send-to-producer', h); }, []);
+  useEffect(() => { const h = (e: Event) => setQcDlg((e as CustomEvent<{ orderId?: string }>).detail ?? {}); window.addEventListener('atamflow:record-qc', h); return () => window.removeEventListener('atamflow:record-qc', h); }, []);
   const closePalette = useCallback(() => setPalette(false), []);
   const page = route.path[0] ?? 'home';
   return (
@@ -67,7 +70,7 @@ function Frame() {
         <TopBar onMenu={() => setMobileOpen((o) => !o)} onCollapse={() => setCollapsed((c) => !c)} onSearch={() => setPalette(true)} onCreatePo={() => { setPoPreset([]); setPoOpen(true); }} onGenerateLabels={() => setLabelDlg({})} onNewMovement={() => setMoveDlg({})} onRun={(d) => void runner.run(d)} running={runner.running} canRun={runner.can} email={email} />
         <main className="content" id="main">
           {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
-          {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'goods-in' && <GoodsInPage />}
+          {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'goods-in' && <GoodsInPage />}{page === 'quality' && <QualityPage route={route} />}
           {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'settings' && <SettingsPage />}
           {!NAV.some((n) => n.id === page) && <div className="state"><h3>Page not found</h3><a href="#/">Back to the Command Centre</a></div>}
         </main>
@@ -75,6 +78,7 @@ function Frame() {
       </div>
       {palette && <CommandPalette onClose={closePalette} onRun={(d) => void runner.run(d)} canRun={runner.can} onCreatePo={() => setPoOpen(true)} />}
       {poOpen && <CreatePoDialog open onClose={() => { setPoOpen(false); setPoPreset([]); }} presetOrders={poPreset} />}
+      {qcDlg && <RecordCheckDialog orderId={qcDlg.orderId} onClose={() => setQcDlg(null)} />}
       {moveDlg && <CreateMovementDialog onClose={() => setMoveDlg(null)} presetOrders={moveDlg.orders} />}
       {labelDlg && <GenerateLabelsDialog open onClose={() => setLabelDlg(null)} presetType={labelDlg.type} presetRefs={labelDlg.refs} />}
       <Modal open={help} onClose={() => setHelp(false)} title="Keyboard shortcuts">
