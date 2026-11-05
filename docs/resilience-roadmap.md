@@ -37,10 +37,10 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 | Step | Content | Why here |
 |---|---|---|
 | R1 (**done 4 Nov 2026**, see [exceptions.md](exceptions.md)) | **Exceptions engine**: entity, detectors for everything we already track, ownership and next-action rule, escalation, completion blocking, integrity check, linked comms | Foundation; everything else raises into it |
-| R2 | Integration health: failed or missed sync / workflow runs raise exceptions; watchdog | Cheap, high value |
+| R2 (**already covered by R1**, found on re-check 5 Nov 2026) | Integration health: the `sync` detector raises *Integration run failed* and *Integration has not run* from `flow_runs`; it runs with every exception detection | Only remaining work is publishing the detector workflow so it runs on a schedule; no raw-response log beyond snapshots |
 | R3 (**done 5 Nov 2026**, see [machine-downtime.md](machine-downtime.md)) | Machines and downtime: richer machine model, downtime records, impact analysis, recovery options | Reduced-capacity planning, operators, maintenance schedules, cost/customer-message impact still to do |
 | R4 | Producer risk: scores, checkpoints, suspend / unresponsive handling, exposure and recovery | |
-| R5 | Supplier resilience: auto-chase, Approved Alternatives, substitution rules, reliability stats | |
+| R5 (**done 5 Nov 2026**, see [supplier-resilience.md](supplier-resilience.md)) | Supplier resilience: chase drafts, Approved Alternatives, shortage advice, reliability stats, supplier offers | Scheduled auto-chase, price/invoice handling, applying a substitution in DecoNetwork still to do |
 | R6 | Artwork rule additions and exception raising | |
 | R7 | QC gates and rework jobs | |
 | R8 | Order-change detection and impact assessment | |

@@ -87,3 +87,7 @@ See [producer-movements.md](producer-movements.md). One webhook: upsert_producer
 ## Machine actions (built 5 Nov 2026, unpublished)
 
 See [machine-downtime.md](machine-downtime.md). report_downtime, update_downtime, resolve_downtime, upsert_machine.
+
+## Supplier actions (built 5 Nov 2026, unpublished)
+
+See [supplier-resilience.md](supplier-resilience.md). refresh_stats, add_alternative, remove_alternative, set_offer, chase_po, chase_all_late. Chases are drafts in the review queue; nothing is sent.

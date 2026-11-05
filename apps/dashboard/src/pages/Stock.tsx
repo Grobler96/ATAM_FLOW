@@ -1,3 +1,4 @@
+import { AlternativesSection, OffersSection, ShortageAdvice } from '../components/SupplierPanels';
 import { useMemo } from 'react';
 import { Panel, Status, EmptyState, Facts, Tag, Skeleton } from '../ui/primitives';
 import { Drawer } from '../ui/overlay';
@@ -74,12 +75,13 @@ function StockDrawer({ sku, rows, onClose }: { sku: string; rows: StockVM[]; onC
         <Facts items={[['Available', <b key="a" className="num">{s.qty_available}</b>], ['On hand (incl. booked in here)', s.qty_on_hand], ['Reserved', s.qty_reserved], ['Incoming', s.qty_incoming], ['Next expected', shortDate(s.next_expected)], ['At producers', s.atProducer], ['In transit', s.inTransit],
           ['Minimum', s.min_threshold], ['Location', s.storage_location], ['DecoNetwork on hand', s.qty_on_hand - s.qty_pending_receipt], ['Booked in here, not yet in DecoNetwork', s.qty_pending_receipt], ['Last synced', s.last_synced_at ? dateTime(s.last_synced_at) : '—']]} />
         <div className="callout"><b>Reorder recommendation</b>{reorder > 0 ? <span>Buy about <b className="num">{reorder}</b> unit(s){uncovered > 0 ? `: orders need ${demand}, with ${s.qty_on_hand} on hand and ${s.qty_incoming} incoming` : ': stock is below its minimum'}. Create a PO from Orders → select the waiting orders → Create PO.</span> : <span className="muted">No purchase needed: demand is covered.</span>}</div>
+        <ShortageAdvice sku={sku} />
         <section className="stack"><h3>Orders that need it ({need.length})</h3>{need.length === 0 ? <p className="dim">No open order needs this SKU.</p> : need.map(({ l, o }) => <div key={l.id} className="row" style={{ justifyContent: 'space-between' }}><OrderLink r={o!.order_ref} /><span className="muted">{o!.customer_name}</span><span className="num">{l.qty_required - l.qty_produced} needed · {l.qty_allocated_on_hand + l.qty_allocated_incoming} reserved</span></div>)}</section>
         <section className="stack"><h3>Incoming purchase orders ({incoming.length})</h3>{incoming.length === 0 ? <p className="dim">Nothing on order.</p> : incoming.map(({ l, po }) => <div key={l.id} className="row" style={{ justifyContent: 'space-between' }}><a className="mono" href={href('purchasing/' + po!.po_id)}>{po!.po_ref}</a><span className="muted">{po!.supplier}</span><Status tone={po!.is_late ? 'critical' : 'info'}>{po!.po_status ? PO_STATUS_LABEL[po!.po_status] : po!.delivery_status}</Status><span className="num">{l.qty_outstanding} due {shortDate(l.expected_date ?? po!.expected_date)}</span></div>)}</section>
         {hs.length > 0 && <section className="stack"><h3>Held by producers</h3>{hs.map((h, i) => <div key={i} className="row" style={{ justifyContent: 'space-between' }}><span>{h.producer_name}</span><Tag>{h.location_state.replace(/_/g, ' ')}</Tag><span className="num">{h.qty}</span></div>)}</section>}
         {ds.length > 0 && <section className="stack"><h3>Open supplier discrepancies</h3>{ds.map((d) => <div key={d.id} className="row" style={{ justifyContent: 'space-between' }}><span className="mono">{d.disc_ref}</span><span>{d.disc_type} · {d.qty} on {d.po_ref}</span><Status tone={d.is_overdue ? 'critical' : 'medium'}>{d.is_overdue ? 'Overdue' : 'Open'}</Status></div>)}</section>}
         <section className="stack"><h3>Stock movements</h3>{mv.length === 0 ? <p className="dim">No movements recorded for this SKU yet.</p> : <ul className="timeline">{mv.map((m) => <li key={m.id}><b style={{ textTransform: 'capitalize' }}>{m.movement_type.replace(/_/g, ' ')}</b> <span className={m.qty < 0 ? 'bad' : 'good'}>{m.qty > 0 ? '+' : ''}{m.qty}</span><span className="dim"> · {dateTime(m.at)}</span>{m.note && <div className="muted">{m.note}</div>}</li>)}</ul>}</section>
-        <p className="dim">Alternative SKUs and supplier price history arrive with approved alternatives and supplier price lists.</p>
+        <AlternativesSection sku={sku} /><OffersSection sku={sku} />
       </div>
     </Drawer>
   );
