@@ -99,3 +99,7 @@ See [quality-rework.md](quality-rework.md). record_check, open_rework, rework (s
 ## Producer risk actions and Daily housekeeping (built 5 Nov 2026, unpublished)
 
 See [producer-risk.md](producer-risk.md). Producer risk actions: suspend, resume, record_contact, set_limits, job_sheet. Daily housekeeping runs at 06:15.
+
+## Operations actions (built 5 Nov 2026, unpublished)
+
+Path `atam-flow/operations`, workflow `UvnfNdHot39VL5FI`. Actions: `hold`, `release`, `priority` (manager/admin), `review_changes`. Same pattern as the others: verify caller, role check, allow-list to a `flow_*` RPC, audited. See [order-changes.md](order-changes.md).

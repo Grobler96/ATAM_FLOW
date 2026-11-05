@@ -4,6 +4,8 @@ import { Button, EmptyState, Facts, Field, Panel, Progress, Skeleton, Status, Ta
 import { useView } from '../data/store';
 import { useRpcList } from '../data/useRpcList';
 import { useCtx } from '../data/context';
+import { OrderChangesPanel } from '../components/OrderChangesPanel';
+import type { ChangeRow } from '../lib/orderChanges';
 import { href } from '../router';
 import { exceptionActionTo } from '../lib/api';
 import { gbp, deadlineText, dateTime } from '../lib/format';
@@ -13,7 +15,7 @@ import { SelectionCompare } from '../components/SelectionCompare';
 import type { ExceptionRow } from '../types';
 import type { AllocationDecision, ArtworkStatusRow, ArtworkVersionRow, BinRow, CustodyRow, JobPackRow, MovementRow, OrderLineRow, OrderRow, PoRow, QueueRow, SelectionRow, TpOrderRow } from '../data/types';
 
-type Tab = 'overview' | 'lines' | 'artwork' | 'production' | 'producer' | 'purchasing' | 'warehouse' | 'exceptions' | 'history';
+type Tab = 'overview' | 'lines' | 'artwork' | 'production' | 'producer' | 'purchasing' | 'warehouse' | 'exceptions' | 'changes' | 'history';
 interface Hist { at: string; kind: string; title: string; detail: string; actor: string | null }
 interface Acc { order_id: string; owner: string; location: string | null; next_action: string | null }
 
@@ -32,6 +34,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tpo = useView<TpOrderRow>('ui_tp_orders'), moves = useView<MovementRow>('ui_tp_movements'), pos = useView<PoRow>('ui_purchase_orders'), sel = useView<SelectionRow>('ui_selection');
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
+  const chg = useView<ChangeRow>('ui_order_changes');
   const { canAct } = useCtx(); const toast = useToast();
   const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
@@ -55,7 +58,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   if (!o) return <Drawer open onClose={onClose} title={`Order ${orderRef}`}>{orders.loading ? <div className="stack"><Skeleton h={20} /><Skeleton h={20} w="70%" /><Skeleton h={120} /></div> : <EmptyState icon="search" title="Order not found">It may be dispatched, cancelled or not synced yet.</EmptyState>}</Drawer>;
   const ss = stockStatus(o);
   const tabs: { id: Tab; label: string; count?: number }[] = [{ id: 'overview', label: 'Overview' }, { id: 'lines', label: 'Lines & stock', count: d!.lines.length }, { id: 'artwork', label: 'Artwork', count: d!.versions.length }, { id: 'production', label: 'Production', count: d!.steps.length },
-    { id: 'producer', label: 'Producer', count: d!.moves.length }, { id: 'purchasing', label: 'Purchasing', count: d!.pos.length }, { id: 'warehouse', label: 'Warehouse', count: d!.bins.length }, { id: 'exceptions', label: 'Exceptions', count: d!.ex.length }, { id: 'history', label: 'History' }];
+    { id: 'producer', label: 'Producer', count: d!.moves.length }, { id: 'purchasing', label: 'Purchasing', count: d!.pos.length }, { id: 'warehouse', label: 'Warehouse', count: d!.bins.length }, { id: 'exceptions', label: 'Exceptions', count: d!.ex.length }, { id: 'changes', label: 'Changes & control', count: chg.rows.filter((c) => c.order_id === o.id && c.status === 'new').length }, { id: 'history', label: 'History' }];
 
   return (
     <Drawer open onClose={onClose} wide title={<span className="row wrap" style={{ gap: 10 }}>{o.order_ref}<StatusCell s={o.order_status} />{o.is_overdue && <Status tone="critical">Overdue</Status>}</span>} subtitle={`${o.customer_name ?? 'No customer'}${o.customer_po ? ' · PO ' + o.customer_po : ''}`}
@@ -112,6 +115,8 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {tab === 'warehouse' && d && (d.bins.length === 0 ? <EmptyState icon="warehouse" title="Not in a bin">{bins.rows.length === 0 ? 'No bins have been set up yet.' : 'This order has no bin assigned.'}</EmptyState> : <div className="stack">{d.bins.map((b) => <div key={b.bin_id} className="row" style={{ justifyContent: 'space-between' }}><a className="mono" href={href('warehouse/' + b.bin_code)}>{b.bin_code}</a><span className="muted">{b.zone_name ?? b.zone_code}</span><Status>{b.status}</Status><span className="num dim">{b.units_in_bin} units</span></div>)}</div>)}
 
       {tab === 'exceptions' && d && (d.ex.length === 0 ? <EmptyState icon="check" title="No open exceptions" /> : <div className="stack">{d.ex.map((e) => <div key={e.id} className="callout soft"><div className="row wrap"><Status tone={e.severity as 'critical'}>{e.severity}</Status><b>{e.type_label}</b><a href={href('exceptions/' + e.exc_ref)}>{e.exc_ref}</a><span className={e.is_overdue ? 'bad' : 'dim'}>{deadlineText(e.response_deadline, e.is_overdue)}</span></div><p className="muted">{e.description}</p>{e.recommended_action && <p className="dim">→ {e.recommended_action}</p>}{e.financial_impact != null && <p className="dim num">{gbp(e.financial_impact)} at stake</p>}</div>)}</div>)}
+
+      {tab === 'changes' && <OrderChangesPanel orderId={o.id} orderRef={o.order_ref} status={o.order_status} priority={o.priority} />}
 
       {tab === 'history' && (hist.loading ? <div className="stack"><Skeleton h={16} /><Skeleton h={16} w="80%" /><Skeleton h={16} w="60%" /></div> : hist.rows.length === 0 ? <EmptyState icon="clock" title="No history recorded yet" /> :
         <ul className="timeline">{hist.rows.map((h, i) => <li key={i} className={'k-' + h.kind}><b style={{ textTransform: 'capitalize' }}>{h.title}</b><span className="dim"> · {h.actor ?? 'system'} · {dateTime(h.at)}</span>{h.detail && <div className="muted">{h.detail}</div>}</li>)}</ul>)}
