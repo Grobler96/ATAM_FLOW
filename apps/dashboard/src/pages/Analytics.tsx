@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Panel, Status, Kpi, Skeleton } from '../ui/primitives';
+import { Panel, Kpi, Skeleton } from '../ui/primitives';
 import { BarChart, Heat, Sparkline, StackBar } from '../ui/charts';
 import { useView } from '../data/store';
 import { navigate } from '../router';
@@ -8,6 +8,13 @@ import { AGE_BUCKETS } from '../lib/filters';
 import { gbp } from '../lib/format';
 import type { ExceptionRow } from '../types';
 import type { OrderRow, PoRow, ShortageRow, StockRow } from '../data/types';
+
+interface Head { shipped_30d: number; on_time_pct_30d: number | null; avg_days_late_30d: number | null; shipped_7d: number; shipped_prev_7d: number; units_7d: number; overdue_open: number; downtime_hours_30d: number | null; first_pass_pct_30d: number | null; open_rework: number; rework_units_30d: number; supplier_on_time_pct: number | null; producer_on_time_pct: number | null; exceptions_open: number; exceptions_median_age_hours: number | null }
+interface DispDay { day: string; orders_shipped: number; units_shipped: number; on_time: number; late: number }
+interface DownRow { machine_id: string; code: string; name: string; hours_down: number; hours_reduced: number; hours_unplanned: number; incidents: number }
+interface QualWeek { week: string; checks: number; units_checked: number; units_failed: number; first_pass_pct: number | null }
+interface DefectRow { defect_type: string; cause: string; jobs: number; units: number; units_scrapped: number }
+interface ExcMetric { category: string; opened_30d: number; resolved_30d: number; open_now: number; avg_hours_to_resolve: number | null; past_deadline: number }
 
 const TONE = { critical: 'var(--critical)', high: 'var(--high)', medium: 'var(--medium)', low: 'var(--low)', good: 'var(--good)', info: 'var(--accent)', '': 'var(--text-3)' } as const;
 const CATS = ['stock', 'purchasing', 'producer', 'artwork', 'production', 'logistics', 'integration', 'data', 'order'];
@@ -32,8 +39,10 @@ export function AnalyticsPage() {
   const atRisk = useMemo(() => ex.rows.filter((e) => e.type_code === 'order_at_risk').reduce((t, e) => t + (e.financial_impact ?? 0), 0), [ex.rows]);
   const loading = orders.loading || ex.loading;
 
-  const metrics: [string, string, 'now' | 'data' | 'next'][] = [['On-time completion rate', 'Builds up as orders complete through ATAM_FLOW', 'data'], ['Production throughput (jobs and units per day)', 'Needs completed-job history', 'data'], ['Machine utilisation and downtime', 'Needs machine status tracking (resilience step R3)', 'next'], ['Rework and quality failures', 'Needs quality-control gates (R7)', 'next'],
-    ['Supplier lead time and on-time rate', 'Fills as POs are booked in through ATAM_FLOW', 'data'], ['Producer turnaround and discrepancy rate', 'Fills as consignments return', 'data'], ['Margin by producer / method / order type', 'Needs producer rate cards and saved supplier choices', 'data'], ['Cost of exceptions and profit at risk', 'Exposure shown now; cost builds as exceptions close', 'now']];
+  const head = useView<Head>('ui_metric_headline').rows[0], disp = useView<DispDay>('ui_metric_dispatch_daily'), dt = useView<DownRow>('ui_metric_downtime'), qw = useView<QualWeek>('ui_metric_quality_weekly'), df = useView<DefectRow>('ui_metric_defects'), mx = useView<ExcMetric>('ui_metric_exceptions');
+  const days = useMemo(() => Array.from({ length: 14 }, (_, i) => { const d = new Date(Date.now() - (13 - i) * 86400000); const key = d.toISOString().slice(0, 10); const r = disp.rows.find((x) => x.day === key); return { label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), value: r?.orders_shipped ?? 0, tone: r && r.late > 0 ? 'var(--high)' : 'var(--good)' }; }), [disp.rows]);
+  const defects = useMemo(() => [...df.rows.reduce((m, r) => m.set(r.defect_type, (m.get(r.defect_type) ?? 0) + r.units), new Map<string, number>()).entries()].map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: v, tone: 'var(--high)' })).sort((a, b) => b.value - a.value), [df.rows]);
+  const pctText = (v: number | null | undefined) => (v == null ? '—' : `${v}%`);
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Analytics</h1><p>Trends and shape of the business, kept apart from daily operations. Charts drill into the underlying records.</p></div></div>
@@ -44,6 +53,15 @@ export function AnalyticsPage() {
           <Kpi label="Open exceptions" value={ex.rows.length} sub={`${gbp(ex.rows.reduce((t, e) => t + (e.financial_impact ?? 0), 0))} exposed`} tone="high" onClick={() => navigate('exceptions')} />
           <Kpi label="Stock units short" value={short.rows.reduce((t, s) => t + s.units_short, 0)} sub={`${short.rows.length} SKUs`} tone="high" onClick={() => navigate('stock', { view: 'short' })} /></>}
       </div>
+      {head && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+        <Kpi label="On-time dispatch (30 days)" text={pctText(head.on_time_pct_30d)} sub={`${head.shipped_30d} shipped${head.avg_days_late_30d != null ? ` · late ones avg ${head.avg_days_late_30d} d` : ''}`} tone={head.on_time_pct_30d != null && head.on_time_pct_30d < 85 ? 'high' : 'good'} />
+        <Kpi label="Shipped this week" value={head.shipped_7d} sub={`${head.shipped_prev_7d} the week before · ${head.units_7d} units`} />
+        <Kpi label="Open and overdue" value={head.overdue_open} sub="past their dispatch date" tone={head.overdue_open ? 'critical' : ''} onClick={() => navigate('orders', { view: 'overdue' })} />
+        <Kpi label="First-pass quality (30 days)" text={pctText(head.first_pass_pct_30d)} sub={`${head.open_rework} rework job(s) open`} onClick={() => navigate('quality')} />
+        <Kpi label="Machine downtime (30 days)" text={`${head.downtime_hours_30d ?? 0} h`} sub="all machines" />
+        <Kpi label="Supplier on time" text={pctText(head.supplier_on_time_pct)} sub="average, suppliers with history" />
+        <Kpi label="Producer on time" text={pctText(head.producer_on_time_pct)} sub="average, producers with history" />
+        <Kpi label="Median open issue age" text={head.exceptions_median_age_hours != null ? `${head.exceptions_median_age_hours} h` : '—'} sub={`${head.exceptions_open} open`} onClick={() => navigate('exceptions')} /></div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16 }}>
         <Panel title="Orders by due date" icon="calendar"><BarChart data={dueBars.map((d) => ({ ...d, onClick: d.q ? () => navigate('orders', { view: d.q }) : undefined }))} unit=" orders" /></Panel>
         <Panel title="Pipeline" icon="orders"><div className="stack"><StackBar height={14} parts={statusParts} />
@@ -53,7 +71,11 @@ export function AnalyticsPage() {
         <Panel title="Open exceptions by day detected" icon="analytics"><div className="row" style={{ justifyContent: 'space-between' }}><Sparkline data={trend} w={300} h={64} /><span className="dim">last 14 days · full trend history builds up from here</span></div></Panel>
         <Panel title="Late purchase orders" icon="purchasing"><BarChart data={late} unit=" POs" /><div className="stack" style={{ marginTop: 12, gap: 2 }}>{supplierLate.map(([s, v]) => <div key={s} className="row" style={{ justifyContent: 'space-between' }}><span>{s}</span><span className="num dim">{v.late} late of {v.open} open</span></div>)}</div></Panel>
         <Panel title="Units short by when they are needed" icon="stock"><BarChart data={['Overdue', 'This week', 'Later', 'No date'].map((k) => ({ label: k, value: shortBars[k] ?? 0, tone: k === 'Overdue' ? 'var(--critical)' : k === 'This week' ? 'var(--high)' : 'var(--accent)', onClick: () => navigate('stock', { view: 'short' }) }))} unit=" units" /><p className="dim" style={{ marginTop: 8 }}>{stock.rows.filter((s) => s.is_low_stock).length} SKUs are below their minimum.</p></Panel>
-        <Panel title="Metrics we are building towards" icon="info"><div className="stack" style={{ gap: 8 }}>{metrics.map(([m, why, st]) => <div key={m} className="row" style={{ justifyContent: 'space-between', gap: 12 }}><span><b>{m}</b><br /><span className="dim">{why}</span></span><Status tone={st === 'now' ? 'good' : st === 'data' ? 'medium' : 'low'} plain>{st === 'now' ? 'Available' : st === 'data' ? 'Needs history' : 'Needs build'}</Status></div>)}</div></Panel>
+        <Panel title="Orders shipped per day (last 14 days)" icon="orders"><BarChart data={days} unit=" orders" /><p className="dim" style={{ marginTop: 8 }}>Amber days include at least one late order. Built from shipped dates DecoNetwork reports; history is limited to orders ATAM_FLOW has seen.</p></Panel>
+        <Panel title="Machine downtime (last 30 days)" icon="production">{dt.rows.length === 0 ? <p className="dim">No machines.</p> : <div className="stack" style={{ gap: 4 }}>{dt.rows.map((m) => <div key={m.machine_id} className="row" style={{ justifyContent: 'space-between' }}><span><b className="mono">{m.code}</b> <span className="dim">{m.name}</span></span><span className="num">{m.hours_down} h down{m.hours_reduced > 0 ? ` · ${m.hours_reduced} h reduced` : ''} · {m.incidents} incident(s) · {Math.max(0, Math.round((1 - m.hours_down / 720) * 1000) / 10)}% available</span></div>)}<p className="dim">Availability is on a calendar-hour basis (24 h × 30 days); machine shift calendars are not modelled.</p></div>}</Panel>
+        <Panel title="Quality" icon="check"><div className="stack"><div className="row" style={{ justifyContent: 'space-between' }}><span>First-pass yield by week</span>{qw.rows.length > 1 ? <Sparkline data={qw.rows.sort((a, b) => a.week.localeCompare(b.week)).map((r) => r.first_pass_pct ?? 0)} w={220} h={48} /> : <span className="dim">{qw.rows.length === 1 ? `${qw.rows[0].first_pass_pct}% this week` : 'no checks recorded yet'}</span>}</div>{defects.length ? <><h3>Units reworked by problem (30 days)</h3><BarChart data={defects} unit=" units" /></> : <p className="dim">No rework in the last 30 days.</p>}</div></Panel>
+        <Panel title="Exceptions: how fast are they dealt with? (30 days)" icon="exceptions" flush>{mx.rows.length === 0 ? <p className="dim" style={{ padding: 12 }}>No exceptions yet.</p> : <div style={{ overflow: 'auto' }}><table className="table"><thead><tr><th>Area</th><th className="r">Opened</th><th className="r">Resolved</th><th className="r">Open now</th><th className="r">Avg hours to resolve</th><th className="r">Past deadline</th></tr></thead><tbody>{mx.rows.sort((a, b) => b.open_now - a.open_now).map((r) => <tr key={r.category}><td>{r.category}</td><td className="r num">{r.opened_30d}</td><td className="r num">{r.resolved_30d}</td><td className="r num">{r.open_now}</td><td className="r num">{r.avg_hours_to_resolve ?? '—'}</td><td className={`r num ${r.past_deadline ? 'bad' : ''}`}>{r.past_deadline}</td></tr>)}</tbody></table></div>}</Panel>
+        <Panel title="Not measured yet" icon="info"><p className="muted">Margin by producer, method and order type (needs saved supplier and producer choices on completed orders), production throughput by machine (needs completed-job history), and the cost of exceptions over time. They fill in as the system is used.</p></Panel>
       </div>
     </div>
   );

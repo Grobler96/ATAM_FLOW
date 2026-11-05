@@ -21,6 +21,7 @@ const AWAIT_RETURN = ['awaiting_return', 'in_transit_back', 'partially_returned'
 
 export function OrdersPage({ route }: { route: Route }) {
   const orders = useView<OrderRow>('ui_orders'), tpo = useView<TpOrderRow>('ui_tp_orders'), art = useView<ArtworkStatusRow>('ui_artwork_status'), sel = useView<SelectionRow>('ui_selection');
+  const chg = useView<{ order_id: string; status: string }>('ui_order_changes'); const changedIds = useMemo(() => new Set(chg.rows.filter((c) => c.status === 'new').map((c) => c.order_id)), [chg.rows]);
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), alloc = useView<AllocationRow>('ui_allocation');
   const { canAct } = useCtx(); const toast = useToast(); const runner = useRunner();
 
@@ -37,7 +38,7 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'ready', label: 'Ready for production', test: (o) => o.order_status === 'ready_for_production' }, { id: 'stock', label: 'Blocked by stock', test: (o) => o.order_status === 'awaiting_stock' },
     { id: 'producers', label: 'With producers', test: (o) => o.route === 'Producer' }, { id: 'return', label: 'Awaiting return', test: (o) => !!o.tp_status && AWAIT_RETURN.includes(o.tp_status) },
     { id: 'dispatch', label: 'Ready for dispatch', test: (o) => o.order_status === 'ready_for_dispatch' }, { id: 'exceptions', label: 'Exceptions', test: (o) => o.exCount > 0 },
-    { id: 'hold', label: 'On hold', test: (o) => o.order_status === 'on_hold' }
+    { id: 'hold', label: 'On hold', test: (o) => o.order_status === 'on_hold' }, { id: 'changed', label: 'Changed', test: (o) => changedIds.has(o.id) }
   ];
   const uniq = (f: (o: OrderVM) => string | null | undefined) => [...new Set(rows.map(f).filter(Boolean) as string[])].sort().map((v) => ({ value: v, label: v }));
   const filters: FilterDef<OrderVM>[] = [

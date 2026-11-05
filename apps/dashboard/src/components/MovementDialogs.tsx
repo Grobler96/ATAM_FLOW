@@ -4,6 +4,7 @@ import { Button, Field, Status } from '../ui/primitives';
 import { useView, refreshAll } from '../data/store';
 import { mvAction, type StepDef, RESOLUTIONS } from '../lib/movements';
 import { whAction } from '../lib/warehouse';
+import type { RiskRow } from '../lib/producerRisk';
 import type { ProducerRow } from '../data/types';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
@@ -12,7 +13,7 @@ interface Sendable { order_line_id: string; order_id: string; order_ref: string;
 
 // Create an outbound consignment (or a direct-dispatch job) from lines that are secured and not already with a producer.
 export function CreateMovementDialog({ onClose, presetOrders, presetProducer }: { onClose: () => void; presetOrders?: string[]; presetProducer?: string }) {
-  const prods = useView<ProducerRow>('ui_producers'); const lines = useView<Sendable>('ui_tp_sendable_lines'); const toast = useToast();
+  const prods = useView<ProducerRow>('ui_producers'); const risks = useView<RiskRow>('ui_producer_risk'); const lines = useView<Sendable>('ui_tp_sendable_lines'); const toast = useToast();
   const [type, setType] = useState('outbound_to_producer'); const [producer, setProducer] = useState(presetProducer ?? ''); const [qty, setQty] = useState<Record<string, string>>({}); const [q, setQ] = useState(''); const [carrier, setCarrier] = useState(''); const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState<Record<string, any> | null>(null);
   const prod = prods.rows.find((p) => p.id === producer); const preset = presetOrders ?? [];
@@ -38,7 +39,7 @@ export function CreateMovementDialog({ onClose, presetOrders, presetProducer }: 
     <Modal open onClose={onClose} title="New producer movement">
       <div className="stack">
         <Field label="Type"><select className="select" value={type} onChange={(e) => setType(e.target.value)}><option value="outbound_to_producer">Send blanks to a producer (they come back to us)</option><option value="direct_dispatch_to_customer">Producer ships straight to the customer</option></select></Field>
-        <Field label="Producer"><select className="select" value={producer} onChange={(e) => setProducer(e.target.value)}><option value="">Choose a producer…</option>{prods.rows.filter((p) => p.is_active && (type === 'outbound_to_producer' || p.can_direct_dispatch)).map((p) => <option key={p.id} value={p.id}>{p.name} · {p.turnaround_days} day turnaround</option>)}</select></Field>
+        <Field label="Producer"><select className="select" value={producer} onChange={(e) => setProducer(e.target.value)}><option value="">Choose a producer…</option>{prods.rows.filter((p) => p.is_active && (type === 'outbound_to_producer' || p.can_direct_dispatch)).map((p) => { const sus = risks.rows.find((x) => x.producer_id === p.id)?.is_suspended; return <option key={p.id} value={p.id} disabled={!!sus}>{p.name} · {p.turnaround_days} day turnaround{sus ? ' (suspended)' : ''}</option>; })}</select></Field>
         {prods.rows.length === 0 && !prods.loading && <div className="callout" role="status">No producers exist yet. Add one on the Producers page first.</div>}
         <Field label={`Lines to send (${total} unit(s) chosen)`}>
           <input className="input" placeholder="Filter by order, customer, SKU…" value={q} onChange={(e) => setQ(e.target.value)} />
