@@ -28,7 +28,7 @@ export async function findOrderId(orderRef: string): Promise<string | null> {
   return (data?.order_id as string | undefined) ?? null;
 }
 
-async function call(path: string, body: unknown): Promise<ActionResult> {
+export async function call(path: string, body: unknown): Promise<ActionResult> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return { ok: false, error: 'You are signed out. Sign in again.' };
@@ -52,3 +52,6 @@ export const runCheckNow = (): Promise<ActionResult> => call('run-exceptions', {
 
 // Generic call to any ATAM_FLOW action webhook that takes {action, params} (purchasing, artwork, selection, exceptions ...).
 export const exceptionActionTo = (path: string, action: string, params: Record<string, unknown>): Promise<ActionResult> => call(path, { action, params });
+
+// Posts a raw JSON body to an ATAM_FLOW webhook (for example goods-in, which takes {po_id, receipt}).
+export const postJson = (path: string, body: unknown): Promise<ActionResult> => call(path, body);

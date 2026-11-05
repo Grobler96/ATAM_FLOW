@@ -29,10 +29,11 @@ Persistent sidebar (12 sections, collapsible, off-canvas on a phone), top comman
 | **Stock** | List with all requested columns, 8 views, filters; detail with reorder recommendation, movements, incoming POs, orders that need it, producer holdings, discrepancies | Slow / dead stock, stock ageing (need history); alternative SKUs (approved-alternatives step) |
 | **Purchasing** | PO list, detail with lines and actions (approve, prepare email, acknowledge, cancel), discrepancies, **email review queue (approve / cancel)**, supplier comparison table; create PO from waiting orders | Goods-in screen; supplier comparison inside the create-PO dialog is the simple table, the full per-SKU engine comparison is per order |
 | **Producers** | Producer list with performance, movements list, stock held, discrepancies, detail drawers | Needs real producers loaded; emergency contact, backup producers, quality pass rate are not stored yet |
-| **Warehouse / Bins** | Bin list and detail, search by bin or order | No bins exist yet; creating bins, assigning, label reprint, release/empty need workflows |
+| **Warehouse / Bins** | Bin list and drawer, create bins, put away with suggestion and audited override, move, release/empty, status, stock locations, search | Needs the Warehouse actions workflow published; no bins exist yet. See [warehouse.md](warehouse.md) |
+| **Goods in** | Book a delivery against an ATAM_FLOW PO | Needs the goods-in workflow published; photo upload from device not built |
 | **Artwork & Job Packs** | Readiness by order, file versions, job packs | Preview, download, upload / replace, regenerate, send to producer (need the artwork file workflows and DecoNetwork credentials) |
 | **Exceptions** | Full list with groups, filters, ageing, detail with actions (assign, status, note, resolve, cancel, write off), raise an issue | None of substance |
-| **Labels** | Table and empty state | Generation, preview, QR / barcode, printing, print audit UI (needs the label workflow) |
+| **Labels** | Awaiting-print list, generate (6 types), preview with QR + barcode, A4 / thermal print, reprint with reason, print history | Needs the Warehouse actions workflow published; not tested on a physical printer |
 | **Analytics** | Due-date profile, pipeline, exceptions by area and age, late POs by supplier, shortages by urgency, revenue and cost exposure, all clickable | Trend lines for throughput, on-time rate, utilisation, downtime, rework, supplier / producer performance and margin by producer need history, which builds as work flows through ATAM_FLOW |
 | **Settings** | Account and role, every engine setting with its explanation (read-only) | Editing settings from the UI |
 

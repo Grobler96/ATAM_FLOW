@@ -19,7 +19,7 @@ export function syncHealth(rows: SyncRunRow[]) {
   return { items, worst, oldest };
 }
 
-export function TopBar({ onMenu, onCollapse, onSearch, onCreatePo, onRun, running, canRun, email }: { onMenu: () => void; onCollapse: () => void; onSearch: () => void; onCreatePo: () => void; onRun: (d: WorkflowDef) => void; running: string | null; canRun: (d: WorkflowDef) => boolean; email: string | null }) {
+export function TopBar({ onMenu, onCollapse, onSearch, onCreatePo, onGenerateLabels, onRun, running, canRun, email }: { onMenu: () => void; onCollapse: () => void; onSearch: () => void; onCreatePo: () => void; onGenerateLabels: () => void; onRun: (d: WorkflowDef) => void; running: string | null; canRun: (d: WorkflowDef) => boolean; email: string | null }) {
   const { range, setRange, role, canAct } = useCtx();
   const [open, setOpen] = useState<'quick' | 'sync' | 'bell' | 'user' | null>(null);
   const sync = useView<SyncRunRow>('ui_sync_runs'); const notes = useView<NotificationRow>('ui_notifications');
@@ -43,7 +43,7 @@ export function TopBar({ onMenu, onCollapse, onSearch, onCreatePo, onRun, runnin
           <h3>Create</h3>
           <button className="item" role="menuitem" disabled={!canAct} onClick={() => { setOpen(null); onCreatePo(); }}><Icon name="plus" /><span><b>Purchase order</b><small>From orders waiting for stock</small></span></button>
           <button className="item" role="menuitem" disabled title="Needs the producer-movement workflow (not built yet)"><Icon name="truck" /><span><b>Producer movement</b><small>Not built yet</small></span></button>
-          <button className="item" role="menuitem" disabled title="Needs the label workflow (not built yet)"><Icon name="labels" /><span><b>Generate labels</b><small>Not built yet</small></span></button>
+          <button className="item" role="menuitem" disabled={!canAct} onClick={() => { setOpen(null); onGenerateLabels(); }}><Icon name="labels" /><span><b>Generate labels</b><small>Order, bin, stock, producer, dispatch</small></span></button>
         </div>}
       </div>
       <div style={{ position: 'relative' }}>
