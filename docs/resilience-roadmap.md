@@ -42,7 +42,7 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 | R4 | Producer risk: scores, checkpoints, suspend / unresponsive handling, exposure and recovery | |
 | R5 (**done 5 Nov 2026**, see [supplier-resilience.md](supplier-resilience.md)) | Supplier resilience: chase drafts, Approved Alternatives, shortage advice, reliability stats, supplier offers | Scheduled auto-chase, price/invoice handling, applying a substitution in DecoNetwork still to do |
 | R6 | Artwork rule additions and exception raising | |
-| R7 | QC gates and rework jobs | |
+| R7 (**done 5 Nov 2026**, see [quality-rework.md](quality-rework.md)) | QC gates and rework jobs | Real checklists, auto-advancing order status, claims against producers/suppliers still to do |
 | R8 | Order-change detection and impact assessment | |
 | R9 | Courier monitoring and claims | |
 | R10 | Manual override set | |

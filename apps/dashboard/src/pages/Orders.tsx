@@ -80,6 +80,7 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'esc', label: 'Escalate (raise issue)', icon: 'exceptions', run: canAct ? (r) => void raise(r) : undefined, disabledReason: 'Your role cannot raise issues' },
     { id: 'send', label: 'Send to producer', icon: 'truck', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:send-to-producer', { detail: { orders: r.map((o) => o.order_ref) } })) : undefined, disabledReason: 'Your role cannot create producer movements' },
     { id: 'labels', label: 'Generate labels', icon: 'labels', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:generate-labels', { detail: { type: 'order', refs: r.map((o) => o.order_ref) } })) : undefined, disabledReason: 'Your role cannot generate labels' },
+    { id: 'qc', label: 'Record quality check', icon: 'check', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:record-qc', { detail: { orderId: r[0]?.id } })) : undefined, disabledReason: 'Your role cannot record quality checks' },
     { id: 'status', label: 'Update status', icon: 'check', disabledReason: 'Order status follows DecoNetwork and the engines; manual status changes are not built yet' },
     { id: 'bin', label: 'Assign bin', icon: 'warehouse', run: canAct ? () => navigate('warehouse') : undefined, disabledReason: 'Your role cannot change bins' }
   ];

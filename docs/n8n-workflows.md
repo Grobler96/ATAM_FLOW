@@ -91,3 +91,7 @@ See [machine-downtime.md](machine-downtime.md). report_downtime, update_downtime
 ## Supplier actions (built 5 Nov 2026, unpublished)
 
 See [supplier-resilience.md](supplier-resilience.md). refresh_stats, add_alternative, remove_alternative, set_offer, chase_po, chase_all_late. Chases are drafts in the review queue; nothing is sent.
+
+## Quality actions (built 5 Nov 2026, unpublished)
+
+See [quality-rework.md](quality-rework.md). record_check, open_rework, rework (start / assign / complete / cancel / replacement), set_criterion.
