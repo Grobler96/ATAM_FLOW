@@ -83,3 +83,7 @@ See [warehouse.md](warehouse.md). One webhook, many actions: suggest_bin, assign
 ## Movement actions (built 5 Nov 2026, unpublished)
 
 See [producer-movements.md](producer-movements.md). One webhook: upsert_producer, set_rate, create_movement, scan (pick/pack/dispatch and producer-side steps), record_return, check_return, direct_dispatch, resolve_discrepancy, cancel_movement.
+
+## Machine actions (built 5 Nov 2026, unpublished)
+
+See [machine-downtime.md](machine-downtime.md). report_downtime, update_downtime, resolve_downtime, upsert_machine.
