@@ -24,3 +24,21 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+  database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install PostgreSQL 16
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16
+      - run: bash scripts/test-db.sh
+  n8n-exports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/check-n8n-exports.mjs
