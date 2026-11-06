@@ -12,3 +12,8 @@ export async function loadImpact(orderId: string): Promise<Impact | null> {
   return data as Impact;
 }
 export const PRIORITY_NAMES = ['Normal', 'High', 'Rush', 'Critical'];
+
+export interface CourierEvent { id: string; movement_code: string; carrier: string | null; direction: string; event: string; at: string; note: string | null; recorded_by: string | null }
+export interface CourierClaim { id: string; claim_ref: string; movement_code: string; kind: string; carrier: string | null; tracking_ref: string | null; value_claimed: number | null; amount_recovered: number | null; status: string; note: string | null; opened_by: string | null; opened_at: string; age_days: number; closed_note: string | null }
+export const COURIER_EVENTS: [string, string][] = [['collected', 'Collected by courier'], ['delivered', 'Delivered'], ['failed_attempt', 'Failed delivery attempt'], ['delayed', 'Delayed'], ['wrong_address', 'Wrong address'], ['partial', 'Partly delivered'], ['damaged', 'Damaged'], ['lost', 'Lost'], ['note', 'Note only']];
+export const COURIER_LABEL: Record<string, string> = Object.fromEntries(COURIER_EVENTS);

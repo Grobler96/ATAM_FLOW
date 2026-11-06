@@ -44,7 +44,7 @@ If the system cannot tell, it raises an exception instead of carrying on.** Auto
 | R6 | Artwork rule additions and exception raising | |
 | R7 (**done 5 Nov 2026**, see [quality-rework.md](quality-rework.md)) | QC gates and rework jobs | Real checklists, auto-advancing order status, claims against producers/suppliers still to do |
 | R8 (**done 5 Nov 2026**, see [order-changes.md](order-changes.md)) | Order-change detection and impact assessment | Changes to artwork or decoration details are not tracked; customer notification is manual |
-| R9 | Courier monitoring and claims | |
+| R9 (**done 5 Nov 2026**, see [courier.md](courier.md)) | Courier monitoring and claims, entered by hand | No courier API, so nothing updates by itself; claims are tracked but submitted to the courier by a person |
 | R10 (**safe subset done 5 Nov 2026**, see [order-changes.md](order-changes.md)) | Manual overrides: hold, release, priority (reason + audit) | Stock and due-date edits are deliberately not built: DecoNetwork overwrites them on sync |
 | R11 (Exceptions page **done 4 Nov 2026**, see [dashboard.md](dashboard.md)) | **Dashboard**: Exceptions page first, then the home page (morning / day / evening), purchasing, artwork, selection, third-party, metrics; phone-friendly | Built alongside from R1 so each step can be used and tested with real logins |
 | R12 | **Producer portal** (receipt confirmation, stages, queries, evidence) raising into exceptions | Needs R1 and R4 |
