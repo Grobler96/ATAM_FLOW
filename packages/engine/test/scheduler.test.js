@@ -142,3 +142,19 @@ test('orders whose garments are already secured by DecoNetwork get the stock-rea
   assert.equal(plan.steps.find((s) => s.order_id === 'a').score_breakdown.stock_ready, 15);
   assert.equal(plan.steps.find((s) => s.order_id === 'b').score_breakdown.stock_ready, undefined);
 });
+
+test('a job chosen for a machine runs on that machine; two machines share the rest', () => {
+  const machines = [{ id: 'm-a', code: 'HAPPY-6', method_code: 'embroidery', is_active: true }, { id: 'm-b', code: 'TOYOTA-1', method_code: 'embroidery', is_active: true }];
+  const input = { machines, orders: [order('x'), order('y')], steps: [step('x', 'embroidery', 60), step('y', 'embroidery', 60)] };
+  const plan = buildPlan(base(Object.assign({}, input, { assignments: [{ order_id: 'x', method_code: 'embroidery', machine_id: 'm-b' }] })));
+  assert.equal(plan.steps.find((s) => s.order_id === 'x').machine_id, 'm-b');
+  assert.equal(plan.steps.find((s) => s.order_id === 'y').machine_id, 'm-a');
+});
+
+test('a job whose chosen machine is switched off is blocked, not moved silently', () => {
+  const machines = [{ id: 'm-a', code: 'HAPPY-6', method_code: 'embroidery', is_active: true }, { id: 'm-b', code: 'TOYOTA-1', method_code: 'embroidery', is_active: false }];
+  const plan = buildPlan(base({ machines, orders: [order('x')], steps: [step('x', 'embroidery', 60)], assignments: [{ order_id: 'x', method_code: 'embroidery', machine_id: 'm-b' }] }));
+  const s = plan.steps.find((q) => q.order_id === 'x');
+  assert.equal(s.status, 'blocked');
+  assert.match(s.blocked_reason, /TOYOTA-1/);
+});

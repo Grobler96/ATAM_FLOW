@@ -111,6 +111,8 @@ function buildJobs(input, S) {
   const orders = new Map((input.orders || []).map((o) => [o.id, o]));
   const fixed = new Map((input.fixed_steps || []).map((f) => [f.order_id + '|' + f.method_code, f]));
   const pins = new Map((input.overrides || []).map((p) => [p.order_id + '|' + (p.method_code || ''), p]));
+  const assigned = new Map((input.assignments || []).map((a) => [a.order_id + '|' + a.method_code, a.machine_id]));
+  const machineById = new Map((input.machines || []).map((m) => [m.id, m]));
   const activeMethods = new Set((input.machines || []).filter((m) => m.is_active).map((m) => m.method_code));
   const orderIdx = (m) => { const i = S.method_order.indexOf(m); return i < 0 ? 999 : i; };
   const byOrder = new Map();
@@ -142,7 +144,10 @@ function buildJobs(input, S) {
         units: Number(s.units || 0), run_min: Number(s.run_min || 0), colours: s.colours || [], garment_types: s.garment_types || [],
         dueEnd, priority: Number(o.priority || 0), vip: !!o.is_vip, alloc_state: o.alloc_state, stock_secured: !!o.stock_secured, step_index: i,
         dep: i > 0 ? oid + '|' + steps[i - 1].method_code : null, order_remaining_min: remaining,
-        blocked: orderBlock || (activeMethods.has(s.method_code) ? null : `no active machine for ${s.method_code}`),
+        machine_id: assigned.get(oid + '|' + s.method_code) || null,
+        blocked: orderBlock || (activeMethods.has(s.method_code) ? null : `no active machine for ${s.method_code}`) || (() => {
+          const am = assigned.get(oid + '|' + s.method_code); if (!am) return null; const m = machineById.get(am);
+          return !m ? 'the machine chosen for this job no longer exists' : !m.is_active ? `the machine chosen for this job (${m.code}) is not available` : null; })(),
         pin_rank: pin ? Number(pin.pin_rank || 1) : null, pin_note: pin ? pin.note : null, pin_by: pin ? pin.set_by : null
       });
     });
@@ -169,6 +174,7 @@ function simulate(jobs, ctx, usePins) {
       const cands = [];
       for (const j of pending) {
         if (j.method !== ms.m.method_code) continue;
+        if (j.machine_id && j.machine_id !== ms.m.id) continue;
         let ready = now;
         if (j.dep) { const d = placed.get(j.dep); if (!d) continue; if (d.blocked) { cands.push({ j, start: Infinity, blocked: d }); continue; } ready = d.end; }
         const st = nextWorking(ms.wins, Math.max(ms.cursor, ready));

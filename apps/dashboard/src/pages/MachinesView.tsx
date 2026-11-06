@@ -17,6 +17,7 @@ type Dlg = null | { k: 'report'; machine?: string } | { k: 'add' } | { k: 'edit'
 // Machine cards with real status (operational, reduced capacity, maintenance, breakdown, offline), downtime reporting, impact and history.
 export function MachinesView({ machines, queue, loading }: { machines: MachineRow[]; queue: QueueRow[]; loading: boolean }) {
   const status = useView<MachineStatusRow>('ui_machine_status'); const downtime = useView<DowntimeRow>('ui_machine_downtime'); const { canAct, senior } = useCtx(); const runner = useRunner();
+  const ops = useView<{ id: string; name: string; is_active: boolean }>('ui_operators');
   const [dlg, setDlg] = useState<Dlg>(null); const [tab, setTab] = useState<'cards' | 'history'>('cards');
   const schedulerWf = WORKFLOWS.find((w) => w.id === 'scheduler')!; const canReplan = canAct && runner.can(schedulerWf);
   const replan = () => { void runner.run(schedulerWf); };
@@ -32,7 +33,6 @@ export function MachinesView({ machines, queue, loading }: { machines: MachineRo
     { id: 'a', header: '', width: '170px', render: (d) => !d.ended_at ? <span className="row" style={{ gap: 6 }}><Button size="sm" disabled={!canAct} onClick={(e) => { e.stopPropagation(); setDlg({ k: 'resolve', d }); }}>{d.is_scheduled ? 'Cancel' : 'Back in service'}</Button></span> : null }
   ];
   if (loading || status.loading) return <Skeleton h={200} r={14} />;
-  const ops = useView<{ id: string; name: string; is_active: boolean }>('ui_operators');
   return (<div className="stack" style={{ gap: 14 }}>
     <div className="row wrap"><span className="muted grow">{down.length === 0 ? 'Every machine is operational.' : `${down.length} machine(s) not at full capacity: ${down.map((s) => s.code).join(', ')}.`}</span>
       <div className="row" style={{ gap: 4 }}><button className={`chip ${tab === 'cards' ? 'on' : ''}`} aria-pressed={tab === 'cards'} onClick={() => setTab('cards')}>Machines</button><button className={`chip ${tab === 'history' ? 'on' : ''}`} aria-pressed={tab === 'history'} onClick={() => setTab('history')}>Downtime history ({downtime.rows.length})</button></div>
