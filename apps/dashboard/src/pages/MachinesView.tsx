@@ -32,6 +32,7 @@ export function MachinesView({ machines, queue, loading }: { machines: MachineRo
     { id: 'a', header: '', width: '170px', render: (d) => !d.ended_at ? <span className="row" style={{ gap: 6 }}><Button size="sm" disabled={!canAct} onClick={(e) => { e.stopPropagation(); setDlg({ k: 'resolve', d }); }}>{d.is_scheduled ? 'Cancel' : 'Back in service'}</Button></span> : null }
   ];
   if (loading || status.loading) return <Skeleton h={200} r={14} />;
+  const ops = useView<{ id: string; name: string; is_active: boolean }>('ui_operators');
   return (<div className="stack" style={{ gap: 14 }}>
     <div className="row wrap"><span className="muted grow">{down.length === 0 ? 'Every machine is operational.' : `${down.length} machine(s) not at full capacity: ${down.map((s) => s.code).join(', ')}.`}</span>
       <div className="row" style={{ gap: 4 }}><button className={`chip ${tab === 'cards' ? 'on' : ''}`} aria-pressed={tab === 'cards'} onClick={() => setTab('cards')}>Machines</button><button className={`chip ${tab === 'history' ? 'on' : ''}`} aria-pressed={tab === 'history'} onClick={() => setTab('history')}>Downtime history ({downtime.rows.length})</button></div>
@@ -62,6 +63,7 @@ export function MachinesView({ machines, queue, loading }: { machines: MachineRo
     {dlg?.k === 'add' && <MachineDialog onClose={() => setDlg(null)} />}{dlg?.k === 'edit' && <MachineDialog id={dlg.id} onClose={() => setDlg(null)} />}
     {dlg?.k === 'impact' && <ImpactDialog m={dlg.m} onClose={() => setDlg(null)} onReplan={replan} replanning={!!runner.running} />}
     {dlg?.k === 'resolve' && <ResolveDowntimeDialog d={dlg.d} onClose={() => setDlg(null)} onReplan={replan} replanning={!!runner.running} />}{dlg?.k === 'update' && <UpdateReturnDialog d={dlg.d} onClose={() => setDlg(null)} />}
+    {ops.rows.length > 0 && <p className="dim"><b>Operators:</b> {ops.rows.filter((o) => o.is_active).map((o) => o.name).join(', ')}. Operators are listed for reference; jobs are not yet assigned to individual people.</p>}
     {!canReplan && canAct && <p className="dim">Your role cannot re-plan production; ask a manager to re-plan after downtime changes.</p>}
   </div>);
 }
