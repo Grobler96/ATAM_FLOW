@@ -90,6 +90,16 @@ function urgency(job, ctx) {
   return { total: round1(total), parts };
 }
 
+// How long a job takes on a particular machine. A multi-head embroidery machine sews one piece per head at the same time:
+// a run of up to base_stitches takes about base_minutes whatever the number of heads, longer designs take proportionally longer.
+function runOn(job, machine, ctx) {
+  const m = ctx.runModel;
+  if (job.method !== 'embroidery' || !machine || !(Number(machine.heads) >= 1) || !m) return { min: job.run_min, note: null };
+  const perRun = Math.max(m.base_minutes, m.base_minutes * (job.stitches || m.base_stitches) / m.base_stitches);
+  const runs = Math.ceil(job.units / machine.heads);
+  return { min: runs * perRun, note: `${runs} run(s) of ${round1(perRun)} min on ${machine.heads} head(s)` };
+}
+
 function changeover(prev, job, method, rules) {
   if (!prev) return { min: Number(method.setup_minutes || 0), why: ['first job on machine: setup'], sameCustomer: false, sameColour: false, sameType: false };
   const r = rules[job.method] || {}, why = [];
@@ -141,7 +151,7 @@ function buildJobs(input, S) {
       const pin = pins.get(oid + '|' + s.method_code) || pins.get(oid + '|');
       jobs.push({
         key: oid + '|' + s.method_code, order_id: oid, order_ref: o.order_ref, customer: o.customer_name || '', method: s.method_code,
-        units: Number(s.units || 0), run_min: Number(s.run_min || 0), colours: s.colours || [], garment_types: s.garment_types || [],
+        units: Number(s.units || 0), run_min: Number(s.run_min || 0), stitches: s.stitches ? Number(s.stitches) : null, colours: s.colours || [], garment_types: s.garment_types || [],
         dueEnd, priority: Number(o.priority || 0), vip: !!o.is_vip, alloc_state: o.alloc_state, stock_secured: !!o.stock_secured, step_index: i,
         dep: i > 0 ? oid + '|' + steps[i - 1].method_code : null, order_remaining_min: remaining,
         machine_id: assigned.get(oid + '|' + s.method_code) || null,
@@ -197,9 +207,10 @@ function simulate(jobs, ctx, usePins) {
     pending.splice(pending.indexOf(j), 1);
     if (pick.noCapacity) { placed.set(j.key, { job: j, blocked: 'no machine capacity within the planning window' }); continue; }
     const ready = j.dep ? placed.get(j.dep).end : now;
-    const r = place(ms.wins, Math.max(ms.cursor, ready), pick.co.min + j.run_min);
+    const run = runOn(j, ms.m, ctx);
+    const r = place(ms.wins, Math.max(ms.cursor, ready), pick.co.min + run.min);
     if (!r) { placed.set(j.key, { job: j, blocked: 'no machine capacity within the planning window' }); continue; }
-    const rec = { job: j, machine: ms.m, start: r.start, end: r.end, setup_min: pick.co.min, co: pick.co, adj: pick.adj, prev: ms.last && ms.last.job, urg: urg.get(j.key) };
+    const rec = { job: j, machine: ms.m, run_min: run.min, run_note: run.note, start: r.start, end: r.end, setup_min: pick.co.min, co: pick.co, adj: pick.adj, prev: ms.last && ms.last.job, urg: urg.get(j.key) };
     placed.set(j.key, rec); ms.seq.push(rec); ms.cursor = r.end; ms.last = rec;
   }
   for (const j of jobs) if (j.blocked) placed.set(j.key, { job: j, blocked: j.blocked });
@@ -229,6 +240,7 @@ function reasonFor(r, pos, ctx) {
     else if (r.co.sameCustomer || r.co.sameColour) bits.push(`kept close to related work (changeover ${r.co.min} min)`);
     else bits.push(`changeover ${r.co.min} min (${r.co.why.join(', ')})`);
   }
+  if (r.run_note) bits.push(r.run_note);
   const late = j.dueEnd != null && r.end > j.dueEnd;
   if (late) bits.push('PREDICTED LATE: finishes after the due date');
   return `#${pos} on ${r.machine.code}: ` + bits.join('; ') + '.';
@@ -263,7 +275,9 @@ function buildPlan(input) {
     const own = allShifts.filter((s) => s.machine_id === m.id);
     winsByMachine.set(m.id, buildWindows(own.length ? own : allShifts.filter((s) => s.machine_id == null), now, S.timezone, 75));
   }
-  const ctx = { S, W, now, machines, rules, methods, winsByMachine, placed: null };
+  const rmIn = (input.settings && input.settings.run_model) || {};
+  const runModel = { base_stitches: Number(rmIn.base_stitches) || 7500, base_minutes: Number(rmIn.base_minutes) || 10 };
+  const ctx = { S, W, now, machines, rules, methods, winsByMachine, runModel, placed: null };
   const jobs = buildJobs(input, S);
   const hasPins = jobs.some((j) => j.pin_rank != null);
 
@@ -279,7 +293,7 @@ function buildPlan(input) {
     const j = r.job;
     if (!r.machine) { steps.push({ order_id: j.order_id, method_code: j.method, step_no: j.step_index + 1, units: j.units, est_minutes: j.run_min, machine_id: null, blocked_reason: r.blocked, status: 'blocked', reason: `Blocked: ${r.blocked}.` }); continue; }
     const pos = posOf.get(j.key), late = j.dueEnd != null && r.end > j.dueEnd;
-    steps.push({ order_id: j.order_id, method_code: j.method, step_no: j.step_index + 1, units: j.units, est_minutes: j.run_min, setup_minutes: r.setup_min,
+    steps.push({ order_id: j.order_id, method_code: j.method, step_no: j.step_index + 1, units: j.units, est_minutes: r.run_min, setup_minutes: r.setup_min,
       machine_id: r.machine.id, machine_code: r.machine.code, planned_start: iso(r.start), planned_end: iso(r.end), score: r.adj,
       score_breakdown: Object.assign({}, r.urg.parts, { changeover_min: r.setup_min, selection_score: round1(r.adj) }),
       reason: reasonFor(r, pos, ctx), sequence_position: pos, recommended_position: recPos.get(j.key) || pos, is_late: late, blocked_reason: null,
@@ -316,7 +330,7 @@ function buildPlan(input) {
   for (const r of fin.placed.values()) {
     if (!r.machine || !util[r.machine.method_code]) continue;
     const frac = r.end > r.start ? clamp((Math.min(r.end, horizonEnd) - r.start) / (r.end - r.start), 0, 1) : (r.start < horizonEnd ? 1 : 0);
-    util[r.machine.method_code].demand += (r.setup_min + r.job.run_min) * frac;
+    util[r.machine.method_code].demand += (r.setup_min + r.run_min) * frac;
   }
   const utilisation = {};
   let bn = null;
@@ -336,7 +350,7 @@ function buildPlan(input) {
     b.garment_types = [...new Set(rs.flatMap((r) => r.job.garment_types))].sort();
     b.colours = [...new Set(rs.flatMap((r) => r.job.colours))].sort();
     b.est_setup_min = round1(rs.reduce((t, r) => t + r.setup_min, 0));
-    b.est_run_min = round1(rs.reduce((t, r) => t + r.job.run_min, 0));
+    b.est_run_min = round1(rs.reduce((t, r) => t + r.run_min, 0));
     b.priority_score = Math.max(...rs.map((r) => r.urg.total));
     b.scheduled_start = iso(rs[0].start); b.scheduled_end = iso(rs[rs.length - 1].end);
     b.is_bottleneck = !!(bottleneck && bottleneck.method === b.method_code);

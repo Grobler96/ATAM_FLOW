@@ -8,3 +8,11 @@ Each planned job (an order's step for one method, such as embroidery) can have a
 - **Who:** manager, admin, production planner (enforced in the unpublished Operations actions workflow; actions `assign_operator`, `assign_machine`).
 - **Engine:** `packages/engine/scheduler.js` reads `input.assignments`. The copy in the Production scheduler n8n workflow was updated to match.
 - **Not built:** operator shifts and holidays, skills, per-operator capacity, assigning from the Production page, bulk assignment.
+
+## How long embroidery takes (machine speeds)
+A rule of thumb from the business: a run of up to about 7,500 stitches takes around 10 minutes, and a multi-head machine sews one piece per head at the same time. So the Happy 6 head does about 6 pieces per 10 minute run (36 an hour) and the Toyota 1 head about 6 an hour. These are averages, not exact.
+
+- `flow.machines.heads` holds the head count (Happy 6 = 6, everything else 1). The planner now works out an embroidery job's duration **on the machine it is placed on**: runs = pieces / heads (rounded up), minutes per run = 10, or longer in proportion above 7,500 stitches (15,000 stitches = 20 min a run). The job's average stitch count comes from its order lines; if unknown it assumes 7,500.
+- The numbers live in the `embroidery.run_model` setting (`base_stitches` 7500, `base_minutes` 10) and can be changed without code.
+- The planner places a job on the machine that can start it soonest; it does not yet pick the machine that would finish it soonest, so a small job can land on the slow single head. Choose the machine yourself on the job if that matters.
+- Other methods (heat press and so on) still use the old per-piece estimate until you give me their speeds.
