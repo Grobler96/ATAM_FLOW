@@ -17,6 +17,8 @@ check() { $PSQL -v ON_ERROR_STOP=1 -q -c "$1" >/dev/null; }   # raises inside DO
 
 # ---- fixtures (absolute dates so the run is repeatable; FIXED_NOW is Monday 09 Nov 2026 08:00) ----
 $PSQL -v ON_ERROR_STOP=1 -q <<'SQL'
+-- the test uses a DTF job; the real business has no DTF machine, so the test brings one back for itself
+update flow.machines set is_active = true where code = 'DTF-1';
 insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, total_units, order_status, deco_status, stock_secured) values
   ('S1','#S1','Alpha','2026-11-11 12:00+00',40,'ready_for_production',1,true),
   ('S2','#S2','Beta', '2026-11-20 12:00+00',20,'ready_for_production',1,true),
