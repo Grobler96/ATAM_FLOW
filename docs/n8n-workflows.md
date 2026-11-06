@@ -107,3 +107,5 @@ Path `atam-flow/operations`, workflow `UvnfNdHot39VL5FI`. Actions: `hold`, `rele
 The Operations actions workflow also handles `courier_event`, `claim_open` (manager/admin) and `claim_update` (manager/admin). See [courier.md](courier.md).
 
 Operations actions also handles `assign_operator` and `assign_machine`. See [job-assignment.md](job-assignment.md).
+
+Operations actions also handles `set_switch` (admin) and `set_scope` (manager/admin). See [scope-control.md](scope-control.md).
