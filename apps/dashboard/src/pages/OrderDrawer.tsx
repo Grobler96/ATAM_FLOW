@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Drawer, Modal, useToast } from '../ui/overlay';
 import { Button, EmptyState, Facts, Field, Panel, Progress, Skeleton, Status, Tabs, Tag } from '../ui/primitives';
-import { useView } from '../data/store';
+import { refreshAll, useView } from '../data/store';
 import { useRpcList } from '../data/useRpcList';
 import { useCtx } from '../data/context';
+import { AssignJobDialog } from '../components/AssignJobDialog';
 import { OrderChangesPanel } from '../components/OrderChangesPanel';
 import type { ChangeRow } from '../lib/orderChanges';
 import { href } from '../router';
@@ -34,7 +35,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tpo = useView<TpOrderRow>('ui_tp_orders'), moves = useView<MovementRow>('ui_tp_movements'), pos = useView<PoRow>('ui_purchase_orders'), sel = useView<SelectionRow>('ui_selection');
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
-  const chg = useView<ChangeRow>('ui_order_changes');
+  const chg = useView<ChangeRow>('ui_order_changes'); const [assign, setAssign] = useState<QueueRow | null>(null);
   const { canAct } = useCtx(); const toast = useToast();
   const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
@@ -94,9 +95,9 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {tab === 'production' && d && <div className="stack">
         {d.steps.length === 0 ? <EmptyState icon="production" title="Not scheduled">{o.order_status === 'awaiting_stock' ? 'It joins the schedule once its stock is secured.' : 'Re-plan production to include it.'}</EmptyState> : d.steps.map((s) => (
           <Panel key={s.step_id} title={`${METHOD_LABEL[s.method_code] ?? s.method_code} · step ${s.step_no}`} actions={<><Status tone={s.is_late ? 'critical' : s.status === 'blocked' ? 'high' : 'info'}>{s.is_late ? 'Predicted late' : s.status}</Status>{s.is_bottleneck && <Status tone="high" plain>Bottleneck</Status>}</>}>
-            <div className="stack"><Facts items={[['Machine', s.machine_code ?? 'Unassigned'], ['Units', s.units], ['Planned start', s.planned_start ? dateTime(s.planned_start) : '—'], ['Planned end', s.planned_end ? dateTime(s.planned_end) : '—'], ['Batch', s.batch_code], ['Estimated time', s.est_minutes ? `${Math.round(s.est_minutes)} min + ${Math.round(s.setup_minutes ?? 0)} setup` : '—']]} />
+            <div className="stack"><Facts items={[['Machine', `${s.machine_code ?? 'Unassigned'}${s.machine_chosen ? ' (chosen by you)' : ''}`], ['Operator', s.operator_name ?? 'Nobody assigned'], ['Units', s.units], ['Planned start', s.planned_start ? dateTime(s.planned_start) : '—'], ['Planned end', s.planned_end ? dateTime(s.planned_end) : '—'], ['Batch', s.batch_code], ['Estimated time', s.est_minutes ? `${Math.round(s.est_minutes)} min + ${Math.round(s.setup_minutes ?? 0)} setup` : '—']]} />
               <div className="callout soft"><b>System recommendation: position #{s.recommended_position ?? '–'}{s.is_overridden ? ` · currently pinned at #${s.sequence_position}` : ''}</b><span className="muted">{s.reason ?? s.blocked_reason}</span><div style={{ marginTop: 6 }}><ScoreBars parts={s.score_breakdown} /></div></div>
-              {canAct && <div className="row"><Button size="sm" onClick={() => { setPin(s); setPinRank(String(s.sequence_position ?? 1)); }}>Override position…</Button>{s.is_overridden && <Tag>Manual override active</Tag>}</div>}</div>
+              {canAct && <div className="row"><Button size="sm" onClick={() => setAssign(s)}>Assign operator / machine…</Button><Button size="sm" onClick={() => { setPin(s); setPinRank(String(s.sequence_position ?? 1)); }}>Override position…</Button>{s.is_overridden && <Tag>Manual override active</Tag>}</div>}</div>
           </Panel>))}
       </div>}
 
@@ -121,6 +122,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {tab === 'history' && (hist.loading ? <div className="stack"><Skeleton h={16} /><Skeleton h={16} w="80%" /><Skeleton h={16} w="60%" /></div> : hist.rows.length === 0 ? <EmptyState icon="clock" title="No history recorded yet" /> :
         <ul className="timeline">{hist.rows.map((h, i) => <li key={i} className={'k-' + h.kind}><b style={{ textTransform: 'capitalize' }}>{h.title}</b><span className="dim"> · {h.actor ?? 'system'} · {dateTime(h.at)}</span>{h.detail && <div className="muted">{h.detail}</div>}</li>)}</ul>)}
 
+      {assign && <AssignJobDialog step={assign} onClose={() => { setAssign(null); void refreshAll(); }} />}
       <SelectionCompare open={compare} onClose={() => setCompare(false)} orderId={o.id} orderRef={o.order_ref} />
       <Modal open={!!pin} onClose={() => setPin(null)} title="Override production position">
         {pin && <div className="stack"><div className="callout soft"><b>System recommendation: position #{pin.recommended_position ?? '–'}</b><span className="muted">{pin.reason}</span></div>

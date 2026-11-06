@@ -103,3 +103,7 @@ See [producer-risk.md](producer-risk.md). Producer risk actions: suspend, resume
 ## Operations actions (built 5 Nov 2026, unpublished)
 
 Path `atam-flow/operations`, workflow `UvnfNdHot39VL5FI`. Actions: `hold`, `release`, `priority` (manager/admin), `review_changes`. Same pattern as the others: verify caller, role check, allow-list to a `flow_*` RPC, audited. See [order-changes.md](order-changes.md).
+
+The Operations actions workflow also handles `courier_event`, `claim_open` (manager/admin) and `claim_update` (manager/admin). See [courier.md](courier.md).
+
+Operations actions also handles `assign_operator` and `assign_machine`. See [job-assignment.md](job-assignment.md).

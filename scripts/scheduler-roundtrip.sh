@@ -65,10 +65,10 @@ check "do \$\$ begin if exists (select 1 from flow.v_production_queue where is_o
 echo "pass 4 (work already in progress is protected)"
 $PSQL -At -q -c "update flow.job_steps set status='in_progress' where order_id=(select id from flow.orders where deco_order_id='S4') and method_code='embroidery'" >/dev/null
 pass >/dev/null
-check "do \$\$ declare s4_end timestamptz; begin
-  select js.planned_end into s4_end from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S4';
+check "do \$\$ declare s4_end timestamptz; s4_m uuid; begin
+  select js.planned_end, js.machine_id into s4_end, s4_m from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S4';
   if (select count(*) from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S4') <> 1 then raise exception 'in-progress step duplicated or removed'; end if;
   if (select js.status from flow.job_steps js join flow.orders o on o.id=js.order_id where o.deco_order_id='S4') <> 'in_progress' then raise exception 'in-progress status overwritten'; end if;
-  if exists (select 1 from flow.job_steps js where js.method_code='embroidery' and js.status in ('pending','ready') and js.planned_start < s4_end) then raise exception 'new work scheduled over the busy machine'; end if;
+  if exists (select 1 from flow.job_steps js where js.method_code='embroidery' and js.machine_id = s4_m and js.status in ('pending','ready') and js.planned_start < s4_end) then raise exception 'new work scheduled over the busy machine'; end if;
 end \$\$;"
 echo "SCHEDULER ROUNDTRIP PASSED"

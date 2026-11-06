@@ -17,6 +17,7 @@ type Dlg = null | { k: 'report'; machine?: string } | { k: 'add' } | { k: 'edit'
 // Machine cards with real status (operational, reduced capacity, maintenance, breakdown, offline), downtime reporting, impact and history.
 export function MachinesView({ machines, queue, loading }: { machines: MachineRow[]; queue: QueueRow[]; loading: boolean }) {
   const status = useView<MachineStatusRow>('ui_machine_status'); const downtime = useView<DowntimeRow>('ui_machine_downtime'); const { canAct, senior } = useCtx(); const runner = useRunner();
+  const ops = useView<{ id: string; name: string; is_active: boolean }>('ui_operators');
   const [dlg, setDlg] = useState<Dlg>(null); const [tab, setTab] = useState<'cards' | 'history'>('cards');
   const schedulerWf = WORKFLOWS.find((w) => w.id === 'scheduler')!; const canReplan = canAct && runner.can(schedulerWf);
   const replan = () => { void runner.run(schedulerWf); };
@@ -62,6 +63,7 @@ export function MachinesView({ machines, queue, loading }: { machines: MachineRo
     {dlg?.k === 'add' && <MachineDialog onClose={() => setDlg(null)} />}{dlg?.k === 'edit' && <MachineDialog id={dlg.id} onClose={() => setDlg(null)} />}
     {dlg?.k === 'impact' && <ImpactDialog m={dlg.m} onClose={() => setDlg(null)} onReplan={replan} replanning={!!runner.running} />}
     {dlg?.k === 'resolve' && <ResolveDowntimeDialog d={dlg.d} onClose={() => setDlg(null)} onReplan={replan} replanning={!!runner.running} />}{dlg?.k === 'update' && <UpdateReturnDialog d={dlg.d} onClose={() => setDlg(null)} />}
+    {ops.rows.length > 0 && <p className="dim"><b>Operators:</b> {ops.rows.filter((o) => o.is_active).map((o) => o.name).join(', ')}. Operators are listed for reference; jobs are not yet assigned to individual people.</p>}
     {!canReplan && canAct && <p className="dim">Your role cannot re-plan production; ask a manager to re-plan after downtime changes.</p>}
   </div>);
 }
