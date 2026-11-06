@@ -94,10 +94,8 @@ begin
 
   create temp table if not exists pen_cand (case_key text primary key, order_id uuid, deco_order_id text, order_ref text, customer_name text, due_date timestamptz,
     units int, order_value numeric, source_status int, ship_address text, shipping_method text, defects jsonb) on commit delete rows;
-  truncate pen_cand;
 
-  -- orders in ATAM_FLOW
-  insert into pen_cand
+    insert into pen_cand
   select 'o:' || o.id, o.id, o.deco_order_id, o.order_ref, o.customer_name, o.due_date, o.total_units, o.order_value, u.order_status, u.shipping_address, u.shipping_method,
          coalesce((select jsonb_agg(jsonb_build_object('code', d.code, 'severity', d.sev, 'detail', d.detail) order by d.rank)
                    from (values
@@ -117,7 +115,8 @@ begin
                    ) d(rank, code, sev, detail, hit)
                    where d.hit and not exists (select 1 from flow.pen_waivers w where w.order_id = o.id and w.defect = d.code and w.revoked_at is null)), '[]'::jsonb)
   from flow.orders o left join public.upcoming_orders u on u.order_id = o.deco_order_id
-  where o.is_active and o.order_status <> 'dispatched';
+  where o.is_active and o.order_status <> 'dispatched'
+  on conflict (case_key) do update set defects = excluded.defects;
 
   -- orders DecoNetwork has that ATAM_FLOW does not: a status the sync does not recognise, or open orders the sync has not picked up
   insert into pen_cand
@@ -128,7 +127,8 @@ begin
   from public.upcoming_orders u left join flow.deco_status_map m on m.code = u.order_status
   where u.date_shipped is null and u.dismissed_at is null and (m.code is null or m.is_open)
     and not exists (select 1 from flow.orders o where o.deco_order_id = u.order_id)
-    and (m.code is null or u.synced_at < now() - interval '2 hours');
+    and (m.code is null or u.synced_at < now() - interval '2 hours')
+  on conflict (case_key) do update set defects = excluded.defects;
 
   -- open or update a case for everything with an open problem
   for r in select * from pen_cand where flow.pen_is_member(defects) loop
