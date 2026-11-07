@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Panel, Status } from '../ui/primitives';
 import { DataTable, type BulkAction, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
+import type { OrderScopeRow } from '../lib/scope';
 import { useView } from '../data/store';
 import { useCtx } from '../data/context';
 import { navigate, tableStateFromQuery, type Route } from '../router';
@@ -22,6 +23,7 @@ const AWAIT_RETURN = ['awaiting_return', 'in_transit_back', 'partially_returned'
 export function OrdersPage({ route }: { route: Route }) {
   const orders = useView<OrderRow>('ui_orders'), tpo = useView<TpOrderRow>('ui_tp_orders'), art = useView<ArtworkStatusRow>('ui_artwork_status'), sel = useView<SelectionRow>('ui_selection');
   const chg = useView<{ order_id: string; status: string }>('ui_order_changes'); const changedIds = useMemo(() => new Set(chg.rows.filter((c) => c.status === 'new').map((c) => c.order_id)), [chg.rows]);
+  const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), alloc = useView<AllocationRow>('ui_allocation');
   const { canAct } = useCtx(); const toast = useToast(); const runner = useRunner();
 
@@ -38,7 +40,7 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'ready', label: 'Ready for production', test: (o) => o.order_status === 'ready_for_production' }, { id: 'stock', label: 'Blocked by stock', test: (o) => o.order_status === 'awaiting_stock' },
     { id: 'producers', label: 'With producers', test: (o) => o.route === 'Producer' }, { id: 'return', label: 'Awaiting return', test: (o) => !!o.tp_status && AWAIT_RETURN.includes(o.tp_status) },
     { id: 'dispatch', label: 'Ready for dispatch', test: (o) => o.order_status === 'ready_for_dispatch' }, { id: 'exceptions', label: 'Exceptions', test: (o) => o.exCount > 0 },
-    { id: 'hold', label: 'On hold', test: (o) => o.order_status === 'on_hold' }, { id: 'changed', label: 'Changed', test: (o) => changedIds.has(o.id) }
+    { id: 'hold', label: 'On hold', test: (o) => o.order_status === 'on_hold' }, { id: 'changed', label: 'Changed', test: (o) => changedIds.has(o.id) }, { id: 'tp', label: 'Third-party', test: (o) => scopeOf.get(o.id) === 'third_party' }, { id: 'inh', label: 'In-house', test: (o) => scopeOf.get(o.id) === 'in_house' }, { id: 'unc', label: 'Unclassified', test: (o) => (scopeOf.get(o.id) ?? 'unclassified') === 'unclassified' }, { id: 'oos', label: 'Out of scope', test: (o) => scopeOf.get(o.id) === 'out_of_scope' }
   ];
   const uniq = (f: (o: OrderVM) => string | null | undefined) => [...new Set(rows.map(f).filter(Boolean) as string[])].sort().map((v) => ({ value: v, label: v }));
   const filters: FilterDef<OrderVM>[] = [

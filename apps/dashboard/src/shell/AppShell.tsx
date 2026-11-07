@@ -28,6 +28,7 @@ import { GenerateLabelsDialog } from '../components/GenerateLabelsDialog';
 import { LabelsPage } from '../pages/Labels';
 import { AnalyticsPage } from '../pages/Analytics';
 import { SettingsPage } from '../pages/Settings';
+import { ControlPage } from '../pages/Control';
 import '../shell/shell.css';
 
 export function AppShell({ session }: { session: Session }) {
@@ -71,7 +72,7 @@ function Frame() {
         <main className="content" id="main">
           {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
           {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'goods-in' && <GoodsInPage />}{page === 'quality' && <QualityPage route={route} />}
-          {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'settings' && <SettingsPage />}
+          {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'control' && <ControlPage />}{page === 'settings' && <SettingsPage />}
           {!NAV.some((n) => n.id === page) && <div className="state"><h3>Page not found</h3><a href="#/">Back to the Command Centre</a></div>}
         </main>
         <StatusBar />

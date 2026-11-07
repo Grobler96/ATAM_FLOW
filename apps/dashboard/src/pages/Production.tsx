@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { MachinesView } from './MachinesView';
 import { Button, EmptyState, Panel, Segmented, Skeleton, Status, Tag } from '../ui/primitives';
 import { DataTable, type Column, type ViewDef } from '../ui/DataTable';
+import { ScopeBanner } from '../components/ScopeBanner';
 import { useView } from '../data/store';
 import { href, navigate, tableStateFromQuery, type Route } from '../router';
 import { useRunner } from '../shell/useRunner';
@@ -36,6 +37,7 @@ export function ProductionPage({ route }: { route: Route }) {
 
   return (
     <div className="stack" style={{ gap: 16 }}>
+      <ScopeBanner />
       <div className="page-head"><div><h1>Production</h1><p>What to make next, on which machine, and why.</p></div>
         <div className="row"><Segmented label="Production view" value={mode} options={[{ id: 'board', label: 'Board' }, { id: 'schedule', label: 'Schedule' }, { id: 'machines', label: 'Machines' }]} onChange={set} />
           <Button icon="refresh" variant="primary" disabled={!runner.can(sched) || !!runner.running} onClick={() => void runner.run(sched)}>Re-plan production</Button></div></div>

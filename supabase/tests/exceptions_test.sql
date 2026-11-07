@@ -138,7 +138,8 @@ select flow.exceptions_detect_all();
 select pg_temp.assert((select count(*) from flow.exceptions where type_code = 'integrity_custody' and status = 'open') >= 1, 'units recorded at a producer with no movement or producer -> exception');
 select pg_temp.assert((select count(*) from flow.exceptions where type_code = 'integrity_stock' and description like '%EXC-NEG%') = 1, 'negative stock flagged');
 select pg_temp.assert((select count(*) from flow.exceptions where dedupe_key = 'hold_unexplained' and status = 'open') = 1, 'orders on hold with no reason are one aggregated exception');
-select pg_temp.assert((select count(*) from flow.v_order_accountability where order_ref = '#E4' and next_action is null) = 1, 'accountability view shows the held order has no known next action');
+-- the held order has no hold-related next action; if it is also in the holding pen, the pen problems are its next action
+select pg_temp.assert((select count(*) from flow.v_order_accountability where order_ref = '#E4' and (next_action is null or next_action like '%HOLDING-PEN%')) = 1, 'accountability view shows the held order has no hold-related next action');
 select pg_temp.assert((select count(*) from flow.v_order_accountability where order_ref = '#E1' and owner is not null and location is not null and next_action is not null) = 1, 'a normal order has owner, location and next action');
 
 -- ---- 13. manual exception, summary, permissions, audit immutability ----

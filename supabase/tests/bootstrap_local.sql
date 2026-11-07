@@ -8,6 +8,7 @@ end $$;
 
 create schema if not exists auth;
 create table if not exists auth.users (id uuid primary key);
+alter table auth.users add column if not exists email text, add column if not exists email_confirmed_at timestamptz;
 create or replace function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 grant usage on schema auth, public to authenticated, service_role;

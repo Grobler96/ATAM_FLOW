@@ -6,12 +6,14 @@ import { useCtx } from '../data/context';
 import { dateTime } from '../lib/format';
 import { loadImpact, opsAction, PRIORITY_NAMES, type ChangeRow, type Impact } from '../lib/orderChanges';
 import { ReasonDialog } from './WarehouseDialogs';
+import { SCOPE_HELP, SCOPE_LABEL, setOrderScope, type OrderScopeRow } from '../lib/scope';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
 
 // What changed in DecoNetwork after we started, what it touches, and the manual controls for this order: hold, release, priority.
 export function OrderChangesPanel({ orderId, orderRef, status, priority }: { orderId: string; orderRef: string; status: string; priority: number }) {
   const changes = useView<ChangeRow>('ui_order_changes'); const { canAct, senior } = useCtx(); const toast = useToast();
+  const scp = useView<OrderScopeRow>('ui_order_scope'); const sc = scp.rows.find((r) => r.order_id === orderId); const [scopeDlg, setScopeDlg] = useState(false);
   const mine = changes.rows.filter((c) => c.order_id === orderId).sort((a, b) => b.detected_at.localeCompare(a.detected_at));
   const open = mine.filter((c) => c.status === 'new'); const done = mine.filter((c) => c.status !== 'new');
   const [imp, setImp] = useState<Impact | null | undefined>(undefined); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
@@ -35,6 +37,12 @@ export function OrderChangesPanel({ orderId, orderRef, status, priority }: { ord
         <p className="dim">Stock quantities and dispatch dates are not editable here: DecoNetwork is the source and would overwrite them on the next sync. Correct them in DecoNetwork.</p>
       </div>
 
+      <div className="callout soft stack" style={{ gap: 6 }}>
+        <b>Scope: {SCOPE_LABEL[sc?.scope ?? 'unclassified']}{sc?.source === 'override' ? ' (set by hand)' : sc?.source === 'deco_flag' ? ' (DecoNetwork flag)' : ''}</b>
+        <p className="dim">{SCOPE_HELP[sc?.scope ?? 'unclassified']}{sc?.scope_reason ? ` Reason: ${sc.scope_reason}.` : ''}</p>
+        <div className="row"><Button size="sm" disabled={!senior} title={senior ? '' : 'Only a manager or admin can change scope'} onClick={() => setScopeDlg(true)}>Change scope…</Button></div>
+      </div>
+
       <h3>Changes since work began</h3>
       {open.length === 0 ? <p className="dim">Nothing waiting for review.</p> : <>
         <div className="stack" style={{ gap: 4 }}>{open.map((c) => <div key={c.id} className="row wrap" style={{ gap: 10 }}><Status tone={c.severity === 'high' ? 'critical' : c.severity === 'warning' ? 'medium' : 'good'} plain>{c.severity === 'high' ? 'work affected' : c.severity}</Status><b>{c.label}</b><span className="muted grow">{c.old_value ?? '—'} → {c.new_value ?? '—'}</span><span className="dim">{dateTime(c.detected_at)}</span></div>)}</div>
@@ -48,6 +56,7 @@ export function OrderChangesPanel({ orderId, orderRef, status, priority }: { ord
       </>}
       {done.length > 0 && <><h3>Reviewed</h3><div className="stack" style={{ gap: 2 }}>{done.slice(0, 10).map((c) => <div key={c.id} className="row wrap" style={{ gap: 10 }}><b>{c.label}</b><span className="muted grow">{c.old_value ?? '—'} → {c.new_value ?? '—'}</span><span className="dim">{c.status} by {c.reviewed_by ?? '—'}{c.review_note ? ` · ${c.review_note}` : ''}</span></div>)}</div></>}
 
+      {scopeDlg && <Modal open onClose={() => setScopeDlg(false)} title={`Scope for ${orderRef}`}><ScopeForm orderId={orderId} current={sc?.scope_override ?? ''} onClose={() => { setScopeDlg(false); void refreshAll(); }} /></Modal>}
       {dlg === 'hold' && <ReasonDialog path="operations" title={`Put ${orderRef} on hold`} intro="Production and dispatch planning will skip this order until you release it. Any job already running on the floor must be stopped first." confirm="Put on hold" action="hold" params={{ order_id: orderId }} presets={['Customer asked us to wait', 'Awaiting artwork approval', 'Payment issue', 'Stock problem under investigation']} onClose={() => { setDlg(null); void refreshAll(); }} />}
       {dlg === 'release' && <ReasonDialog path="operations" title={`Release ${orderRef}`} intro="It returns to the stage it was in before the hold." confirm="Release" action="release" params={{ order_id: orderId }} presets={['Issue resolved', 'Customer confirmed']} onClose={() => { setDlg(null); void refreshAll(); }} />}
       {dlg === 'priority' && <Modal open onClose={() => setDlg(null)} title={`Priority for ${orderRef}`}><PriorityForm orderId={orderId} current={priority} value={prio} setValue={setPrio} onClose={() => { setDlg(null); void refreshAll(); }} /></Modal>}
@@ -61,4 +70,13 @@ function PriorityForm({ orderId, current, value, setValue, onClose }: { orderId:
   return <div className="stack"><Field label="New priority"><select className="select" value={value} onChange={(e) => setValue(e.target.value)}>{PRIORITY_NAMES.map((n, i) => <option key={n} value={i}>{n}{i === current ? ' (current)' : ''}</option>)}</select></Field>
     <Field label="Why? (recorded in the audit trail)"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
     {err && <Err m={err} />}<div className="row"><Button variant="primary" disabled={busy || Number(value) === current || reason.trim().length < 5} onClick={() => void go()}>{busy ? 'Saving…' : 'Change priority'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div></div>;
+}
+
+function ScopeForm({ orderId, current, onClose }: { orderId: string; current: string; onClose: () => void }) {
+  const [value, setValue] = useState(current); const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const toast = useToast();
+  async function go() { setBusy(true); setErr(null); const r = await setOrderScope(orderId, value || null, reason); setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'That did not work.')); return; } toast.push({ tone: 'good', title: 'Scope changed', body: 'Re-plan production to apply it.' }); onClose(); }
+  return <div className="stack"><Field label="Treat this order as"><select className="select" value={value} onChange={(e) => setValue(e.target.value)}><option value="">Follow DecoNetwork (no manual setting)</option><option value="third_party">Third-party</option><option value="in_house">In-house</option><option value="out_of_scope">Out of scope (ignore it)</option></select></Field>
+    <p className="dim">{value ? SCOPE_HELP[value] : 'The DecoNetwork shield decides once it is connected; until then the order is unclassified.'}</p>
+    <Field label="Why? (recorded in the audit trail)"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+    {err && <Err m={err} />}<div className="row"><Button variant="primary" disabled={busy || value === current || reason.trim().length < 5} onClick={() => void go()}>{busy ? 'Saving…' : 'Save'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div></div>;
 }
