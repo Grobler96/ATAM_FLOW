@@ -10,6 +10,7 @@ import { whAction } from '../lib/warehouse';
 import { prAction } from '../lib/producerRisk';
 import { OrderLink } from '../components/common';
 import { CourierPanel } from '../components/CourierPanel';
+import { PortalThread } from '../components/PortalPanels';
 import { CheckDialog, DirectDispatchDialog, ResolveDialog, ReturnDialog, StepDialog } from '../components/MovementDialogs';
 import { ReasonDialog } from '../components/WarehouseDialogs';
 import type { MovementRow } from '../data/types';
@@ -45,6 +46,7 @@ export function MovementDrawer({ code, onClose }: { code: string; onClose: () =>
         <section className="stack"><h3>Lines</h3><div style={{ overflowX: 'auto' }}><table className="table" style={{ minWidth: 620 }}><thead><tr><th>Order</th><th>SKU</th><th className="r">Sent</th><th className="r">Good back</th><th className="r">Damaged</th><th className="r">Wrong</th><th className="r">Outstanding</th><th className="r">To check</th></tr></thead>
           <tbody>{its.map((i) => <tr key={i.item_id}><td><OrderLink r={i.order_ref} /><div className="dim">{i.customer_name}</div></td><td><span className="mono">{i.sku}</span><div className="dim">{[i.colour, i.size].filter(Boolean).join(' · ')}</div></td><td className="r num">{i.qty_sent}</td><td className="r num">{i.qty_received_back}</td><td className="r num">{i.qty_damaged}</td><td className="r num">{i.qty_rejected}</td><td className="r num">{i.qty_outstanding}</td><td className="r num">{i.qty_awaiting_check}</td></tr>)}</tbody></table></div></section>
         {ds.length > 0 && <section className="stack"><h3>Open discrepancies</h3>{ds.map((d) => <div key={d.id} className="row" style={{ gap: 12 }}><Status tone="critical">{d.disc_type}</Status><span className="grow">{d.qty} unit(s) · {d.order_ref}</span><Button size="sm" disabled={!senior} title={senior ? undefined : 'Only a manager or admin can resolve a discrepancy'} onClick={() => setDlg({ k: 'resolve', d })}>Resolve…</Button></div>)}</section>}
+        <PortalThread code={code} />
         <CourierPanel code={code} />
         <section className="stack"><h3>Timeline</h3>{evs.length === 0 ? <p className="dim">No events yet.</p> : <ul className="plain">{evs.map((e) => <li key={e.id}><span className="dim">{dateTime(e.at)}</span> · <b>{EVENT_LABEL[e.event] ?? e.event.replace(/_/g, ' ')}</b> · {e.actor?.replace('dashboard:', '') ?? 'system'}{e.note ? <span className="muted"> — {e.note}</span> : null}</li>)}</ul>}</section>
       </div>

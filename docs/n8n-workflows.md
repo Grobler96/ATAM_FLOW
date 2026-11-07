@@ -112,3 +112,5 @@ Operations actions also handles `set_switch` (admin) and `set_scope` (manager/ad
 
 ## Sync priority flags (built 7 Nov 2026, unpublished)
 `TjgPA4edC6iBfIRX`, hourly at :25. DecoNetwork `manage_orders/find` (read only), 12 pages of 100, fails loudly if it reads fewer orders than DecoNetwork reports, then `flow_sync_priority_flags`. See [scope-control.md](scope-control.md).
+
+Operations actions also handles `portal_add_user`, `portal_set_user` (manager/admin), `portal_reply` and `portal_resolve`. See [producer-portal.md](producer-portal.md). The portal itself talks to the database directly (login-checked functions), so it does not depend on any n8n workflow being published.
