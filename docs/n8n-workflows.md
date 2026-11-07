@@ -109,3 +109,6 @@ The Operations actions workflow also handles `courier_event`, `claim_open` (mana
 Operations actions also handles `assign_operator` and `assign_machine`. See [job-assignment.md](job-assignment.md).
 
 Operations actions also handles `set_switch` (admin) and `set_scope` (manager/admin). See [scope-control.md](scope-control.md).
+
+## Sync priority flags (built 7 Nov 2026, unpublished)
+`TjgPA4edC6iBfIRX`, hourly at :25. DecoNetwork `manage_orders/find` (read only), 12 pages of 100, fails loudly if it reads fewer orders than DecoNetwork reports, then `flow_sync_priority_flags`. See [scope-control.md](scope-control.md).

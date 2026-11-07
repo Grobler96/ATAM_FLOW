@@ -12,7 +12,7 @@ Built so ATAM_FLOW can launch for third-party decorator work only, with in-house
 ## Order scope
 Every order has a scope: **third_party**, **in_house**, **out_of_scope**, or **unclassified** (nothing decided).
 1. A manual setting (`scope_override`, manager/admin, reason required, audited) always wins.
-2. Otherwise `third_party_flag` (the DecoNetwork "priority order" shield) makes it third_party. **That flag is not imported yet**: it needs the DecoNetwork field name and a small change to the WF3 capture workflow. Until then every order is unclassified unless set by hand.
+2. Otherwise `third_party_flag` makes it third_party. This is DecoNetwork's **Priority Order** flag: the order's API field is `is_priority` (the shield in DecoNetwork's screen is only how it is displayed). The unpublished workflow **ATAM_FLOW · Sync priority flags** (`TjgPA4edC6iBfIRX`) reads recent orders (due 60 days back to 30 days ahead) every hour at :25 and saves the flag through `flow_sync_priority_flags`. It changes nothing in DecoNetwork and does not touch the existing WF3 capture workflow. An order whose flag changes after work started shows up under Changes & control for review.
 3. Otherwise unclassified, which is treated as in-house work when in-house production is on.
 - Third-party and out-of-scope orders are not planned by the scheduler. Out-of-scope orders also have their exceptions dropped before they are raised.
 - An order cannot be moved to in-house or out of scope while it has an open producer consignment.
@@ -23,4 +23,4 @@ Control page (`#/control`): switches, order counts by scope, hand-set overrides,
 Writes use the unpublished Operations actions workflow (`set_switch` admin only, `set_scope` manager/admin).
 
 ## Not built yet
-Importing the DecoNetwork shield (needs the field name), a rule for mixed orders (some lines each way), muting more in-house exceptions than machine downtime, and hiding the in-house pages entirely (they show an explanation instead).
+Orders outside the 60 days back / 30 days ahead window keep whatever flag they had, a rule for mixed orders (some lines each way), muting more in-house exceptions than machine downtime, and hiding the in-house pages entirely (they show an explanation instead).
