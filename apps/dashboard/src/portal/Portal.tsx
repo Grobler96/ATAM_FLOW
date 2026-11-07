@@ -27,16 +27,18 @@ function SignIn() {
   const [email, setEmail] = useState(''); const [sent, setSent] = useState(false); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
   async function send(e: FormEvent) {
     e.preventDefault(); setBusy(true); setErr(null);
-    const { error } = await sb.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
-    setBusy(false); if (error) setErr(error.message); else setSent(true);
+    // Invite-only: never create an account from here. An address that has not been invited gets no email, and sees exactly the same message, so nobody can use this page to find out who is invited.
+    const { error } = await sb.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } });
+    setBusy(false);
+    if (error && !(error.status === 422 || /signups? not allowed|not found/i.test(error.message))) setErr(error.message); else setSent(true);
   }
   async function verify(e: FormEvent) { e.preventDefault(); setBusy(true); setErr(null); const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' }); setBusy(false); if (error) setErr('That code did not work. Check it and try again.'); }
   return (
     <form className="panel stack" style={{ padding: 24, gap: 14, maxWidth: 420 }} onSubmit={sent ? verify : send}>
       <h1 style={{ margin: 0 }}>Sign in</h1>
-      <p className="muted">Use the email address ATAM invited. We will email you a secure sign-in link. There is no password to remember.</p>
+      <p className="muted">This portal is by invitation only. Use the email address ATAM invited and we will email you a secure sign-in link. There is no password to remember.</p>
       <label className="stack" style={{ gap: 4 }}><span>Email</span><input className="input" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={sent} /></label>
-      {sent && <><div className="callout" role="status">Check your email and open the link on this device. If you were sent a code instead, type it here.</div>
+      {sent && <><div className="callout" role="status">If that address has been invited, a sign-in link is on its way. Open it on this device. If you were sent a code instead, type it here.</div>
         <label className="stack" style={{ gap: 4 }}><span>Code from the email (if you have one)</span><input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></label></>}
       {err && <Err m={err} />}
       {!sent ? <button className="btn primary" disabled={busy || !email}>{busy ? 'Sending…' : 'Email me a sign-in link'}</button> : <div className="row"><button className="btn primary" disabled={busy || !code}>Sign in with code</button><button type="button" className="btn" onClick={() => { setSent(false); setCode(''); }}>Use a different email</button></div>}

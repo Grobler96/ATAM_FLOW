@@ -21,7 +21,7 @@ async function newPage(browser, o = {}) {
   await page.route(`${SB}/**`, async (route) => {
     const req = route.request(), u = new URL(req.url()); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const json = (b, s = 200) => route.fulfill({ status: s, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(b) });
-    if (u.pathname.startsWith('/auth/v1/otp')) { st.calls.push({ fn: 'otp', body: req.postDataJSON?.() }); return json({}); }
+    if (u.pathname.startsWith('/auth/v1/otp')) { const b = req.postDataJSON?.(); st.calls.push({ fn: 'otp', body: b }); return /uninvited/.test(b?.email ?? '') ? json({ code: 422, error_code: 'otp_disabled', msg: 'Signups not allowed for otp' }, 422) : json({}); }
     if (u.pathname.startsWith('/auth/v1/user')) return json(session.user);
     if (u.pathname.startsWith('/auth/v1/logout')) return route.fulfill({ status: 204, headers: cors });
     if (u.pathname.includes('/storage/v1/object/sign')) return json({ signedURL: '/object/sign/producer-evidence/x.jpg?token=t' });
@@ -51,8 +51,11 @@ try {
   console.log('sign in');
   { const { page, ctx, st } = await newPage(browser, { signedOut: true }); await page.goto(APP); await page.getByRole('heading', { name: 'Sign in' }).waitFor();
     ok((await page.getByText('There is no password to remember').count()) === 1, 'the portal signs in by emailed link, no password');
-    await page.getByLabel('Email').fill('sam@stitchers.test'); await page.getByRole('button', { name: 'Email me a sign-in link' }).click(); await page.getByText('Check your email').waitFor();
-    ok(st.calls.some((c) => c.fn === 'otp' && c.body.email === 'sam@stitchers.test'), 'the emailed link is requested for that address'); await ctx.close(); }
+    await page.getByLabel('Email').fill('sam@stitchers.test'); await page.getByRole('button', { name: 'Email me a sign-in link' }).click(); await page.getByText('If that address has been invited').waitFor();
+    ok(st.calls.some((c) => c.fn === 'otp' && c.body.email === 'sam@stitchers.test'), 'the emailed link is requested for that address');
+    ok(st.calls.some((c) => c.fn === 'otp' && c.body.create_user === false), 'invite-only: the portal never asks to create an account'); await ctx.close(); }
+  { const { page, ctx } = await newPage(browser, { signedOut: true }); await page.goto(APP); await page.getByLabel('Email').fill('uninvited@nowhere.test'); await page.getByRole('button', { name: 'Email me a sign-in link' }).click(); await page.getByText('If that address has been invited').waitFor();
+    ok((await page.getByRole('alert').count()) === 0, 'an uninvited address sees the same message as an invited one, so invitations cannot be probed'); await ctx.close(); }
   console.log('no access');
   { const { page, ctx } = await newPage(browser, { noAccess: true }); await page.goto(APP); await page.getByRole('heading', { name: 'No access' }).waitFor(); ok((await page.getByText('Ask ATAM for an invitation').count()) === 1, 'a login without an invitation is told so'); await ctx.close(); }
   console.log('the job, start to finish');
