@@ -16,8 +16,9 @@ Status as of 7 Nov 2026.
 5. **Test with a real login**, one third-party order end to end: pick, label, consignment, producer receives, returns, QC, dispatch.
 6. **Print a real label** on your actual printer.
 
-## Decide
-- **Focus view.** 156 of the 197 open exceptions belong to orders that are not flagged third-party. With in-house off they are noise for a third-party launch. Proposed: Orders, Exceptions and the home screen default to third-party only, with a visible "N hidden" control to widen the view, nothing deleted.
+## Done since 7 Nov
+- **Focus view** (8 Nov): Orders, Exceptions and Home default to third-party only while in-house is off, with a visible "N hidden" bar and a Show everything button. See [scope-control.md](scope-control.md).
+- **Holding pen applied live** (8 Nov, migrations 43, 46, 47). Reviewed first. Two fixes: migration 45 had silently removed the pen from the exception detector (46 puts it back), and the first live run caught 72 DecoNetwork On hold orders that are paused on purpose (47 keeps held orders out). The live pen is now empty. The pen has **no screen yet**; it works in the background (it stops a bad order being planned, dispatched or completed). Its refresh runs with exception detection and before each planning run, both unpublished workflows, so until one is published nothing refreshes it.
 
 ## Not built
 Producer portal, automatic courier tracking, operator shifts, press speeds, per-machine shift hours, QC checklists and risk weights are placeholders until you provide the real values.

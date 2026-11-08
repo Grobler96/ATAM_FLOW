@@ -13,6 +13,8 @@ import { useRunner } from '../shell/useRunner';
 import { WORKFLOWS } from '../lib/workflows';
 import { useToast } from '../ui/overlay';
 import type { ExceptionRow, HistoryRow } from '../types';
+import { useFocus } from '../data/focus';
+import { FocusBar } from '../components/FocusBar';
 
 const STATUSES = ['open', 'investigating', 'awaiting_supplier', 'awaiting_producer', 'awaiting_customer'];
 const METHODS: [string, string][] = [['fixed', 'Fixed'], ['replacement_received', 'Replacement received'], ['credit_issued', 'Credit issued'], ['rework_complete', 'Rework complete'], ['rerouted', 'Re-routed'], ['customer_agreed', 'Customer agreed new date'], ['supplier_resolved', 'Supplier resolved'], ['producer_resolved', 'Producer resolved'], ['no_action_needed', 'No action needed'], ['other', 'Other']];
@@ -21,7 +23,8 @@ const tone = (s: string) => s as 'critical' | 'high' | 'medium' | 'low';
 export function ExceptionsPage({ route }: { route: Route }) {
   const ex = useView<ExceptionRow>('ui_exceptions'); const { canAct, email } = useCtx(); const runner = useRunner(); const toast = useToast();
   const [raising, setRaising] = useState(false); const chk = WORKFLOWS.find((w) => w.id === 'exceptions')!;
-  const open = route.path[1]; const rows = ex.rows;
+  const open = route.path[1]; const focus = useFocus();
+  const rows = useMemo(() => ex.rows.filter((e) => !focus.hideException(e.order_refs)), [ex.rows, focus]); const hiddenCount = ex.rows.length - rows.length;
   const views: ViewDef<ExceptionRow>[] = VIEWS.map((v) => ({ id: v.id, label: v.label, test: v.match }));
   const filters: FilterDef<ExceptionRow>[] = [
     { id: 'sev', label: 'Severity', options: ['critical', 'high', 'medium', 'low'].map((v) => ({ value: v, label: v })), test: (e, v) => e.severity === v },
@@ -43,11 +46,12 @@ export function ExceptionsPage({ route }: { route: Route }) {
     { id: 'rec', header: 'Recommended action', width: '420px', render: (e) => <span className="dim" title={e.recommended_action ?? ''}>{e.recommended_action}</span>, csv: (e) => e.recommended_action }
   ];
   const k = useMemo(() => ({ open: rows.length, critical: rows.filter((e) => e.severity === 'critical').length, overdue: rows.filter((e) => e.is_overdue).length, blocking: rows.filter((e) => e.is_blocking).length, unowned: rows.filter((e) => e.needs_owner).length, money: rows.reduce((t, e) => t + (e.financial_impact ?? 0), 0) }), [rows]);
-  const sel = open ? rows.find((e) => e.exc_ref === open) : null;
+  const sel = open ? ex.rows.find((e) => e.exc_ref === open) : null;   // a link to a hidden exception still opens
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Exceptions</h1><p>Everything wrong, late, missing or unknown, with an owner and a next step.</p></div>
         <div className="row">{canAct && <Button variant="primary" icon="plus" onClick={() => setRaising(true)}>Raise an issue</Button>}<Button icon="refresh" disabled={!runner.can(chk) || !!runner.running} onClick={() => void runner.run(chk)}>Check now</Button></div></div>
+      <FocusBar focus={focus} hidden={[{ n: hiddenCount, noun: 'exception' }]} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
         <Kpi label="Open" value={k.open} /><Kpi label="Critical" value={k.critical} tone={k.critical ? 'critical' : ''} /><Kpi label="Overdue" value={k.overdue} tone={k.overdue ? 'high' : ''} /><Kpi label="Blocking work" value={k.blocking} tone={k.blocking ? 'high' : ''} /><Kpi label="No owner" value={k.unowned} tone={k.unowned ? 'medium' : ''} /><Kpi label="At stake" text={gbp(k.money)} />
       </div>

@@ -13,6 +13,8 @@ import { OrderDrawer } from './OrderDrawer';
 import { useRunner } from '../shell/useRunner';
 import { WORKFLOWS } from '../lib/workflows';
 import { relativeTime } from '../lib/format';
+import { useFocus } from '../data/focus';
+import { FocusBar } from '../components/FocusBar';
 import type { ExceptionRow } from '../types';
 import type { AllocationRow, ArtworkStatusRow, BinRow, OrderRow, SelectionRow, TpOrderRow } from '../data/types';
 
@@ -27,13 +29,16 @@ export function OrdersPage({ route }: { route: Route }) {
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), alloc = useView<AllocationRow>('ui_allocation');
   const { canAct } = useCtx(); const toast = useToast(); const runner = useRunner();
 
-  const rows = useMemo<OrderVM[]>(() => orders.rows.filter((o) => o.order_status !== 'dispatched').map((o) => {
+  const focus = useFocus();
+  const allRows = useMemo<OrderVM[]>(() => orders.rows.filter((o) => o.order_status !== 'dispatched').map((o) => {
     const tp = tpo.rows.find((t) => t.order_id === o.id && t.tp_status), a = art.rows.find((x) => x.order_id === o.id), s = sel.rows.find((x) => x.order_id === o.id), al = alloc.rows.find((x) => x.order_id === o.id);
     const myEx = ex.rows.filter((e) => e.order_refs.includes(o.order_ref)); const sev = myEx.reduce<OrderVM['sev']>((m, e) => (RANK[e.severity] < RANK[m] ? e.severity : m), '');
     const myBins = bins.rows.filter((b) => (b.order_refs ?? []).includes(o.order_ref)).map((b) => b.bin_code);
     return { ...o, route: tp ? 'Producer' : 'Internal', producer: tp?.producer_name ?? null, tp_status: tp?.tp_status ?? null, stock: stockStatus(o), art: !a ? 'No decoration' : a.blocking_issues === 0 ? 'Ready' : `${a.blocking_issues} issue${a.blocking_issues > 1 ? 's' : ''}`, artOk: a ? a.blocking_issues === 0 : null,
       bin: myBins.join(', '), margin: s?.margin_pct ?? null, exCount: myEx.length, sev, atRisk: myEx.some((e) => e.type_code === 'order_at_risk'), score: al?.score ?? null, stage: o.production_stage ?? statusLabel(o.order_status) };
   }), [orders.rows, tpo.rows, art.rows, sel.rows, bins.rows, ex.rows, alloc.rows]);
+  const rows = useMemo(() => allRows.filter((o) => !focus.hideOrder(o.id)), [allRows, focus]);
+  const hiddenCount = allRows.length - rows.length;
 
   const views: ViewDef<OrderVM>[] = [
     { id: 'all', label: 'All open', test: () => true }, { id: 'today', label: 'Due today', test: (o) => o.is_due_today }, { id: 'overdue', label: 'Overdue', test: (o) => o.is_overdue }, { id: 'risk', label: 'At risk', test: (o) => o.atRisk },
@@ -96,6 +101,7 @@ export function OrdersPage({ route }: { route: Route }) {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Orders</h1><p>Every open order, with why it is where it is.</p></div></div>
+      <FocusBar focus={focus} hidden={[{ n: hiddenCount, noun: 'order' }]} />
       <Panel flush>
         <DataTable<OrderVM> rows={rows} columns={columns} rowKey={(o) => o.id} loading={orders.loading} error={orders.error} onRetry={() => void orders.refresh()} views={views} filters={filters} storageKey="orders" exportName="orders"
           searchText={(o) => [o.order_ref, o.customer_name, o.customer_po, o.producer, o.bin, o.order_status, o.decoration_methods.join(' ')].join(' ')} searchPlaceholder="Search order, customer, PO, producer, bin…"

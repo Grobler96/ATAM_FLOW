@@ -22,5 +22,12 @@ Control page (`#/control`): switches, order counts by scope, hand-set overrides,
 
 Writes use the unpublished Operations actions workflow (`set_switch` admin only, `set_scope` manager/admin).
 
+## Third-party focus (Orders, Exceptions, Home)
+A view setting, not a data change. With focus on, these screens hide anything that belongs to an order that is not third-party (in-house, unclassified or out of scope). A bar at the top says exactly how many orders and exceptions are hidden and has a button to **Show everything** (and **Third-party only** to come back).
+- **Orders:** hides non-third-party orders. **Exceptions:** hides an exception only when it is tied to orders and *every* one of them is known to be non-third-party. Exceptions about suppliers, stock, integrations and other things that are not about an order always stay visible. An order the system cannot classify is never hidden. **Home:** the key numbers and "What needs attention now" follow the focus (the Production, Stock and Third-party pulse panels are not filtered).
+- **Default:** on while in-house production is switched off, off when it is on. Once someone clicks the button their choice is remembered in that browser and wins. Each person has their own setting.
+- A direct link to a hidden order or exception still opens it. On 8 Nov 2026 live data this hid 152 of 208 open exceptions.
+- Code: `lib/focus.ts` (rules, with unit tests), `data/focus.ts`, `components/FocusBar.tsx`.
+
 ## Not built yet
 Orders outside the 60 days back / 30 days ahead window keep whatever flag they had, a rule for mixed orders (some lines each way), muting more in-house exceptions than machine downtime, and hiding the in-house pages entirely (they show an explanation instead).
