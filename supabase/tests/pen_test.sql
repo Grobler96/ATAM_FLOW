@@ -81,7 +81,16 @@ select pg_temp.assert((select count(*) = count(distinct row_key) from flow.v_pip
 select pg_temp.assert((select count(*) from flow.v_pipeline where in_flow and stage <> 'shipped') = (select count(*) from flow.orders where is_active and order_status <> 'dispatched' and shipped_at is null), 'every active order is on the board');
 select pg_temp.assert(exists (select 1 from flow.pen_cases where order_id is null and cleared_at is null) or true, 'source-only rows are allowed');
 
+
+-- an order that is On hold is paused on purpose: no due date and no lines must not put it in the pen
+insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, order_status, stock_secured, deco_status, total_units, decoration_methods, created_at)
+values ('PEN6', '#PEN6', 'Held Co', null, 'on_hold', false, 7, 0, '{}'::text[], now() - interval '1 day');
+select flow.pen_refresh() as r6 \gset
+select pg_temp.assert(not exists (select 1 from flow.pen_cases where deco_order_id = 'PEN6' and cleared_at is null), 'an on-hold order is not put in the pen');
+
 -- permissions
 select pg_temp.assert(not has_function_privilege('authenticated', 'public.flow_pen_waive(uuid,text,text,text)', 'execute') and not has_function_privilege('anon', 'public.flow_pen_refresh()', 'execute'), 'pen actions closed to browser roles');
 select pg_temp.assert(has_function_privilege('service_role', 'public.flow_pen_assign(text,text,text,text)', 'execute'), 'service role can act');
+-- the pen refresh must stay hooked into the exception detection run (a later rebuild of the function once removed it)
+select pg_temp.assert(pg_get_functiondef('flow.exceptions_detect_all()'::regprocedure) like '%pen_refresh%', 'exceptions_detect_all still refreshes the pen');
 \echo pen_test OK
