@@ -16,3 +16,5 @@ A rule of thumb from the business: a run of up to about 7,500 stitches takes aro
 - The numbers live in the `embroidery.run_model` setting (`base_stitches` 7500, `base_minutes` 10) and can be changed without code.
 - The planner places a job on the machine that can start it soonest; it does not yet pick the machine that would finish it soonest, so a small job can land on the slow single head. Choose the machine yourself on the job if that matters.
 - Other methods (heat press and so on) still use the old per-piece estimate until you give me their speeds.
+
+> Superseded for day-to-day use by the Crew page and recommender: see [crew.md](crew.md).

@@ -92,6 +92,24 @@ insert into flow.job_steps (order_id, method_code, step_no, status, units, est_m
   select o.id, 'embroidery', 1, 'complete', 10, 100, 0, 70, :'gill', now() - interval '3 days', now() - interval '3 days' from flow.orders o where o.deco_order_id like 'CRQ%';
 select pg_temp.assert((select exists (select 1 from jsonb_array_elements_text(x->'reasons') y where y like 'Quicker than the estimate%') from jsonb_array_elements(flow.rec_options(:'s2')) x where x->>'name' = 'Gill Pick'), 'real job times feed the suggestion: quicker than the estimate');
 
+-- quality per person: QC checks on in-house work are matched to who ran the job
+insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, order_status, stock_secured, deco_status, total_units, created_at)
+  select 'CRK' || g, '#CRK' || g, 'Quality Co', now() + interval '30 days', 'ready_for_production', true, 1, 10, now() - interval '2 days' from generate_series(1, 4) g;
+insert into flow.job_steps (order_id, method_code, step_no, status, units, est_minutes, setup_minutes, actual_minutes, operator_id)
+  select o.id, 'embroidery', 1, 'complete', 10, 100, 0, 100, case when o.deco_order_id in ('CRK1', 'CRK2') then :'gill'::uuid else :'sam'::uuid end from flow.orders o where o.deco_order_id like 'CRK%';
+insert into flow.qc_checks (check_ref, order_id, gate, status, units_checked, units_failed)
+  select 'QCK-' || o.deco_order_id, o.id, 'final', case when o.deco_order_id in ('CRK3', 'CRK4') then 'failed' else 'passed' end, 10, case when o.deco_order_id in ('CRK3', 'CRK4') then 4 else 0 end from flow.orders o where o.deco_order_id like 'CRK%';
+insert into flow.qc_checks (check_ref, order_id, gate, status, units_checked, units_failed)
+  select 'QCK2-' || o.deco_order_id, o.id, 'final', 'passed', 10, case when o.deco_order_id in ('CRK3', 'CRK4') then 3 else 0 end from flow.orders o where o.deco_order_id like 'CRK%';
+select pg_temp.assert((select fail_pct = 0 from flow.v_operator_quality where operator_id = :'gill' and method_code = 'embroidery'), 'the quality figure follows the person who ran the job (Gill: nothing failed)');
+select pg_temp.assert((select fail_pct = 35 from flow.v_operator_quality where operator_id = :'sam' and method_code = 'embroidery'), 'Sam: 14 of 40 checked units failed');
+select pg_temp.assert((select exists (select 1 from jsonb_array_elements_text(x->'reasons') y where y like 'Few quality problems%') from jsonb_array_elements(flow.rec_options(:'s2')) x where x->>'name' = 'Gill Pick')
+  and (select exists (select 1 from jsonb_array_elements_text(x->'warnings') y where y like 'More quality problems than the team%') from jsonb_array_elements(flow.rec_options(:'s2')) x where x->>'name' = 'Sam Trew'), 'quality feeds the suggestion, in the person''s favour or as a warning');
+
+-- the day board
+insert into r select 'day', flow.crew_day((:'mon'::timestamptz at time zone 'Europe/London')::date);
+select pg_temp.assert((select exists (select 1 from jsonb_array_elements(j) x where x->>'name' = 'Sam Trew' and (x->>'capacity')::int > 0 and jsonb_array_length(x->'jobs') >= 1) from r where k = 'day'), 'the day board lists each worker with their capacity and their jobs');
+
 -- permissions
 select pg_temp.assert(not has_function_privilege('authenticated', 'public.flow_js_assign(uuid,text,uuid,uuid,text,text)', 'execute') and not has_function_privilege('authenticated', 'public.flow_fl_start(uuid,uuid,text)', 'execute'), 'writes are closed to browser roles');
 select pg_temp.assert(not has_function_privilege('authenticated', 'flow.rec_score(uuid,uuid,numeric)', 'execute'), 'the scoring function is closed to browser roles');

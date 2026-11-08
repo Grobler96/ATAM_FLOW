@@ -53,6 +53,14 @@ create or replace view flow.v_operator_customer_history as
   from flow.operators op join public.decoration_records d on lower(btrim(d.processed_by)) = lower(btrim(op.history_name)) where d.customer_name is not null
   group by 1, 2, 3;
 
+-- Quality per person: in-house QC checks matched to who ran the job. Grows as jobs are assigned and checked (nothing exists for past work).
+create or replace view flow.v_operator_quality as
+  select js.operator_id, js.method_code, count(distinct q.id)::int as checks, coalesce(sum(q.units_checked), 0)::int as units_checked, coalesce(sum(q.units_failed), 0)::int as units_failed,
+         case when sum(q.units_checked) > 0 then round(sum(q.units_failed)::numeric / sum(q.units_checked) * 100, 1) end as fail_pct
+  from flow.qc_checks q join flow.job_steps js on js.order_id = q.order_id and js.operator_id is not null and js.status = 'complete'
+  where q.movement_id is null and q.units_checked > 0
+  group by 1, 2;
+
 -- first skills from the real history (volume): 200+ records expert, 20+ competent, otherwise learning. Editable on the Crew page.
 insert into flow.operator_skills (operator_id, kind, ref, level, note, set_by)
   select h.operator_id, 'method', h.method_code, case when h.records >= 200 then 3 when h.records >= 20 then 2 else 1 end, 'Worked out from ' || h.records || ' production records; please check', 'migration'
@@ -69,7 +77,7 @@ create or replace function flow.rec_score(p_step uuid, p_op uuid, p_extra_load n
 language plpgsql stable security definer set search_path = flow, public as $$
 declare js flow.job_steps; o flow.orders; op flow.operators; v_day date; v_machine uuid; v_mname text; v_method text; v_level int; v_mlevel int; v_has_skills boolean;
   v_cap numeric; v_load numeric; v_need numeric; v_free numeric; v_hist record; v_cust int := 0; v_manual int; v_same_order int; v_n_act int; v_ratio numeric;
-  v_score numeric := 0; v_reasons text[] := '{}'; v_warn text[] := '{}'; v_elig boolean := true; v_urgent boolean; v_pts numeric; v_abs record;
+  v_q record; v_team numeric; v_score numeric := 0; v_reasons text[] := '{}'; v_warn text[] := '{}'; v_elig boolean := true; v_urgent boolean; v_pts numeric; v_abs record;
 begin
   select * into js from flow.job_steps where id = p_step; select * into o from flow.orders where id = js.order_id; select * into op from flow.operators where id = p_op;
   v_method := js.method_code; v_machine := coalesce(js.assigned_machine_id, js.machine_id); select name into v_mname from flow.machines where id = v_machine;
@@ -102,6 +110,13 @@ begin
     from flow.job_steps js2 where js2.operator_id = p_op and js2.method_code = v_method and js2.status = 'complete' and js2.actual_minutes is not null and js2.est_minutes > 0;
   if v_n_act >= 3 and v_ratio is not null then v_pts := greatest(-10, least(15, round((1.2 - v_ratio) * 30, 1))) * case when v_urgent and v_ratio < 1 then 1.25 else 1 end; v_score := v_score + v_pts;
     v_reasons := v_reasons || format('%s their recent jobs (%s of the estimated time).', case when v_ratio <= 1 then 'Quicker than the estimate on' else 'Slower than the estimate on' end, to_char(round(v_ratio * 100), 'FM999') || '%'); end if;
+  select * into v_q from flow.v_operator_quality where operator_id = p_op and method_code = v_method;
+  if v_q.operator_id is not null and v_q.checks >= 3 and v_q.units_checked >= 20 then
+    select round(sum(units_failed)::numeric / nullif(sum(units_checked), 0) * 100, 1) into v_team from flow.v_operator_quality where method_code = v_method;
+    v_pts := greatest(-10, least(10, round((coalesce(v_team, v_q.fail_pct) - v_q.fail_pct) * 1.5, 1))); v_score := v_score + v_pts;
+    if v_q.fail_pct <= coalesce(v_team, v_q.fail_pct) then v_reasons := v_reasons || format('Few quality problems: %s%% of checked units failed (team average %s%%).', v_q.fail_pct, coalesce(v_team, v_q.fail_pct));
+    else v_warn := v_warn || format('More quality problems than the team on this process: %s%% of checked units failed against %s%%.', v_q.fail_pct, v_team); end if;
+  end if;
   select coalesce(sum(coalesce(est_minutes, 0) + coalesce(setup_minutes, 0)), 0) into v_load from flow.job_steps where operator_id = p_op and id <> p_step and status in ('pending', 'ready', 'in_progress') and (planned_start at time zone 'Europe/London')::date = v_day;
   v_load := v_load + coalesce(p_extra_load, 0); v_need := coalesce(js.est_minutes, 0) + coalesce(js.setup_minutes, 0); v_free := v_cap - v_load;
   if v_cap > 0 then
@@ -158,6 +173,21 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Changing the crew
 -- ---------------------------------------------------------------------------
+-- the day board: every worker with their booked minutes against shift, away status, and their jobs
+create or replace function flow.crew_day(p_day date) returns jsonb language plpgsql stable security definer set search_path = flow, public as $$
+begin
+  return coalesce((select jsonb_agg(w order by w->>'name') from (
+    select jsonb_build_object('operator_id', op.id, 'name', op.name, 'capacity', round(flow.op_day_capacity(op.id, p_day)),
+      'away', exists (select 1 from flow.operator_absence a where a.operator_id = op.id and a.removed_at is null and p_day between a.from_date and a.to_date),
+      'away_reason', (select a.reason from flow.operator_absence a where a.operator_id = op.id and a.removed_at is null and p_day between a.from_date and a.to_date limit 1),
+      'booked', round(coalesce((select sum(coalesce(js.est_minutes, 0) + coalesce(js.setup_minutes, 0)) from flow.job_steps js where js.operator_id = op.id and js.status in ('pending', 'ready', 'in_progress') and (js.planned_start at time zone 'Europe/London')::date = p_day), 0)),
+      'jobs', coalesce((select jsonb_agg(jsonb_build_object('step_id', js.id, 'order_ref', o.order_ref, 'customer', o.customer_name, 'method_code', js.method_code, 'machine', m.name, 'planned_start', js.planned_start, 'planned_end', js.planned_end,
+          'minutes', round(coalesce(js.est_minutes, 0) + coalesce(js.setup_minutes, 0)), 'status', js.status) order by js.planned_start)
+        from flow.job_steps js join flow.orders o on o.id = js.order_id left join flow.machines m on m.id = coalesce(js.assigned_machine_id, js.machine_id)
+        where js.operator_id = op.id and js.status in ('pending', 'ready', 'in_progress') and (js.planned_start at time zone 'Europe/London')::date = p_day), '[]'::jsonb)) as w
+    from flow.operators op where op.is_active) x), '[]'::jsonb);
+end $$;
+
 create or replace function flow.wk_save(p_id uuid, p_name text, p_history_name text, p_active boolean, p_actor text) returns jsonb language plpgsql security definer set search_path = flow, public as $$
 declare v_id uuid;
 begin
@@ -302,6 +332,9 @@ create or replace view public.ui_job_time with (security_invoker = true) as
 
 create or replace function public.ui_rec_options(p_step uuid) returns jsonb language sql stable security definer set search_path = flow, public as $$ select case when flow.is_member() then flow.rec_options(p_step) else '[]'::jsonb end $$;
 create or replace function public.ui_rec_machines(p_step uuid) returns jsonb language sql stable security definer set search_path = flow, public as $$ select case when flow.is_member() then flow.rec_machines(p_step) else '[]'::jsonb end $$;
+create or replace function public.ui_crew_day(p_day date) returns jsonb language sql stable security definer set search_path = flow, public as $$ select case when flow.is_member() then flow.crew_day(p_day) else '[]'::jsonb end $$;
+create or replace function public.ui_operator_quality() returns jsonb language sql stable security definer set search_path = flow, public as $$
+  select case when flow.is_member() then coalesce((select jsonb_agg(to_jsonb(q)) from flow.v_operator_quality q), '[]'::jsonb) else '[]'::jsonb end $$;
 create or replace function public.ui_rec_plan(p_day date) returns jsonb language sql stable security definer set search_path = flow, public as $$ select case when flow.is_member() then flow.rec_plan(p_day) else '[]'::jsonb end $$;
 
 create or replace function public.flow_wk_save(p_id uuid, p_name text, p_history_name text, p_active boolean, p_actor text) returns jsonb language sql security definer set search_path = flow, public as $$ select flow.wk_save(p_id, p_name, p_history_name, p_active, p_actor) $$;
@@ -320,12 +353,12 @@ begin
   foreach f in array array['public.flow_wk_save(uuid,text,text,boolean,text)', 'public.flow_wk_skill_set(uuid,text,text,int,text)', 'public.flow_wk_skill_clear(uuid,text,text,text)', 'public.flow_wk_shift_set(uuid,int,time,time,text)',
     'public.flow_wk_absence_add(uuid,date,date,text,text)', 'public.flow_wk_absence_remove(uuid,text)', 'public.flow_js_assign(uuid,text,uuid,uuid,text,text)', 'public.flow_fl_start(uuid,uuid,text)', 'public.flow_fl_stop(uuid,int,boolean,text,text)']
   loop execute format('revoke all on function %s from public, anon, authenticated', f); execute format('grant execute on function %s to service_role', f); end loop;
-  foreach f in array array['flow.rec_score(uuid,uuid,numeric)', 'flow.rec_options(uuid,jsonb)', 'flow.rec_machines(uuid)', 'flow.rec_plan(date)', 'flow.wk_save(uuid,text,text,boolean,text)', 'flow.wk_skill_set(uuid,text,text,int,text)', 'flow.wk_skill_clear(uuid,text,text,text)',
+  foreach f in array array['flow.rec_score(uuid,uuid,numeric)', 'flow.rec_options(uuid,jsonb)', 'flow.rec_machines(uuid)', 'flow.rec_plan(date)', 'flow.crew_day(date)', 'flow.wk_save(uuid,text,text,boolean,text)', 'flow.wk_skill_set(uuid,text,text,int,text)', 'flow.wk_skill_clear(uuid,text,text,text)',
     'flow.wk_shift_set(uuid,int,time,time,text)', 'flow.wk_absence_add(uuid,date,date,text,text)', 'flow.wk_absence_remove(uuid,text)', 'flow.js_assign(uuid,text,uuid,uuid,text,text)', 'flow.fl_start(uuid,uuid,text)', 'flow.fl_stop(uuid,int,boolean,text,text)']
   loop execute format('revoke all on function %s from public, anon, authenticated', f); end loop;
   grant execute on function flow.op_day_capacity(uuid, date), flow.hist_method(text) to authenticated, service_role;
   revoke all on public.ui_operators, public.ui_operator_skills, public.ui_operator_shifts, public.ui_operator_absence, public.ui_assignment_log, public.ui_job_time from public, anon;
   grant select on public.ui_operators, public.ui_operator_skills, public.ui_operator_shifts, public.ui_operator_absence, public.ui_assignment_log, public.ui_job_time to authenticated;
-  revoke all on function public.ui_rec_options(uuid), public.ui_rec_machines(uuid), public.ui_rec_plan(date), public.ui_operator_history() from public, anon;
-  grant execute on function public.ui_rec_options(uuid), public.ui_rec_machines(uuid), public.ui_rec_plan(date), public.ui_operator_history() to authenticated;
+  revoke all on function public.ui_rec_options(uuid), public.ui_rec_machines(uuid), public.ui_rec_plan(date), public.ui_operator_history(), public.ui_crew_day(date), public.ui_operator_quality() from public, anon;
+  grant execute on function public.ui_rec_options(uuid), public.ui_rec_machines(uuid), public.ui_rec_plan(date), public.ui_operator_history(), public.ui_crew_day(date), public.ui_operator_quality() to authenticated;
 end $$;
