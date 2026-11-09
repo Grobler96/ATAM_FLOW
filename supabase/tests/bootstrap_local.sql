@@ -8,6 +8,7 @@ end $$;
 
 create schema if not exists auth;
 create table if not exists auth.users (id uuid primary key);
+alter table auth.users add column if not exists email text, add column if not exists email_confirmed_at timestamptz;
 create or replace function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 grant usage on schema auth, public to authenticated, service_role;
@@ -41,3 +42,8 @@ create table public.product_type_rules (id int generated always as identity prim
 
 create table public.sku_costs (sku text primary key, product_name text, unit_cost numeric, last_cost_date timestamptz, updated_at timestamptz);
 insert into public.sku_costs values ('POLO-BLK-M','Polo',4.5,now(),now()),('POLO-WHT-M','Polo',4.2,now(),now());
+
+-- decoration_records (live production history from DecoNetwork; only the columns ATAM_FLOW reads)
+create table if not exists public.decoration_records (
+  id uuid primary key default gen_random_uuid(), unique_key text, order_id text, decoration_type text, process_code text, quantity int,
+  counted_at timestamptz, report_date date, customer_id text, customer_name text, processed_by text, assigned_to text);

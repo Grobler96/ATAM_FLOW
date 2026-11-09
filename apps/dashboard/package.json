@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "e2e": "node e2e/exceptions.e2e.mjs"
+    "e2e": "node e2e/exceptions.e2e.mjs",
+    "e2e:portal": "node e2e/portal.e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.45.4",

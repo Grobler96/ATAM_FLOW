@@ -4,7 +4,7 @@ import { Button, EmptyState, Facts, Field, Panel, Progress, Skeleton, Status, Ta
 import { refreshAll, useView } from '../data/store';
 import { useRpcList } from '../data/useRpcList';
 import { useCtx } from '../data/context';
-import { AssignJobDialog } from '../components/AssignJobDialog';
+import { AssignDialog } from '../components/CrewParts';
 import { OrderChangesPanel } from '../components/OrderChangesPanel';
 import type { ChangeRow } from '../lib/orderChanges';
 import { href } from '../router';
@@ -122,7 +122,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {tab === 'history' && (hist.loading ? <div className="stack"><Skeleton h={16} /><Skeleton h={16} w="80%" /><Skeleton h={16} w="60%" /></div> : hist.rows.length === 0 ? <EmptyState icon="clock" title="No history recorded yet" /> :
         <ul className="timeline">{hist.rows.map((h, i) => <li key={i} className={'k-' + h.kind}><b style={{ textTransform: 'capitalize' }}>{h.title}</b><span className="dim"> · {h.actor ?? 'system'} · {dateTime(h.at)}</span>{h.detail && <div className="muted">{h.detail}</div>}</li>)}</ul>)}
 
-      {assign && <AssignJobDialog step={assign} onClose={() => { setAssign(null); void refreshAll(); }} />}
+      {assign && <AssignDialog step={assign} onClose={() => { setAssign(null); void refreshAll(); }} />}
       <SelectionCompare open={compare} onClose={() => setCompare(false)} orderId={o.id} orderRef={o.order_ref} />
       <Modal open={!!pin} onClose={() => setPin(null)} title="Override production position">
         {pin && <div className="stack"><div className="callout soft"><b>System recommendation: position #{pin.recommended_position ?? '–'}</b><span className="muted">{pin.reason}</span></div>

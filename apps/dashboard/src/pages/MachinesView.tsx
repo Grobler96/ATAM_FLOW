@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, EmptyState, Panel, Progress, Skeleton, Status, Tag } from '../ui/primitives';
 import { DataTable, type Column, type ViewDef } from '../ui/DataTable';
 import { useView } from '../data/store';
+import { ScopeBanner } from '../components/ScopeBanner';
 import { useCtx } from '../data/context';
 import { useRunner } from '../shell/useRunner';
 import { WORKFLOWS } from '../lib/workflows';
@@ -34,6 +35,7 @@ export function MachinesView({ machines, queue, loading }: { machines: MachineRo
   ];
   if (loading || status.loading) return <Skeleton h={200} r={14} />;
   return (<div className="stack" style={{ gap: 14 }}>
+    <ScopeBanner />
     <div className="row wrap"><span className="muted grow">{down.length === 0 ? 'Every machine is operational.' : `${down.length} machine(s) not at full capacity: ${down.map((s) => s.code).join(', ')}.`}</span>
       <div className="row" style={{ gap: 4 }}><button className={`chip ${tab === 'cards' ? 'on' : ''}`} aria-pressed={tab === 'cards'} onClick={() => setTab('cards')}>Machines</button><button className={`chip ${tab === 'history' ? 'on' : ''}`} aria-pressed={tab === 'history'} onClick={() => setTab('history')}>Downtime history ({downtime.rows.length})</button></div>
       <Button icon="plus" variant="primary" disabled={!canAct} title={canAct ? '' : 'Your role cannot report downtime'} onClick={() => setDlg({ k: 'report' })}>Report downtime</Button><Button disabled={!senior} title={senior ? '' : 'Only a manager or admin can add machines'} onClick={() => setDlg({ k: 'add' })}>Add machine</Button></div>

@@ -5,6 +5,7 @@ import { Button } from '../ui/primitives';
 import { useCtx } from '../data/context';
 import { MovementDrawer } from './MovementDrawer';
 import { ProducerRiskPanel } from '../components/ProducerRiskPanel';
+import { PortalAccessPanel } from '../components/PortalPanels';
 import { RATING_TONE, type RiskRow } from '../lib/producerRisk';
 import type { ProducerQualityRow } from '../lib/quality';
 import { CreateMovementDialog, ResolveDialog } from '../components/MovementDialogs';
@@ -76,6 +77,7 @@ function ProducerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
         <div className="row wrap"><Button size="sm" disabled={!senior} title={senior ? '' : 'Only a manager or admin can edit producers'} onClick={() => setDlg({ k: 'edit' })}>Edit producer</Button><Button size="sm" variant="primary" onClick={() => { location.hash = '#/producers'; window.dispatchEvent(new CustomEvent('atamflow:new-movement', { detail: { producer: id } })); }}>New movement</Button></div>
         <Facts items={[['Contact', p.contact_name], ['Email', p.email], ['Phone', p.phone], ['Address', p.address], ['Standard turnaround', `${p.turnaround_days} days`], ['Weekly capacity', p.weekly_capacity_units ? `${p.weekly_capacity_units} units` : 'not set'], ['Direct dispatch', p.can_direct_dispatch ? 'Yes' : 'No'], ['Emergency contact', 'Not recorded'], ['Backup producers', 'Not recorded']]} />
         <ProducerRiskPanel id={id} />
+        <PortalAccessPanel producerId={id} producerName={p.name} />
         <section className="stack"><h3>Capability</h3><div className="row wrap">{p.capable_methods.map((m) => <Tag key={m}>{METHOD_LABEL[m] ?? m}</Tag>)}</div></section>
         <section className="stack"><div className="row"><h3 className="grow">Rate card</h3><Button size="sm" disabled={!senior} title={senior ? '' : 'Only a manager or admin can change rates'} onClick={() => setDlg({ k: 'rate' })}>Add rate</Button></div>{rates.rows.filter((r) => r.producer_id === id).length === 0 ? <p className="dim">No rates yet. The selection engine cannot price this producer until at least one is added.</p> : rates.rows.filter((r) => r.producer_id === id).map((r) => <div key={r.id} className="row" style={{ justifyContent: 'space-between' }}><b>{METHOD_LABEL[r.method] ?? r.method}</b><span className="num">{money(r.unit_price)} {r.basis === 'per_piece' ? 'per piece per area' : 'per 1,000 stitches'}{r.setup_fee ? ` · setup ${money(r.setup_fee)}` : ''}{r.min_job_charge ? ` · min ${money(r.min_job_charge)}` : ''}</span><Button size="sm" variant="ghost" disabled={!senior} onClick={() => setDlg({ k: 'rate', rate: r })}>Edit</Button></div>)}</section>
         <section className="stack"><h3>Performance</h3><Facts items={[['On-time return rate', pct(p.on_time_rate)], ['Average turnaround', p.avg_turnaround_days ? `${p.avg_turnaround_days} days` : '—'], ['Discrepancy rate', pct(p.discrepancy_rate)], ['Overdue returns', p.late_returns], ['Orders blocked', p.orders_blocked], ['Quality pass rate', q && q.units_checked > 0 ? `${q.pass_rate}% of ${q.units_checked} units checked` : 'No checks recorded yet'], ['Open rework', q?.open_rework ?? 0]]} /></section>

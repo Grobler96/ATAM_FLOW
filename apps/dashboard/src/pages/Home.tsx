@@ -12,6 +12,8 @@ import { VIEWS } from '../lib/filters';
 import { gbp, ageText, deadlineText, dateTime } from '../lib/format';
 import { METHOD_LABEL, within, shortDate, plural } from '../lib/domain';
 import { OrderTags } from '../components/common';
+import { useFocus } from '../data/focus';
+import { FocusBar } from '../components/FocusBar';
 import type { ExceptionRow } from '../types';
 import type { ActivityRow, HeldRow, MachineRow, MovementRow, OrderRow, PoRow, ProducerRow, QueueRow, ShortageRow, StockRow } from '../data/types';
 
@@ -19,9 +21,13 @@ const sevTone = (s: string) => (s === 'critical' ? 'critical' : s === 'high' ? '
 const ACT_ICON: Record<string, string> = { audit: 'check', sync: 'refresh', exception: 'exceptions', receipt: 'box', movement: 'truck' };
 
 export function Home() {
-  const orders = useView<OrderRow>('ui_orders'), ex = useView<ExceptionRow>('ui_exceptions'), queue = useView<QueueRow>('ui_production_queue'), machines = useView<MachineRow>('ui_machines');
+  const ordersAll = useView<OrderRow>('ui_orders'), exAll = useView<ExceptionRow>('ui_exceptions'), queue = useView<QueueRow>('ui_production_queue'), machines = useView<MachineRow>('ui_machines');
   const moves = useView<MovementRow>('ui_tp_movements'), producers = useView<ProducerRow>('ui_producers'), stock = useView<StockRow>('ui_stock'), shortages = useView<ShortageRow>('ui_shortages');
   const pos = useView<PoRow>('ui_purchase_orders'), held = useView<HeldRow>('ui_producer_held_stock'), exStatus = useView<{ last_detection_at: string | null }>('ui_status');
+  const focus = useFocus();
+  const orders = useMemo(() => ({ ...ordersAll, rows: ordersAll.rows.filter((o) => !focus.hideOrder(o.id)) }), [ordersAll, focus]);
+  const ex = useMemo(() => ({ ...exAll, rows: exAll.rows.filter((e) => !focus.hideException(e.order_refs)) }), [exAll, focus]);
+  const hiddenOrders = ordersAll.rows.filter((o) => o.order_status !== 'dispatched').length - orders.rows.filter((o) => o.order_status !== 'dispatched').length, hiddenExc = exAll.rows.length - ex.rows.length;
   const activity = useRpcList<ActivityRow>('ui_activity', { p_limit: 30 });
   const { range, inRange, email, canAct } = useCtx(); const toast = useToast();
   const [group, setGroup] = useState('all'); const [showAll, setShowAll] = useState(false); const [open, setOpen] = useState<string | null>(null);
@@ -72,6 +78,8 @@ export function Home() {
   return (
     <div className="stack" style={{ gap: 20 }}>
       <div className="page-head"><div><h1>Command Centre</h1><p>{k.openOrders} open orders · {k.open} open exceptions{checked ? ` · exceptions checked ${ageText((Date.now() - Date.parse(checked)) / 3600000).replace(' old', ' ago')}` : ''}</p></div></div>
+
+      <FocusBar focus={focus} hidden={[{ n: hiddenOrders, noun: 'order' }, { n: hiddenExc, noun: 'exception' }]} />
 
       <section aria-label="Key numbers" className="kpi-grid">
         {loading ? sk(10) : <>

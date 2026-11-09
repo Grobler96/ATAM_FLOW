@@ -107,3 +107,12 @@ Path `atam-flow/operations`, workflow `UvnfNdHot39VL5FI`. Actions: `hold`, `rele
 The Operations actions workflow also handles `courier_event`, `claim_open` (manager/admin) and `claim_update` (manager/admin). See [courier.md](courier.md).
 
 Operations actions also handles `assign_operator` and `assign_machine`. See [job-assignment.md](job-assignment.md).
+
+Operations actions also handles `set_switch` (admin) and `set_scope` (manager/admin). See [scope-control.md](scope-control.md).
+
+## Sync priority flags (built 7 Nov 2026, unpublished)
+`TjgPA4edC6iBfIRX`, hourly at :25. DecoNetwork `manage_orders/find` (read only), 12 pages of 100, fails loudly if it reads fewer orders than DecoNetwork reports, then `flow_sync_priority_flags`. See [scope-control.md](scope-control.md).
+
+Operations actions also handles `portal_add_user`, `portal_set_user` (manager/admin), `portal_reply` and `portal_resolve`. See [producer-portal.md](producer-portal.md). The portal itself talks to the database directly (login-checked functions), so it does not depend on any n8n workflow being published.
+
+Operations actions also handles `assign_job`, `worker_save`, `worker_skill`, `worker_skill_clear`, `worker_shift`, `worker_absence`, `worker_absence_remove`, `floor_start`, `floor_stop`. The optional **Crew wording** workflow (`sMFDy4zMagFuwugd`, path `atam-flow/crew-wording`) rewrites a suggestion in plain words. See [crew.md](crew.md).
