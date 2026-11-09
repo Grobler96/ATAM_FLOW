@@ -11,6 +11,8 @@ Status as of 7 Nov 2026.
 ## Done since 9 Nov
 - **Dispatch queue and courier labels** (migration 52, live): Dispatch page, packing into numbered parcels, courier label, tracking, scan-to-hand-over. See [dispatch.md](dispatch.md). Needs the Operations actions workflow published before the buttons write.
 
+- **Artwork storage and customer proofs** (migration 53, live): upload, preview, download and version artwork on screen; record customer proofs and their answers; an approval only counts for the artwork it showed. See [artwork.md](artwork.md). There are **no artwork files in the system yet**, so every decorated order is blocked on artwork until files are uploaded (or DecoNetwork's artwork fetch is connected).
+
 ## Needs you before real use
 1. **Enter the producers.** There are **0 active producers** and 0 rates. Add each decorator (name, contact, email, what they can do, turnaround, rates) on the Producers page.
 2. **Roles.** All 10 accounts in `flow.user_roles` are **admin**. Give everyone else the narrowest role that lets them do their job (manager, production, warehouse, viewer).

@@ -2,8 +2,21 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { Icon } from './Icon';
 import { Button } from './primitives';
 
+// Overlays can stack (a dialog over a drawer). Escape closes only the top-most one, so cancelling a small dialog does not also close the page behind it.
+const layers: symbol[] = [];
+function useEscape(open: boolean, onClose: () => void) {
+  const cb = useRef(onClose); cb.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const id = Symbol('overlay'); layers.push(id);
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && layers[layers.length - 1] === id) cb.current(); };
+    window.addEventListener('keydown', k);
+    return () => { window.removeEventListener('keydown', k); const i = layers.indexOf(id); if (i >= 0) layers.splice(i, 1); };
+  }, [open]);
+}
+
 export function Drawer({ open, onClose, title, subtitle, wide, children, header }: { open: boolean; onClose: () => void; title: ReactNode; subtitle?: ReactNode; wide?: boolean; children: ReactNode; header?: ReactNode }) {
-  useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [open, onClose]);
+  useEscape(open, onClose);
   if (!open) return null;
   return (<>
     <div className="scrim" onClick={onClose} />
@@ -18,7 +31,7 @@ export function Drawer({ open, onClose, title, subtitle, wide, children, header 
 }
 
 export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [open, onClose]);
+  useEscape(open, onClose);
   if (!open) return null;
   return (<><div className="scrim" onClick={onClose} /><div className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="row" style={{ marginBottom: 12 }}><h2 className="grow">{title}</h2><Button variant="ghost" icon="x" onClick={onClose} aria-label="Close" /></div>{children}</div></>);
 }

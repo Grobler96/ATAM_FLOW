@@ -32,7 +32,29 @@ With `enforce_before_dispatch` on, a consignment to a producer cannot be dispatc
 
 A file that fails to download stays flagged and blocks the pack; the fix is a manual replacement (there is no automatic retry yet).
 
+## Artwork on screen: storage, preview, download, versions (9 Nov 2026)
+Open **Artwork & Job Packs**, click an order: a drawer shows its artwork **by area** with the process, format, stitch count, size, approval and whether the file is stored.
+- **Upload / add an area / upload a new version** (managers, admins, production planners): choose the file (embroidery files such as DST, PES, EXP, JEF, EMB; AI, EPS, PDF, SVG, images, PSD, CDR or a ZIP; up to 100 MB), say what it is and where it came from (a few words are required), and optionally the stitch count and size. The file goes into the private `artwork` bucket under `orders/<order>/<area>/v<n>-...` with a safe name, then the existing `manual_replace` action makes it the next version. Anything that is not an accepted type is refused before upload. Staff can add files to the bucket but never delete them (so history cannot be lost); if the save step fails after the upload, the file stays in the bucket unused and the screen says the save failed.
+- **A new version waits for the customer** unless the box "The customer has already approved this exact version" is ticked. (The older `manual_replace` default was to approve; the screen now chooses explicitly.)
+- **Preview** (images on screen; PDFs open in a new tab; production files such as DST say they cannot be previewed here), **Download** (a short-lived signed link, 5 minutes), and **earlier versions** with who, when and why. The DecoNetwork proof link is shown when DecoNetwork has one.
+- **Change approval…** is the existing audited `set_approval` override (reason required); normally the customer's answer to a proof sets approval.
+- Everyone on the team can look and download. Warehouse and viewer roles cannot change anything.
+
+## Customer proofs (migration 53)
+A **proof** is a picture or PDF the customer approves, tied to the exact artwork versions it shows. Made outside DecoNetwork (for example emailed); **nothing is sent from ATAM_FLOW**.
+1. **New proof:** upload the file, choose the areas. A new proof replaces any unanswered one for the same areas.
+2. **Mark as sent:** who it went to and how (email, phone, in person, customer portal, other). The clock starts.
+3. **Record the answer:** approved, wants changes, or rejected, who at the customer said so, what they said (required unless approved), and optionally evidence such as a screenshot of their email. **Approved** marks those areas approved; **wants changes** puts them back to waiting; **rejected** marks them rejected.
+4. **The rule that matters:** an approval is only accepted while the areas on the proof are still the current versions. If the artwork was replaced after the proof was made, the approval is refused ("make a new proof") and the new version stays unapproved.
+- **Withdraw** (reason required) a draft or sent proof. Answered proofs are kept as history.
+- **Exceptions:** *Proof not answered* (sent, no answer after `artwork.proofs.reminder_days`, default 3) and *Approved proof no longer matches the artwork* (the customer approved, then the artwork changed). Both run with every exception check.
+- **Customer proofs** tab: every proof; opens on what needs attention (waiting 3+ days, artwork changed since, or changes requested).
+- Actions run through the (unpublished) Operations actions workflow (`proof_create`, `proof_send`, `proof_respond`, `proof_withdraw`: manager, admin or production planner). Files use the Artwork actions workflow (`manual_replace`, `set_approval`). Tests: `supabase/tests/proofs_test.sql`, `lib/artworkFiles.test.ts`, the artwork section of the dashboard e2e.
+
 ## Not built yet
+- Sending proofs to the customer (email) and customer approval links: recorded by hand for now.
+- Proofs for decorators' portal; a mock-up generator; automatic text/line-count checks of embroidery files.
+- A checksum of uploaded files, and automatic virus scanning (files are limited by type and size, not scanned).
 
 The DecoNetwork artwork fetch. The existing `public.decoration_records` table gives area names and process codes per order but no file links. To pull links, stitch counts, sizes and
 approval from DecoNetwork we need the API credential and one real sample response for an order with artwork; then a small workflow maps it into `flow_artwork_upsert`
