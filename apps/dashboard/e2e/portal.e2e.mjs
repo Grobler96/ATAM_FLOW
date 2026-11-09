@@ -15,7 +15,7 @@ const session = { access_token: 'tok', refresh_token: 'ref', expires_in: 3600, e
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 420, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200)));
-  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, messages: [], evidence: [] };
+  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, messages: [], evidence: [], spoil: [] };
   if (!o.signedOut) await page.addInitScript((s) => localStorage.setItem('atam-portal-auth', JSON.stringify(s)), session);
   const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: false, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
   await page.route(`${SB}/**`, async (route) => {
@@ -32,6 +32,8 @@ async function newPage(browser, o = {}) {
       if (fn === 'portal_whoami') return st.noAccess ? json({ message: 'ERROR: This login does not have access to the decorator portal. Ask ATAM for an invitation.' }, 400) : json({ ok: true, producer: 'Portal Stitchers', producer_id: 'pa', user: 'Sam', instructions: 'Left chest only' });
       if (fn === 'portal_jobs') return json([{ code: 'TP-2026-00007', state: st.state, status: 'dispatched', dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', direct_to_customer: false, units: 34, orders: [{ order_ref: '#636584', customer: 'HH Associates Ltd' }, { order_ref: '#636020', customer: 'Alloy Bodies Ltd' }], unread: 0 }]);
       if (fn === 'portal_job') return json(job());
+      if (fn === 'portal_spoilage') return json({ ok: true, reports: st.spoil });
+      if (fn === 'portal_report_spoilage') { st.spoil.push({ waste_ref: 'WST-1', sku: 'POLO-NVY-M', qty: body.p_qty, reported_at: '2026-11-06T11:00:00Z', state: 'With ATAM to review', note: body.p_note }); return json({ ok: true, waste_ref: 'WST-1' }); }
       if (fn === 'portal_accept') { st.state = 'accepted'; return json({ ok: true }); }
       if (fn === 'portal_check_in') { st.state = 'checked_in'; return json({ ok: true, clean: !body.p_items.some((i) => i.issue) }); }
       if (fn === 'portal_stage') { st.state = body.p_stage === 'in_production' ? 'in_production' : 'ready_to_ship'; return json({ ok: true }); }
@@ -76,6 +78,14 @@ try {
   const ci = st.calls.find((c) => c.fn === 'portal_check_in');
   ok(ci && ci.body.p_items.find((i) => i.item_id === 'i1').qty_counted === 22 && ci.body.p_items.find((i) => i.item_id === 'i1').qty_damaged === 1 && ci.body.p_items.find((i) => i.item_id === 'i1').issue === 'short', 'the count, damage and problem type are sent');
   ok(st.uploads.length === 1 && st.calls.some((c) => c.fn === 'portal_evidence_add' && c.body.p_path.startsWith('pa/TP-2026-00007/')), 'the photo is uploaded into the decorator\'s own folder and recorded');
+  // spoiled units: only once the goods are checked in, one clear form, a plain confirmation
+  ok((await page.getByRole('region', { name: 'Spoiled units' }).count()) === 1, 'the spoiled-units section appears once the goods are checked in');
+  await page.getByRole('button', { name: 'Report spoiled units' }).click(); ok(await page.getByRole('button', { name: 'Send report' }).isDisabled(), 'a report needs a reason and some words before it can be sent');
+  await page.getByLabel('Units spoiled').fill('2'); await page.getByLabel('What happened').selectOption('stained'); await page.getByLabel('Spoilage note').fill('Machine oil on two shirts');
+  await page.getByRole('button', { name: 'Send report' }).click(); await page.getByText('ATAM has your report').waitFor();
+  const sp = st.calls.find((c) => c.fn === 'portal_report_spoilage');
+  ok(sp && sp.body.p_code === 'TP-2026-00007' && sp.body.p_item === 'i1' && sp.body.p_qty === 2 && sp.body.p_what === 'stained' && sp.body.p_evidence === null, 'the report names the job, line, units and what happened');
+  ok((await page.getByText('With ATAM to review').count()) === 1, 'the decorator sees their report and where it stands');
   await page.getByRole('button', { name: 'Start production' }).click(); await page.getByRole('button', { name: 'Production is complete' }).waitFor();
   await page.getByRole('button', { name: 'Report a delay' }).click(); ok(await page.getByRole('region', { name: 'What to do next' }).getByRole('button', { name: 'Send', exact: true }).isDisabled(), 'a delay needs a date and a reason'); await page.getByRole('button', { name: 'Cancel' }).click();
   await page.getByRole('button', { name: 'Production is complete' }).click(); await page.getByRole('button', { name: /Send the goods back/ }).waitFor();
