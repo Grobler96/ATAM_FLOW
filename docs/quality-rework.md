@@ -20,8 +20,17 @@ A new **Quality** page (sidebar, `g` then `q`). Failed work can no longer slip t
 ## n8n and database
 Workflow **ATAM_FLOW · Quality actions** (`5gw5MwH9CIgDFtdw`, webhook `/webhook/atam-flow/quality`) is built and **unpublished**. Migration 32. Tested in `supabase/tests/qc_test.sql` and the dashboard e2e suite.
 
+## Real checklists (migration 55)
+The mechanism for your own standards is built; **the items themselves are yours to supply** (the 13 starter items are marked "starter" and are not required, so they never block a check).
+- Each item has: method (or every method), the stages it applies to, **must be answered**, **critical**, **photo needed if it fails**, order, in use. Editing bumps its version and clears the "starter" flag; items are switched off, never removed.
+- Recording a check now follows the checklist that applies (the order's methods, or the chosen line's, plus the stage): every required item must be answered, a failed item needs a reason (item note or check notes), a failed photo item needs a photo link. The database enforces this, not just the screen.
+- Each stored answer keeps a snapshot of the item (name, critical, required, version), so later edits never rewrite history.
+- **Sign-off:** a manager or admin presses "Confirm these are our standards" once no starter items are in use. Editing any item afterwards un-confirms it. While unconfirmed, checks still work but an issue "Quality checks are being done against an unconfirmed checklist" is raised if any were recorded in the last 14 days.
+- n8n Quality actions: `set_criterion` (now saves all the fields above) and `confirm_checklist` (managers/admins only). Tests: `supabase/tests/qc_checklist_test.sql`, `src/lib/quality.test.ts`, e2e.
+- Also fixed in migration 55: the stock-take detector used root-cause values the exceptions table rejects, so a stale stock-take would have errored instead of raising an issue.
+
 ## Honest gaps
-- Checklists, defect types and the 24-hour threshold are placeholders until you set your standards (`qc.options` in Settings, checklist on the Quality page).
+- Defect types and the 24-hour threshold are placeholders until you set them (`qc.options` in Settings). The checklist items are still the starter ones until you replace and confirm them on the Quality page.
 - Order status is not advanced automatically after a pass; the system blocks and raises issues but does not move orders on.
 - Replacement garments are tracked, not bought automatically: raise a PO yourself and mark it ordered. Scrapped units do not adjust stock or the order quantity.
 - No photo upload from the device (links only), and no claim tracking against producers or suppliers for faulty goods yet.
