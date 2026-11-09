@@ -16,6 +16,9 @@ One place to record, approve, recover and monitor everything that was lost, spoi
 - A manager can record money recovered from a decorator, supplier or courier, optionally against a courier claim. It can never exceed the cost.
 - Every step writes to the audit trail with who and why.
 
+## Decorator reports
+Decorators can report spoiled units from the portal (see [producer-portal.md](producer-portal.md)). Each report is a suggested record from the decorator (`recorded_by` starts `producer:`, source key starts `portal:`) with the cause *Spoiled by decorator*, and waits on the Waste page for a person to confirm or dismiss it.
+
 ## Monitoring
 - Overview: cost and units for 30 days, recovered and net loss, waiting for approval, weekly trend, and breakdowns by cause, stage, whose fault, decorator, order, operator, machine and SKU. Approved waste only.
 - Waste rate per decorator: approved waste as a share of units sent over 90 days. Over target (default 3%, setting `waste.targets`, at least 50 units sent) raises the exception **Waste rate over target**.
@@ -23,7 +26,6 @@ One place to record, approve, recover and monitor everything that was lost, spoi
 - The Records table exports to CSV.
 
 ## Not built yet
-- Decorators reporting spoilage themselves from the portal (their damaged count at check-in already feeds suggestions).
 - Photo evidence on a waste record (the field exists; there is no upload yet).
 - Per-process and per-decorator targets (one default target applies to everyone).
 - Settings screen for the thresholds (change the two settings rows for now).

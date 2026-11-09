@@ -9,6 +9,7 @@ A separate, phone-friendly web page where each third-party decorator signs in se
 4. **Update the stage**: start production, production complete, or report a **delay** with a new date and reason (raises an exception).
 5. **Ship back**: courier, tracking reference and units sent (fewer than expected needs an explanation and raises an exception). For direct-to-customer jobs, record the courier and tracking to the customer.
 6. **Message us** on the job and add photos. Unanswered messages raise an exception after 24 hours.
+7. **Report spoiled units** once the goods are checked in and until they are sent back: choose the line, how many, what happened (stained, misprint, machine fault, damaged, wrong item, other), a few words, and an optional photo. It becomes a *suggested* waste record that a person confirms or dismisses on the Waste page (so it counts for nothing until then), is logged on the job and is posted in the message thread. A decorator cannot report more units on a line than were sent (dismissed reports free their units again) and sees only their own reports and where each stands, never costs or internal notes. Damage found on arrival still goes in the check-in. Functions: `portal_report_spoilage`, `portal_spoilage`; tests in `portal_spoilage_test.sql`.
 
 Everything feeds the existing consignment lifecycle, events, audit trail and exceptions, with the actor shown as `producer:<name>`.
 

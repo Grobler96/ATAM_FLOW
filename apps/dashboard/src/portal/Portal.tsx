@@ -95,6 +95,7 @@ function JobCard({ code, me }: { code: string; me: Me }) {
       {job.declined_reason && <div className="callout" role="status">You declined this job: {job.declined_reason}. Message us if that has changed.</div>}
       <Items items={job.items} />
       <Actions job={job} me={me} onDone={load} />
+      {['checked_in', 'in_production', 'ready_to_ship'].includes(job.state) && <Spoilage job={job} me={me} />}
       {job.evidence.length > 0 && <section className="stack" style={{ gap: 8 }}><h2 style={{ margin: 0, fontSize: 16 }}>Photos</h2><div className="row wrap" style={{ gap: 8 }}>{job.evidence.map((e) => (urls[e.id] ? <a key={e.id} href={urls[e.id]} target="_blank" rel="noreferrer" title={e.caption ?? ''}><img src={urls[e.id]} alt={e.caption ?? 'Photo'} style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8 }} /></a> : null))}</div></section>}
       <Messages job={job} onDone={load} />
       {job.history.length > 0 && <section className="stack" style={{ gap: 4 }}><h2 style={{ margin: 0, fontSize: 16 }}>History</h2><ul className="plain">{job.history.map((h, i) => <li key={i}><span className="dim">{fmtTime(h.at)}</span> · {h.event.replace(/_/g, ' ')}{h.note ? ` · ${h.note}` : ''}</li>)}</ul></section>}
@@ -128,6 +129,50 @@ function Actions({ job, me, onDone }: { job: PortalJob; me: Me; onDone: () => Pr
       {mode === 'delay' && <div className="stack"><label className="stack" style={{ gap: 4 }}><span>New date you can finish by</span><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label><label className="stack" style={{ gap: 4 }}><span>Why is it delayed?</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} /></label><div className="row"><button className="btn primary" disabled={busy || !date || note.trim().length < 5} onClick={() => void run('portal_stage', { p_code: code, p_stage: 'delayed', p_note: note, p_new_date: date })}>Send</button><button className="btn" onClick={() => setMode(null)}>Cancel</button></div></div>}
       {mode === 'ship' && <Ship job={job} onCancel={() => setMode(null)} onDone={async () => { setMode(null); await onDone(); }} />}
       {['sent_back', 'done'].includes(s) && <p className="muted">{s === 'sent_back' ? `Sent back${job.return_tracking ? ` (tracking ${job.return_tracking})` : job.customer_tracking ? ` (tracking ${job.customer_tracking})` : ''}. ATAM will confirm when it arrives.` : 'This job is complete. Thank you.'}</p>}
+    </section>
+  );
+}
+
+const WHAT: [string, string][] = [['stained', 'Stained or marked'], ['misprint', 'Misprint'], ['machine_fault', 'Machine fault'], ['damaged', 'Damaged during work'], ['wrong_item', 'Wrong item used'], ['other', 'Something else']];
+interface SpoilReport { waste_ref: string; sku: string | null; qty: number; reported_at: string; state: string; note: string }
+
+// Spoiled units found while working. It goes to ATAM as a report to review; it changes no stock and no payment by itself.
+function Spoilage({ job, me }: { job: PortalJob; me: Me }) {
+  const [reports, setReports] = useState<SpoilReport[] | null>(null); const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState<string | null>(null);
+  const [item, setItem] = useState(job.items[0]?.item_id ?? ''); const [qty, setQty] = useState('1'); const [what, setWhat] = useState(''); const [note, setNote] = useState(''); const [file, setFile] = useState<File | null>(null);
+  const load = useCallback(async () => { const r = await rpc<{ reports: SpoilReport[] }>('portal_spoilage', { p_code: job.code }); if (r.ok) setReports(r.data?.reports ?? []); else setReports([]); }, [job.code]);
+  useEffect(() => { void load(); }, [load]);
+  async function submit(e: FormEvent) {
+    e.preventDefault(); setBusy(true); setErr(null); setDone(null); let path: string | null = null;
+    if (file) {
+      path = `${me.producer_id}/${job.code}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, '_')}`;
+      const up = await sb.storage.from(BUCKET).upload(path, file, { contentType: file.type });
+      if (up.error) { setBusy(false); setErr(`The photo did not upload: ${up.error.message}. Try again, or send the report without it.`); return; }
+    }
+    const r = await rpc('portal_report_spoilage', { p_code: job.code, p_item: item, p_qty: Number(qty), p_what: what, p_note: note, p_evidence: path });
+    setBusy(false); if (!r.ok) { setErr(r.error ?? 'That did not work.'); return; }
+    setDone('Thank you. ATAM has your report and will look at it.'); setOpen(false); setQty('1'); setWhat(''); setNote(''); setFile(null); await load();
+  }
+  const bad = !item || !(Number(qty) > 0) || !what || note.trim().length < 5;
+  return (
+    <section className="panel stack" style={{ padding: 16, gap: 10 }} aria-label="Spoiled units">
+      <div className="row wrap" style={{ justifyContent: 'space-between' }}><h2 style={{ margin: 0, fontSize: 16 }}>Spoiled units</h2>{!open && <button className="btn" onClick={() => { setOpen(true); setDone(null); }}>Report spoiled units</button>}</div>
+      {done && <div className="callout" role="status">{done}</div>}
+      {open && (
+        <form className="stack" style={{ gap: 10 }} onSubmit={submit}>
+          <p className="muted">Tell us about any garments spoiled while you work on them. Damage you found when the goods arrived belongs in the check-in.</p>
+          <label className="stack" style={{ gap: 2 }}><span>Which item?</span><select className="select" value={item} onChange={(e) => setItem(e.target.value)} aria-label="Spoiled item">{job.items.map((i) => <option key={i.item_id} value={i.item_id}>{i.order_ref} · {i.sku} {[i.colour, i.size].filter(Boolean).join(' ')} (sent {i.qty_sent})</option>)}</select></label>
+          <div className="row wrap" style={{ gap: 12 }}>
+            <label className="stack" style={{ gap: 2 }}><span>How many units?</span><input className="input" style={{ width: 90 }} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} aria-label="Units spoiled" /></label>
+            <label className="stack grow" style={{ gap: 2 }}><span>What happened?</span><select className="select" value={what} onChange={(e) => setWhat(e.target.value)} aria-label="What happened"><option value="">Choose…</option>{WHAT.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+          </div>
+          <label className="stack" style={{ gap: 2 }}><span>Tell us more (required)</span><input className="input" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} aria-label="Spoilage note" /></label>
+          <label className="stack" style={{ gap: 2 }}><span>Photo (optional)</span><input type="file" accept="image/*" capture="environment" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></label>
+          {err && <Err m={err} />}
+          <div className="row"><button className="btn primary" disabled={busy || bad}>{busy ? 'Sending…' : 'Send report'}</button><button type="button" className="btn" disabled={busy} onClick={() => setOpen(false)}>Cancel</button></div>
+        </form>)}
+      {reports && reports.length > 0 && <ul className="plain">{reports.map((r) => <li key={r.waste_ref}><span className="dim">{fmtTime(r.reported_at)}</span> · {r.qty} × <span className="mono">{r.sku ?? 'item'}</span> · {r.state}</li>)}</ul>}
+      {reports && reports.length === 0 && !open && !done && <p className="dim">Nothing reported on this job.</p>}
     </section>
   );
 }
