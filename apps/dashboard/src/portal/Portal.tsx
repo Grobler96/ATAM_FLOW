@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { ScanPanel } from '../scan/ScanPanel';
+import { parseScan } from '../scan/parse';
 import { BUCKET, fmtDate, fmtTime, ISSUES, rpc, sb, STATE_LABEL, type Me, type PortalItem, type PortalJob, type PortalJobRow } from './client';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
@@ -57,14 +59,22 @@ function Signed() {
 }
 
 function Jobs() {
+  const [scanning, setScanning] = useState(false); const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [rows, setRows] = useState<PortalJobRow[] | null>(null); const [err, setErr] = useState<string | null>(null);
   useEffect(() => { void rpc<PortalJobRow[]>('portal_jobs').then((r) => { if (r.ok) setRows(r.data ?? []); else setErr(r.error ?? 'Could not load your jobs.'); }); }, []);
   if (err) return <Err m={err} />;
   if (!rows) return <p className="dim">Loading your jobs…</p>;
+  function scanned(text: string) {
+    const r = parseScan(text); setScanMsg(null);
+    if (r.kind !== 'consignment') { setScanMsg('That code is not a parcel label from ATAM. Scan the label on the parcel, or type the TP number on it.'); return; }
+    if (!(rows ?? []).some((j) => j.code === r.ref)) { setScanMsg(`${r.ref} is not one of your jobs. Check you have the right parcel.`); return; }
+    setScanning(false); location.hash = '#/job/' + r.ref;
+  }
   const groups: [string, (r: PortalJobRow) => boolean][] = [['Needs your attention', (r) => ['to_accept', 'accepted'].includes(r.state)], ['In progress', (r) => ['checked_in', 'in_production', 'ready_to_ship'].includes(r.state)], ['Sent back', (r) => r.state === 'sent_back'], ['Complete', (r) => ['done', 'declined'].includes(r.state)]];
   return (
     <div className="stack" style={{ gap: 18 }}>
-      <h1 style={{ margin: 0 }}>Your work</h1>
+      <div className="row wrap" style={{ justifyContent: 'space-between', gap: 8 }}><h1 style={{ margin: 0 }}>Your work</h1>{!scanning && <button className="btn" onClick={() => { setScanning(true); setScanMsg(null); }}>Scan a parcel label</button>}</div>
+      {scanning && <section className="panel stack" style={{ padding: 16, gap: 8 }} aria-label="Scan a parcel label"><ScanPanel hint="Scan the barcode or QR code on the parcel label to open that job." onScan={scanned} onClose={() => { setScanning(false); setScanMsg(null); }} />{scanMsg && <Err m={scanMsg} />}</section>}
       {rows.length === 0 && <div className="callout" role="status">Nothing has been sent to you yet. Jobs appear here as soon as ATAM sends the goods.</div>}
       {groups.map(([title, test]) => { const list = rows.filter(test); if (!list.length) return null; return (
         <section key={title} className="stack" style={{ gap: 8 }}><h2 style={{ margin: 0, fontSize: 16 }}>{title}</h2>
@@ -94,12 +104,49 @@ function JobCard({ code, me }: { code: string; me: Me }) {
       {job.instructions && <div className="callout" role="note"><b>Instructions for your work</b><div>{job.instructions}</div></div>}
       {job.declined_reason && <div className="callout" role="status">You declined this job: {job.declined_reason}. Message us if that has changed.</div>}
       <Items items={job.items} />
+      <JobPack code={job.code} />
       <Actions job={job} me={me} onDone={load} />
       {['checked_in', 'in_production', 'ready_to_ship'].includes(job.state) && <Spoilage job={job} me={me} />}
       {job.evidence.length > 0 && <section className="stack" style={{ gap: 8 }}><h2 style={{ margin: 0, fontSize: 16 }}>Photos</h2><div className="row wrap" style={{ gap: 8 }}>{job.evidence.map((e) => (urls[e.id] ? <a key={e.id} href={urls[e.id]} target="_blank" rel="noreferrer" title={e.caption ?? ''}><img src={urls[e.id]} alt={e.caption ?? 'Photo'} style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8 }} /></a> : null))}</div></section>}
       <Messages job={job} onDone={load} />
       {job.history.length > 0 && <section className="stack" style={{ gap: 4 }}><h2 style={{ margin: 0, fontSize: 16 }}>History</h2><ul className="plain">{job.history.map((h, i) => <li key={i}><span className="dim">{fmtTime(h.at)}</span> · {h.event.replace(/_/g, ' ')}{h.note ? ` · ${h.note}` : ''}</li>)}</ul></section>}
     </div>
+  );
+}
+
+interface PackArt { area: string; process: string | null; version: number | null; file_format: string | null; file: string | null; file_name: string | null; stitch_count: number | null; width_mm: number | null; height_mm: number | null; placement: string | null; approval: string | null }
+interface PackLine { product: string | null; sku_base: string | null; colour: string | null; methods: string[] | null; placement: string | null; sizes: { size: string; qty: number }[]; total_qty: number }
+interface Pack { pack_ref: string; version: number; order_ref: string; due_date: string | null; instructions: string | null; lines: PackLine[]; artwork: PackArt[] }
+
+// The job pack for this job: what to make and where, the current artwork files to download, and the specs. Always the latest version.
+function JobPack({ code }: { code: string }) {
+  const [packs, setPacks] = useState<Pack[] | null>(null); const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => { void rpc<{ packs: Pack[] }>('portal_job_pack', { p_code: code }).then((r) => { if (r.ok) setPacks(r.data?.packs ?? []); else setPacks([]); }); }, [code]);
+  async function download(a: PackArt) {
+    if (!a.file) return; setBusy(a.file); setErr(null);
+    const { data, error } = await sb.storage.from('artwork').createSignedUrl(a.file, 300, { download: a.file_name ?? true });
+    setBusy(null);
+    if (error || !data?.signedUrl) { setErr(`Could not get ${a.file_name ?? 'the file'}. Message us and we will send it.`); return; }
+    const link = document.createElement('a'); link.href = data.signedUrl; link.download = a.file_name ?? ''; link.rel = 'noreferrer'; document.body.appendChild(link); link.click(); link.remove();
+  }
+  if (!packs || packs.length === 0) return null;
+  return (
+    <section className="stack" style={{ gap: 10 }} aria-label="Job pack">
+      <h2 style={{ margin: 0, fontSize: 16 }}>Job pack</h2>
+      {err && <Err m={err} />}
+      {packs.map((p) => (
+        <div key={p.pack_ref} className="panel stack" style={{ padding: 14, gap: 10 }}>
+          <div className="row wrap" style={{ gap: 10 }}><b>{p.order_ref}</b><span className="dim mono">{p.pack_ref} · version {p.version}</span>{p.due_date && <span className="dim">Due {fmtDate(p.due_date)}</span>}</div>
+          {p.instructions && <div className="callout" role="note"><b>Instructions</b><div>{p.instructions}</div></div>}
+          {p.lines.length > 0 && <div style={{ overflowX: 'auto' }}><table className="table" style={{ minWidth: 460 }}><thead><tr><th>Item</th><th>Decoration</th><th>Sizes</th><th className="r">Total</th></tr></thead>
+            <tbody>{p.lines.map((l, i) => <tr key={i}><td>{l.product ?? l.sku_base}<div className="dim">{l.colour}</div></td><td>{(l.methods ?? []).join(', ')}<div className="dim">{l.placement}</div></td><td>{l.sizes.map((z) => `${z.size} × ${z.qty}`).join(', ')}</td><td className="r">{l.total_qty}</td></tr>)}</tbody></table></div>}
+          {p.artwork.length > 0 ? <div className="stack" style={{ gap: 8 }}>{p.artwork.map((a, i) => (
+            <div key={i} className="row wrap" style={{ gap: 10, justifyContent: 'space-between' }}>
+              <span><b>{a.area}</b> <span className="dim">{[a.process, a.file_format?.toUpperCase(), a.version != null ? `version ${a.version}` : null, a.stitch_count ? `${a.stitch_count.toLocaleString('en-GB')} stitches` : null, a.width_mm && a.height_mm ? `${a.width_mm} × ${a.height_mm} mm` : null].filter(Boolean).join(' · ')}</span></span>
+              {a.file ? <button className="btn" disabled={busy === a.file} onClick={() => void download(a)} aria-label={`Download ${a.file_name ?? a.area}`}>{busy === a.file ? 'Preparing…' : `Download ${a.file_name ?? 'file'}`}</button> : <span className="dim">File not stored yet. Message us if you need it.</span>}
+            </div>))}</div> : <p className="dim">No artwork files on this pack.</p>}
+        </div>))}
+    </section>
   );
 }
 
@@ -178,7 +225,7 @@ function Spoilage({ job, me }: { job: PortalJob; me: Me }) {
 }
 
 function CheckIn({ job, me, onCancel, onDone }: { job: PortalJob; me: Me; onCancel: () => void; onDone: () => Promise<void> }) {
-  const [rows, setRows] = useState(() => job.items.map((i) => ({ item_id: i.item_id, qty_counted: String(i.qty_sent), qty_damaged: '0', issue: '', note: '' }))); const [files, setFiles] = useState<File[]>([]); const [note, setNote] = useState('');
+  const [rows, setRows] = useState(() => job.items.map((i) => ({ item_id: i.item_id, qty_counted: String(i.qty_sent), qty_damaged: '0', issue: '', note: '' }))); const [files, setFiles] = useState<File[]>([]); const [lineFiles, setLineFiles] = useState<Record<string, File[]>>({}); const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
   const set = (k: number, patch: Partial<(typeof rows)[number]>) => setRows((p) => p.map((r, i) => (i === k ? { ...r, ...patch } : r)));
   const bad = (k: number) => Number(rows[k].qty_counted) !== job.items[k].qty_sent || Number(rows[k].qty_damaged) > 0;
@@ -193,6 +240,14 @@ function CheckIn({ job, me, onCancel, onDone }: { job: PortalJob; me: Me; onCanc
       if (up.error) { setErr(`Goods are checked in, but a photo (${f.name}) did not upload: ${up.error.message}. You can add it by message.`); continue; }
       await rpc('portal_evidence_add', { p_code: job.code, p_item: null, p_path: path, p_kind: 'goods_in', p_caption: null });
     }
+    for (const [itemId, list] of Object.entries(lineFiles)) {
+      for (const f of list) {
+        const path = `${me.producer_id}/${job.code}/${Date.now()}-${f.name.replace(/[^\w.-]+/g, '_')}`;
+        const up = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type });
+        if (up.error) { setErr(`Goods are checked in, but a photo (${f.name}) did not upload: ${up.error.message}. You can add it by message.`); continue; }
+        await rpc('portal_evidence_add', { p_code: job.code, p_item: itemId, p_path: path, p_kind: 'goods_in', p_caption: job.items.find((i) => i.item_id === itemId)?.sku ?? null });
+      }
+    }
     setBusy(false); await onDone();
   }
   return (
@@ -206,10 +261,11 @@ function CheckIn({ job, me, onCancel, onDone }: { job: PortalJob; me: Me; onCanc
             <label className="stack" style={{ gap: 2 }}><span>Damaged</span><input className="input" style={{ width: 90 }} inputMode="numeric" value={rows[k].qty_damaged} onChange={(e) => set(k, { qty_damaged: e.target.value })} aria-label={`Damaged ${i.sku}`} /></label>
             {bad(k) && <label className="stack grow" style={{ gap: 2 }}><span>What is the problem?</span><select className="select" value={rows[k].issue} onChange={(e) => set(k, { issue: e.target.value })} aria-label={`Problem ${i.sku}`}><option value="">Choose…</option>{ISSUES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>}
           </div>
+          <label className="stack" style={{ gap: 2 }}><span className="dim">Photo of this item (optional)</span><input type="file" accept="image/*" multiple capture="environment" aria-label={`Photos of ${i.sku}`} onChange={(e) => setLineFiles((p) => ({ ...p, [i.item_id]: Array.from(e.target.files ?? []) }))} /></label>
           {bad(k) && <label className="stack" style={{ gap: 2 }}><span>Tell us what you can see (required)</span><input className="input" value={rows[k].note} onChange={(e) => set(k, { note: e.target.value })} aria-label={`Note ${i.sku}`} /></label>}
         </div>))}
-      <label className="stack" style={{ gap: 4 }}><span>Photos (optional, helpful if anything is wrong)</span><input type="file" accept="image/*,application/pdf" multiple capture="environment" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
-      {files.length > 0 && <span className="dim">{files.length} file(s) will be uploaded.</span>}
+      <label className="stack" style={{ gap: 4 }}><span>Photos of the whole delivery (optional, helpful if anything is wrong)</span><input type="file" accept="image/*,application/pdf" multiple capture="environment" aria-label="Photos of the delivery" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
+      {files.length + Object.values(lineFiles).reduce((n, l) => n + l.length, 0) > 0 && <span className="dim">{files.length + Object.values(lineFiles).reduce((n, l) => n + l.length, 0)} file(s) will be uploaded.</span>}
       <label className="stack" style={{ gap: 4 }}><span>Anything else? (optional)</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} /></label>
       {err && <Err m={err} />}
       <div className="row"><button className="btn primary" disabled={busy || rows.some((r, k) => bad(k) && r.note.trim().length < 5)} onClick={() => void submit()}>{busy ? 'Sending…' : rows.some((_, k) => bad(k)) ? 'Check in and report the problem' : 'Check in: all correct'}</button><button className="btn" disabled={busy} onClick={onCancel}>Cancel</button></div>

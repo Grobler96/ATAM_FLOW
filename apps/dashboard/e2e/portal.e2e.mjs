@@ -15,7 +15,7 @@ const session = { access_token: 'tok', refresh_token: 'ref', expires_in: 3600, e
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 420, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200)));
-  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, messages: [], evidence: [], spoil: [] };
+  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, messages: [], evidence: [], spoil: [], signs: [] };
   if (!o.signedOut) await page.addInitScript((s) => localStorage.setItem('atam-portal-auth', JSON.stringify(s)), session);
   const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: false, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
   await page.route(`${SB}/**`, async (route) => {
@@ -24,7 +24,8 @@ async function newPage(browser, o = {}) {
     if (u.pathname.startsWith('/auth/v1/otp')) { const b = req.postDataJSON?.(); st.calls.push({ fn: 'otp', body: b }); return /uninvited/.test(b?.email ?? '') ? json({ code: 422, error_code: 'otp_disabled', msg: 'Signups not allowed for otp' }, 422) : json({}); }
     if (u.pathname.startsWith('/auth/v1/user')) return json(session.user);
     if (u.pathname.startsWith('/auth/v1/logout')) return route.fulfill({ status: 204, headers: cors });
-    if (u.pathname.includes('/storage/v1/object/sign')) return json({ signedURL: '/object/sign/producer-evidence/x.jpg?token=t' });
+    if (u.pathname.includes('/storage/v1/object/sign') && req.method() === 'GET') return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/octet-stream', 'content-disposition': 'attachment; filename="left-chest-v2.dst"' }, body: 'DST-DATA' });
+    if (u.pathname.includes('/storage/v1/object/sign')) { st.signs.push(u.pathname); return json({ signedURL: '/object/sign/producer-evidence/x.jpg?token=t' }); }
     if (u.pathname.includes('/storage/v1/object/') && req.method() === 'POST') { st.uploads.push(u.pathname); return json({ Key: 'producer-evidence/x' }); }
     const rpc = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/);
     if (rpc) {
@@ -32,6 +33,7 @@ async function newPage(browser, o = {}) {
       if (fn === 'portal_whoami') return st.noAccess ? json({ message: 'ERROR: This login does not have access to the decorator portal. Ask ATAM for an invitation.' }, 400) : json({ ok: true, producer: 'Portal Stitchers', producer_id: 'pa', user: 'Sam', instructions: 'Left chest only' });
       if (fn === 'portal_jobs') return json([{ code: 'TP-2026-00007', state: st.state, status: 'dispatched', dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', direct_to_customer: false, units: 34, orders: [{ order_ref: '#636584', customer: 'HH Associates Ltd' }, { order_ref: '#636020', customer: 'Alloy Bodies Ltd' }], unread: 0 }]);
       if (fn === 'portal_job') return json(job());
+      if (fn === 'portal_job_pack') return json({ ok: true, packs: [{ pack_ref: 'JP-2026-00001', version: 2, order_ref: '#636584', due_date: '2026-11-12', instructions: 'Left chest only', lines: [{ product: 'Polo shirt', sku_base: 'POLO', colour: 'Navy', methods: ['embroidery'], placement: 'Left chest', sizes: [{ size: 'M', qty: 24 }], total_qty: 24 }], artwork: [{ area: 'Left chest', process: 'embroidery', version: 2, file_format: 'dst', file: 'pa/left-chest-v2.dst', file_name: 'left-chest-v2.dst', stitch_count: 5200, width_mm: 90, height_mm: 40, placement: 'Left chest', approval: 'approved' }, { area: 'Back', process: 'embroidery', version: 1, file_format: null, file: null, file_name: null, stitch_count: null, width_mm: null, height_mm: null, placement: null, approval: 'pending' }] }] });
       if (fn === 'portal_spoilage') return json({ ok: true, reports: st.spoil });
       if (fn === 'portal_report_spoilage') { st.spoil.push({ waste_ref: 'WST-1', sku: 'POLO-NVY-M', qty: body.p_qty, reported_at: '2026-11-06T11:00:00Z', state: 'With ATAM to review', note: body.p_note }); return json({ ok: true, waste_ref: 'WST-1' }); }
       if (fn === 'portal_accept') { st.state = 'accepted'; return json({ ok: true }); }
@@ -65,7 +67,17 @@ try {
   await page.getByRole('heading', { name: 'Your work' }).waitFor();
   ok((await page.getByText('#636584 · HH Associates Ltd').count()) === 1 && (await page.getByText('#636020 · Alloy Bodies Ltd').count()) === 1, 'the list shows the order numbers and customers on the job');
   ok((await page.getByText('Needs your attention').count()) === 1, 'a job to accept is at the top');
-  await page.getByText('TP-2026-00007').first().click(); await page.getByRole('heading', { name: 'What to do next' }).waitFor();
+  console.log('scan a parcel label');
+  await page.getByRole('button', { name: 'Scan a parcel label' }).click(); await page.getByLabel('Scan or type a code').fill('banana'); await page.keyboard.press('Enter');
+  await page.getByText('not a parcel label from ATAM').waitFor(); ok(true, 'a code that is not a parcel label is refused with a plain message');
+  await page.getByLabel('Scan or type a code').fill('TP-2026-99999'); await page.keyboard.press('Enter'); await page.getByText('is not one of your jobs').waitFor(); ok(true, 'a parcel that is not theirs is refused and nothing opens');
+  await page.getByLabel('Scan or type a code').fill('PRO-TP-2026-00007-261109'); await page.keyboard.press('Enter'); await page.getByRole('heading', { name: 'What to do next' }).waitFor(); ok(page.url().includes('#/job/TP-2026-00007'), 'scanning the printed barcode on their parcel opens that job');
+  console.log('job pack');
+  await page.getByRole('region', { name: 'Job pack' }).waitFor(); ok((await page.getByText('JP-2026-00001 · version 2').count()) === 1 && (await page.getByText('5,200 stitches').count()) === 1, 'the job pack shows the version, specs and sizes');
+  ok((await page.getByText('File not stored yet').count()) === 1, 'an area with no stored file says so instead of a dead button');
+  { const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download left-chest-v2.dst' }).click()]); ok(dl.suggestedFilename() === 'left-chest-v2.dst', 'the artwork file downloads with its own name'); }
+  ok(st.signs.some((x) => x.includes('/object/sign/artwork/')), 'the download uses a short-lived signed link from the artwork store');
+  await page.goto(APP + '#/'); await page.getByText('TP-2026-00007').first().click(); await page.getByRole('heading', { name: 'What to do next' }).waitFor();
   ok((await page.getByText('Left chest only').count()) >= 1, 'the instructions are shown');
   await page.getByRole('button', { name: 'Accept this job' }).click(); await page.getByText('You have accepted this job').waitFor(); ok(st.calls.some((c) => c.fn === 'portal_accept'), 'the job is accepted');
   await page.getByRole('button', { name: /check them in/ }).click(); await page.getByText('Count what actually arrived').waitFor();
@@ -73,11 +85,13 @@ try {
   await page.getByLabel('Counted POLO-NVY-M').fill('22'); await page.getByLabel('Damaged POLO-NVY-M').fill('1');
   ok(await page.getByRole('button', { name: 'Check in and report the problem' }).isDisabled(), 'a count problem needs words before it can be sent');
   await page.getByLabel('Problem POLO-NVY-M').selectOption('short'); await page.getByLabel('Note POLO-NVY-M').fill('Two polos missing and one stained');
-  await page.locator('input[type=file]').setInputFiles({ name: 'stain.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fakejpeg') });
+  await page.getByLabel('Photos of the delivery').setInputFiles({ name: 'stain.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fakejpeg') });
+  await page.getByLabel('Photos of POLO-NVY-M').setInputFiles({ name: 'sleeve.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fakejpeg2') });
   await page.getByRole('button', { name: 'Check in and report the problem' }).click(); await page.getByRole('button', { name: 'Start production' }).waitFor();
   const ci = st.calls.find((c) => c.fn === 'portal_check_in');
   ok(ci && ci.body.p_items.find((i) => i.item_id === 'i1').qty_counted === 22 && ci.body.p_items.find((i) => i.item_id === 'i1').qty_damaged === 1 && ci.body.p_items.find((i) => i.item_id === 'i1').issue === 'short', 'the count, damage and problem type are sent');
-  ok(st.uploads.length === 1 && st.calls.some((c) => c.fn === 'portal_evidence_add' && c.body.p_path.startsWith('pa/TP-2026-00007/')), 'the photo is uploaded into the decorator\'s own folder and recorded');
+  ok(st.uploads.length === 2 && st.calls.some((c) => c.fn === 'portal_evidence_add' && c.body.p_path.startsWith('pa/TP-2026-00007/')), 'the photos are uploaded into the decorator\'s own folder and recorded');
+  ok(st.calls.some((c) => c.fn === 'portal_evidence_add' && c.body.p_item === 'i1' && c.body.p_caption === 'POLO-NVY-M') && st.calls.some((c) => c.fn === 'portal_evidence_add' && c.body.p_item === null), 'a photo can belong to one item, and a photo of the whole delivery stays on the job');
   // spoiled units: only once the goods are checked in, one clear form, a plain confirmation
   ok((await page.getByRole('region', { name: 'Spoiled units' }).count()) === 1, 'the spoiled-units section appears once the goods are checked in');
   await page.getByRole('button', { name: 'Report spoiled units' }).click(); ok(await page.getByRole('button', { name: 'Send report' }).isDisabled(), 'a report needs a reason and some words before it can be sent');
