@@ -11,6 +11,7 @@ import { StatusBar } from './StatusBar';
 import { CommandPalette } from './CommandPalette';
 import { useRunner } from './useRunner';
 import { CreatePoDialog } from '../components/CreatePoDialog';
+import { ScanHost } from '../components/ScanHost';
 import { Home } from '../pages/Home';
 import { OrdersPage } from '../pages/Orders';
 import { ProductionPage } from '../pages/Production';
@@ -81,6 +82,7 @@ function Frame() {
         <StatusBar />
       </div>
       {palette && <CommandPalette onClose={closePalette} onRun={(d) => void runner.run(d)} canRun={runner.can} onCreatePo={() => setPoOpen(true)} />}
+      <ScanHost />
       {poOpen && <CreatePoDialog open onClose={() => { setPoOpen(false); setPoPreset([]); }} presetOrders={poPreset} />}
       {qcDlg && <RecordCheckDialog orderId={qcDlg.orderId} onClose={() => setQcDlg(null)} />}
       {moveDlg && <CreateMovementDialog onClose={() => setMoveDlg(null)} presetOrders={moveDlg.orders} />}

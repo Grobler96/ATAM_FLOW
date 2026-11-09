@@ -32,6 +32,6 @@ Migrations 26–27. Functions `flow.wh_*` (service-role wrappers `public.flow_wh
 
 ## Honest gaps
 - No real-printer test; label layout verified on screen only, not on a physical thermal printer.
-- Barcode scanning is not built; QR/barcode content is ready for a scanner but nothing reads scans yet.
+- Scanning is built: see [scanning.md](scanning.md).
 - Bin assignment is per order (with optional per-line contents); it is not tied to individual stock units.
 - Producer-movement creation is still not built, so producer labels exist only for movements that already exist.

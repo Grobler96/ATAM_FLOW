@@ -34,6 +34,7 @@ export function TopBar({ onMenu, onCollapse, onSearch, onCreatePo, onGenerateLab
       <Button variant="ghost" icon="panel" onClick={onCollapse} aria-label="Collapse sidebar" className="hide-m" />
       <button className="cmd" onClick={onSearch} aria-label="Search everything (press / or Ctrl+K)"><Icon name="search" size={15} /><span className="grow">Search orders, SKUs, POs, bins, producers…</span><span className="kbds"><kbd>/</kbd> <kbd>⌘K</kbd></span></button>
       <span className="grow" />
+      <Button icon="labels" onClick={() => window.dispatchEvent(new CustomEvent('atamflow:scan'))} aria-label="Scan a label"><span className="hide-m">Scan</span></Button>
       <div className="hide-m"><Segmented label="Time range" value={range} options={RANGES} onChange={setRange} /></div>
       <div style={{ position: 'relative' }}>
         <Button icon="bolt" variant="primary" onClick={toggle('quick')} aria-haspopup="menu" aria-expanded={open === 'quick'}><span className="hide-m">Quick actions</span></Button>
