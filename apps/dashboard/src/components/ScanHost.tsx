@@ -17,7 +17,7 @@ export function ScanHost() {
   const go = useCallback((text: string) => {
     const r = parseScan(text, known);
     if (r.kind === 'unknown') { toast.push({ tone: 'bad', title: 'That code was not recognised', body: `Scanned: ${text.slice(0, 60)}` }); return false; }
-    const where = r.kind === 'consignment' ? 'producers/movement/' + r.ref : r.kind === 'order' ? 'orders/' + r.ref.replace('#', '') : r.kind === 'bin' ? 'warehouse/' + encodeURIComponent(r.ref) : 'stock/' + encodeURIComponent(r.ref);
+    const where = r.kind === 'parcel' ? 'dispatch/' + r.ref.split('-')[1] : r.kind === 'consignment' ? 'producers/movement/' + r.ref : r.kind === 'order' ? 'orders/' + r.ref.replace('#', '') : r.kind === 'bin' ? 'warehouse/' + encodeURIComponent(r.ref) : 'stock/' + encodeURIComponent(r.ref);
     navigate(where); toast.push({ tone: 'good', title: `Opened ${KIND_LABEL[r.kind]} ${r.ref}` }); return true;
   }, [known, toast]);
   useEffect(() => { const h = () => setOpen(true); window.addEventListener('atamflow:scan', h); return () => window.removeEventListener('atamflow:scan', h); }, []);

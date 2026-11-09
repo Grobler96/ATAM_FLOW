@@ -116,3 +116,5 @@ Operations actions also handles `set_switch` (admin) and `set_scope` (manager/ad
 Operations actions also handles `portal_add_user`, `portal_set_user` (manager/admin), `portal_reply` and `portal_resolve`. See [producer-portal.md](producer-portal.md). The portal itself talks to the database directly (login-checked functions), so it does not depend on any n8n workflow being published.
 
 Operations actions also handles `assign_job`, `worker_save`, `worker_skill`, `worker_skill_clear`, `worker_shift`, `worker_absence`, `worker_absence_remove`, `floor_start`, `floor_stop`. The optional **Crew wording** workflow (`sMFDy4zMagFuwugd`, path `atam-flow/crew-wording`) rewrites a suggestion in plain words. See [crew.md](crew.md).
+
+Operations actions also handles `dispatch_pack`, `dispatch_printed`, `dispatch_tracking`, `dispatch_handover` and `dispatch_cancel` (added 9 Nov 2026; floor roles, and only a manager or admin may send an order that is not ready). See [dispatch.md](dispatch.md).
