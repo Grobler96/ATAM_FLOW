@@ -1,0 +1,66 @@
+/* Decorator portal sign-in: a calm animated stage with a glass card. All motion stops for people who ask for reduced motion. */
+.so-stage { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; overflow: hidden; isolation: isolate; }
+.so-bg, .so-grid, .so-thread { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+.so-orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55; will-change: transform; }
+.so-orb.a { width: 46vmax; height: 46vmax; left: -12vmax; top: -16vmax; background: radial-gradient(circle at 35% 35%, rgba(79, 141, 255, 0.85), rgba(79, 141, 255, 0) 65%); animation: so-drift-a 22s ease-in-out infinite alternate; }
+.so-orb.b { width: 40vmax; height: 40vmax; right: -14vmax; bottom: -14vmax; background: radial-gradient(circle at 60% 60%, rgba(45, 212, 191, 0.7), rgba(45, 212, 191, 0) 65%); animation: so-drift-b 26s ease-in-out infinite alternate; }
+.so-orb.c { width: 28vmax; height: 28vmax; right: 18vmax; top: -8vmax; background: radial-gradient(circle, rgba(139, 108, 255, 0.55), rgba(139, 108, 255, 0) 65%); animation: so-drift-c 30s ease-in-out infinite alternate; }
+.so-grid { background-image: linear-gradient(rgba(148, 170, 210, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 170, 210, 0.07) 1px, transparent 1px); background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 72%); mask-image: radial-gradient(ellipse at center, #000 0%, transparent 72%); animation: so-grid 40s linear infinite; }
+.so-thread { width: 100%; height: 100%; opacity: 0.55; }
+.so-thread path { fill: none; stroke: url(#so-grad); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 9 11; animation: so-stitch 3.2s linear infinite, so-fade-in 1.6s ease-out both; }
+.so-thread path.two { stroke-width: 1.2; opacity: 0.6; animation-duration: 4.6s, 1.6s; animation-direction: reverse, normal; }
+
+.so-card { position: relative; width: min(100%, 420px); padding: 34px 30px 28px; border-radius: 22px; background: linear-gradient(160deg, rgba(22, 34, 62, 0.82), rgba(12, 20, 38, 0.78));
+  border: 1px solid rgba(148, 170, 210, 0.2); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 0 60px -20px rgba(79, 141, 255, 0.45);
+  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%); animation: so-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.so-card::before { content: ''; position: absolute; inset: -1px; border-radius: 23px; padding: 1px; background: conic-gradient(from var(--so-angle, 0deg), rgba(79, 141, 255, 0), rgba(79, 141, 255, 0.85), rgba(45, 212, 191, 0.8), rgba(79, 141, 255, 0) 55%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: so-spin 7s linear infinite; pointer-events: none; opacity: 0.8; }
+@property --so-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+.so-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; animation: so-up 0.7s 0.15s both; }
+.so-mark { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: linear-gradient(135deg, #4f8dff, #2dd4bf); box-shadow: 0 8px 24px -6px rgba(79, 141, 255, 0.7); }
+.so-mark svg { width: 26px; height: 26px; }
+.so-mark path { fill: none; stroke: #04101f; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 60; animation: so-draw 1.4s 0.5s ease-out forwards; }
+.so-name { font-weight: 700; letter-spacing: 0.14em; font-size: 15px; } .so-sub { display: block; font-weight: 500; letter-spacing: 0.04em; font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.so-card h1 { font-size: 28px; letter-spacing: -0.02em; animation: so-up 0.7s 0.25s both; margin-bottom: 8px; }
+.so-lead { color: var(--text-2); line-height: 1.5; animation: so-up 0.7s 0.33s both; margin-bottom: 22px; }
+.so-field { position: relative; display: block; margin-bottom: 16px; animation: so-up 0.7s 0.42s both; }
+.so-field input { width: 100%; box-sizing: border-box; height: 54px; padding: 22px 16px 8px; border-radius: 14px; border: 1px solid var(--border-strong); background: rgba(5, 9, 18, 0.55); color: var(--text-1); font: inherit; font-size: 16px; outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; }
+.so-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(79, 141, 255, 0.18), 0 0 24px -4px rgba(79, 141, 255, 0.5); background: rgba(5, 9, 18, 0.8); }
+.so-field input:disabled { opacity: 0.6; }
+.so-field span { position: absolute; left: 17px; top: 17px; color: var(--text-3); font-size: 16px; pointer-events: none; transform-origin: left top; transition: transform 0.18s ease, color 0.18s ease; }
+.so-field input:focus + span, .so-field input:not(:placeholder-shown) + span { transform: translateY(-10px) scale(0.76); color: var(--accent); }
+
+.so-btn { position: relative; width: 100%; height: 52px; border: 0; border-radius: 14px; cursor: pointer; font: inherit; font-weight: 650; font-size: 16px; color: #04101f; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, #5b97ff, #2dd4bf); box-shadow: 0 12px 30px -10px rgba(79, 141, 255, 0.8); transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s; animation: so-up 0.7s 0.5s both; }
+.so-btn::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent); transform: skewX(-18deg); animation: so-sheen 4.5s 1.5s ease-in-out infinite; }
+.so-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 18px 36px -10px rgba(79, 141, 255, 0.95); } .so-btn:active:not(:disabled) { transform: translateY(0); }
+.so-btn:disabled { cursor: not-allowed; filter: saturate(0.4) brightness(0.7); box-shadow: none; } .so-btn:disabled::after { display: none; }
+.so-btn.ghost { background: transparent; color: var(--text-1); border: 1px solid var(--border-strong); box-shadow: none; } .so-btn.ghost::after { display: none; }
+.so-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(4, 16, 31, 0.3); border-top-color: #04101f; animation: so-rot 0.8s linear infinite; }
+.so-actions { display: grid; gap: 10px; }
+.so-note { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; color: var(--text-3); font-size: 13px; line-height: 1.45; animation: so-up 0.7s 0.6s both; }
+.so-note svg { flex: none; width: 16px; height: 16px; margin-top: 1px; stroke: var(--accent-2); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.so-sent { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 14px; margin-bottom: 16px; background: rgba(63, 214, 155, 0.1); border: 1px solid rgba(63, 214, 155, 0.35); animation: so-pop 0.5s cubic-bezier(0.2, 1.2, 0.3, 1) both; line-height: 1.45; }
+.so-tick { flex: none; width: 28px; height: 28px; border-radius: 50%; background: rgba(63, 214, 155, 0.2); display: grid; place-items: center; }
+.so-tick svg { width: 16px; height: 16px; fill: none; stroke: var(--good); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; animation: so-draw 0.6s 0.25s ease-out forwards; }
+.so-err { margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: var(--critical-soft); border: 1px solid rgba(255, 107, 107, 0.5); animation: so-shake 0.4s both; }
+.so-foot { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 12px; color: var(--text-3); letter-spacing: 0.04em; }
+
+@keyframes so-rise { from { opacity: 0; transform: translateY(26px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes so-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes so-pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes so-shake { 0%, 100% { transform: none; } 25% { transform: translateX(-5px); } 60% { transform: translateX(4px); } }
+@keyframes so-drift-a { to { transform: translate(14vmax, 10vmax) scale(1.15); } }
+@keyframes so-drift-b { to { transform: translate(-12vmax, -9vmax) scale(1.1); } }
+@keyframes so-drift-c { to { transform: translate(-10vmax, 12vmax) scale(0.9); } }
+@keyframes so-grid { to { background-position: 44px 44px; } }
+@keyframes so-stitch { to { stroke-dashoffset: -80; } }
+@keyframes so-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes so-spin { to { --so-angle: 360deg; } }
+@keyframes so-sheen { 0%, 55% { left: -60%; } 80%, 100% { left: 130%; } }
+@keyframes so-draw { to { stroke-dashoffset: 0; } }
+@keyframes so-rot { to { transform: rotate(360deg); } }
+@media (max-width: 480px) { .so-card { padding: 28px 20px 22px; border-radius: 20px; } .so-card h1 { font-size: 25px; } }
+@media (prefers-reduced-motion: reduce) { .so-stage *, .so-stage *::before, .so-stage *::after { animation: none !important; transition: none !important; } .so-mark path, .so-tick svg { stroke-dashoffset: 0; } }
