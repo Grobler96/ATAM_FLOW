@@ -12,7 +12,7 @@ end $$;
 
 insert into flow.producers (code, name, turnaround_days, capable_methods) values ('PSEC', 'Secure Decorators', 3, '{dtf}');
 select id as ps from flow.producers where code = 'PSEC' \gset
-insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000001c1', 'ops@secure-decorators.test', now()), ('00000000-0000-0000-0000-0000000001c2', 'staff2@atam.test', now()), ('00000000-0000-0000-0000-0000000001c3', 'stranger@elsewhere.test', now());
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000001c2', 'staff2@atam.test', now()), ('00000000-0000-0000-0000-0000000001c3', 'stranger@elsewhere.test', now());
 insert into flow.user_roles (user_id, role) values ('00000000-0000-0000-0000-0000000001c2', 'admin') on conflict (user_id) do update set role = 'admin';
 
 -- 1. company addresses only
@@ -24,6 +24,8 @@ select pg_temp.assert((flow.pp_add_user(:'ps', 'someone@gmail.com', 'P', 't')->>
 select pg_temp.assert(not (flow.pp_add_user(:'ps', 'other@gmail.com', 'P', 't')->>'ok')::bool, 'the allowance covers only that address');
 select pg_temp.assert(exists (select 1 from flow.audit_log where action = 'portal_email_allowed'), 'allowing a personal address is audited');
 select pg_temp.assert((flow.pp_add_user(:'ps', 'ops@secure-decorators.test', 'Ops', 't')->>'ok')::bool, 'a company address is fine');
+-- sign-in accounts are created AFTER the invitation, as in real use (inviting an address that already has a login is refused)
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000001c1', 'ops@secure-decorators.test', now());
 
 -- 2. sign-in log and new device
 select pg_temp.login('00000000-0000-0000-0000-0000000001c1', '11111111-1111-1111-1111-111111111111', 'Browser A');

@@ -17,7 +17,7 @@ An internal command centre for an apparel decoration business. It **launches for
 - `cd apps/dashboard && npm test && npm run build && npm run e2e && npm run e2e:portal` (rebuild before e2e; run one e2e at a time; the main e2e takes about two minutes, so run it in the background and write its output to a file)
 - e2e runs against a fully mocked Supabase and n8n. **A mock cannot catch a permission problem**; query views as the real role.
 
-## Live state (migrations 1-59 applied, repo and live match)
+## Live state (migrations 1-60 applied; **61 is in the repo but NOT live**, see `docs/security-audit-2026-11.md`)
 Merged to `main` this phase: holding pen, third-party focus view, decorator spoilage reporting, job packs and artwork downloads, scanning (staff and portal), dispatch queue and courier labels, artwork storage and customer proofs, stock-takes, real QC checklists (mechanism only), exception digest and due-soon warnings, purchasing controls (approval rules, invoice matching, draft-only scheduled chasing; **database and n8n actions only, no screens yet**), floor set-up (machines and operator skills), decorator sign-in page redesign, portal hardening (inactivity sign-out enforced in the database, sign-in log, company addresses only).
 
 n8n workflows **published (live)**: Operations actions, Movement actions, Exception actions, Quality actions, Warehouse actions, Artwork actions, Producer risk actions (all via webhook behind Verify caller), plus the pre-existing sync and allocation workflows and Verify caller.
@@ -29,7 +29,7 @@ Existing live workflow WF3 (`5oK8u0HSPJgrd7pa`, DecoNetwork capture) must not be
 - Plain-English explanations. Never expose secrets. Ask before anything destructive. Overrides need a reason and an audit record. Unbuilt things must be visibly disabled with a reason, never faked. Report honestly what is and is not done.
 - **No emails yet**: no email sending or notification to decorators or staff. Drafts that wait for review are existing behaviour.
 - Merge a PR **only when asked**; mark drafts ready first. Open a draft PR after pushing and subscribe to it.
-- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **60**, file prefix `20261110000060_`).
+- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **62**, file prefix `20261110000062_`).
 - No model names in repo artifacts (commits, code, docs).
 - Do not guess the things the owner still has to supply: producers list and rates, who gets which role, supplier emails and offers, machine shift hours, press speeds, QC checklist items, risk weights, the DecoNetwork artwork credential. Supabase settings only the owner can change: portal redirect URL (done), email sender, turning off new sign-ups, link expiry.
 
