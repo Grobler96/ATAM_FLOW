@@ -23,7 +23,9 @@ begin
     and p.oid::regprocedure::text not in ('flow.is_member()', 'flow.has_role(flow.app_role[])', 'flow.order_blocking_exceptions(uuid,text)', 'flow.portal_can_read_artwork(text)',
       'flow.dispatch_address(uuid)', 'flow.dispatch_state(uuid)',
       -- read-only configuration helpers used inside views that staff query (they only return settings values)
-      'flow.exc_digest_cfg()', 'flow.purchasing_rules()', 'flow.portal_security()');
+      'flow.exc_digest_cfg()', 'flow.purchasing_rules()', 'flow.portal_security()',
+      -- answers only "is the caller a decorator login": used by the storage rule that confines decorators to the portal's buckets
+      'flow.is_portal_login()');
   if v_bad is not null then raise exception 'SECURITY: logged-in users can execute: %', v_bad; end if;
 
   -- 3. every flow table has row level security switched on

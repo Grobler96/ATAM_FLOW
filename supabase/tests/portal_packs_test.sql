@@ -45,9 +45,10 @@ insert into flow.job_packs (pack_ref, order_id, producer_id, movement_id, versio
  ('JP-PJ-D1', :'pjo2', :'pja', :'mvd_id', 1, 'blocked', '{"order_ref":"#PJP3","artwork":[{"area":"Back","file":"pj/sam/blocked.dst"}]}', 's3', 'h3'),
  ('JP-PJ-B1', :'pjo2', :'pjb', :'mvb_id', 1, 'ready', '{"order_ref":"#PJP2","artwork":[{"area":"Chest","file":"pj/nia/chest.dst","approval":"approved"}]}', 's4', 'h4');
 
-insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000d1', 'sam@packs.test', now()), ('00000000-0000-0000-0000-0000000000d2', 'nia@packs.test', now());
 select (flow.pp_add_user(:'pja', 'sam@packs.test', 'Sam', 'tester')->>'ok')::bool as u1 \gset
 select (flow.pp_add_user(:'pjb', 'nia@packs.test', 'Nia', 'tester')->>'ok')::bool as u2 \gset
+-- sign-in accounts are created AFTER the invitation, as in real use (inviting an address that already has a login is refused)
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000d1', 'sam@packs.test', now()), ('00000000-0000-0000-0000-0000000000d2', 'nia@packs.test', now());
 select pg_temp.assert(:'u1'::bool and :'u2'::bool, 'users added');
 
 -- 1. Sam reads the current pack for his own job

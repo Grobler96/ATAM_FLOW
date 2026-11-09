@@ -33,12 +33,13 @@ select flow.tp_scan(:'mv2', 'picked', 'w'); select flow.tp_scan(:'mv2', 'packed'
 -- the PTA job is still a draft: invisible to the decorator
 
 -- logins
-insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000a1', 'sam@stitchers.test', now()), ('00000000-0000-0000-0000-0000000000a2', 'nobody@elsewhere.test', now()),
-  ('00000000-0000-0000-0000-0000000000a3', 'unconfirmed@stitchers.test', null), ('00000000-0000-0000-0000-0000000000a4', 'staff@atam.test', now()), ('00000000-0000-0000-0000-0000000000b1', 'nia@others.test', now());
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000a4', 'staff@atam.test', now()), ('00000000-0000-0000-0000-0000000000a2', 'nobody@elsewhere.test', now());
 insert into flow.user_roles (user_id, role) values ('00000000-0000-0000-0000-0000000000a4', 'admin');
 select (flow.pp_add_user(:'pta', 'Sam@Stitchers.test', 'Sam', 'tester')->>'ok')::bool as a \gset
 select (flow.pp_add_user(:'pta', 'unconfirmed@stitchers.test', 'Una', 'tester')->>'ok')::bool as b \gset
 select (flow.pp_add_user(:'ptb', 'nia@others.test', 'Nia', 'tester')->>'ok')::bool as c \gset
+-- sign-in accounts are created AFTER the invitation, as in real use (inviting an address that already has a login is refused)
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000a1', 'sam@stitchers.test', now()), ('00000000-0000-0000-0000-0000000000a3', 'unconfirmed@stitchers.test', null), ('00000000-0000-0000-0000-0000000000b1', 'nia@others.test', now());
 select pg_temp.assert(:'a'::bool and :'b'::bool and :'c'::bool, 'users added');
 select pg_temp.assert(not (flow.pp_add_user(:'pta', 'sam@stitchers.test', 'Dup', 't')->>'ok')::bool, 'the same email cannot be added twice');
 select pg_temp.assert(not (flow.pp_add_user(:'pta', 'staff@atam.test', 'Staff', 't')->>'ok')::bool, 'an ATAM team login cannot be a decorator login');

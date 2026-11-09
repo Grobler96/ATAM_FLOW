@@ -29,9 +29,10 @@ select flow.tp_scan(:'mvb', 'picked', 'w'); select flow.tp_scan(:'mvb', 'packed'
 select i.id as ita from flow.tp_movement_items i join flow.tp_movements m on m.id = i.movement_id where m.movement_code = :'mva' \gset
 select i.id as itb from flow.tp_movement_items i join flow.tp_movements m on m.id = i.movement_id where m.movement_code = :'mvb' \gset
 
-insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000c1', 'sam@spoilage.test', now()), ('00000000-0000-0000-0000-0000000000c2', 'nia@spoilage.test', now());
 select (flow.pp_add_user(:'psa', 'sam@spoilage.test', 'Sam', 'tester')->>'ok')::bool as u1 \gset
 select (flow.pp_add_user(:'psb', 'nia@spoilage.test', 'Nia', 'tester')->>'ok')::bool as u2 \gset
+-- sign-in accounts are created AFTER the invitation, as in real use (inviting an address that already has a login is refused)
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000c1', 'sam@spoilage.test', now()), ('00000000-0000-0000-0000-0000000000c2', 'nia@spoilage.test', now());
 select pg_temp.assert(:'u1'::bool and :'u2'::bool, 'users added');
 
 -- 1. Sam has the job but has not checked in yet: spoilage is refused (damage on arrival belongs in the check-in)
