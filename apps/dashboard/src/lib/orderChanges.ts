@@ -18,7 +18,8 @@ export interface CourierClaim { id: string; claim_ref: string; movement_code: st
 export const COURIER_EVENTS: [string, string][] = [['collected', 'Collected by courier'], ['delivered', 'Delivered'], ['failed_attempt', 'Failed delivery attempt'], ['delayed', 'Delayed'], ['wrong_address', 'Wrong address'], ['partial', 'Partly delivered'], ['damaged', 'Damaged'], ['lost', 'Lost'], ['note', 'Note only']];
 export const COURIER_LABEL: Record<string, string> = Object.fromEntries(COURIER_EVENTS);
 
-export interface PortalUser { id: string; producer_id: string; producer: string; email: string; name: string | null; is_active: boolean; has_signed_in: boolean; invited_at: string; last_seen_at: string | null }
+export interface PortalUser { id: string; producer_id: string; producer: string; email: string; name: string | null; is_active: boolean; has_signed_in: boolean; invited_at: string; last_seen_at: string | null; personal_email?: boolean; last_sign_in_at?: string | null; new_device_30d?: boolean }
+export interface PortalSignIn { id: number; at: string; event: 'first_sign_in' | 'signed_in' | 'new_device' | 'refused'; email: string | null; producer: string | null; ip: string | null; ua: string | null; note: string | null }
 export interface PortalMessage { id: string; movement_code: string; side: 'producer' | 'atam'; author: string | null; body: string; created_at: string }
 export interface PortalReceipt { id: string; movement_code: string; sku: string | null; colour: string | null; size: string | null; qty_sent: number; qty_counted: number; qty_damaged: number; issue: string | null; note: string | null; received_by: string | null; received_at: string; resolved_at: string | null; resolved_by: string | null; resolution_note: string | null }
 export interface PortalEvidence { id: string; movement_code: string; sku: string | null; storage_path: string; kind: string; caption: string | null; uploaded_by: string | null; created_at: string }

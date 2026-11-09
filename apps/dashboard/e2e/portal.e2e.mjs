@@ -15,7 +15,7 @@ const session = { access_token: 'tok', refresh_token: 'ref', expires_in: 3600, e
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 420, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200)));
-  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, messages: [], evidence: [], spoil: [], signs: [] };
+  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [] };
   if (!o.signedOut) await page.addInitScript((s) => localStorage.setItem('atam-portal-auth', JSON.stringify(s)), session);
   const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: false, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
   await page.route(`${SB}/**`, async (route) => {
@@ -30,7 +30,8 @@ async function newPage(browser, o = {}) {
     const rpc = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/);
     if (rpc) {
       const fn = rpc[1], body = req.postDataJSON?.() ?? {}; st.calls.push({ fn, body });
-      if (fn === 'portal_whoami') return st.noAccess ? json({ message: 'ERROR: This login does not have access to the decorator portal. Ask ATAM for an invitation.' }, 400) : json({ ok: true, producer: 'Portal Stitchers', producer_id: 'pa', user: 'Sam', instructions: 'Left chest only' });
+      if (fn === 'portal_report_refused') return json({ ok: true });
+      if (fn === 'portal_whoami') return st.noAccess ? json({ message: 'ERROR: This login does not have access to the decorator portal. Ask ATAM for an invitation.' }, 400) : json({ ok: true, producer: 'Portal Stitchers', producer_id: 'pa', user: 'Sam', instructions: 'Left chest only', idle_minutes: st.idle });
       if (fn === 'portal_jobs') return json([{ code: 'TP-2026-00007', state: st.state, status: 'dispatched', dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', direct_to_customer: false, units: 34, orders: [{ order_ref: '#636584', customer: 'HH Associates Ltd' }, { order_ref: '#636020', customer: 'Alloy Bodies Ltd' }], unread: 0 }]);
       if (fn === 'portal_job') return json(job());
       if (fn === 'portal_job_pack') return json({ ok: true, packs: [{ pack_ref: 'JP-2026-00001', version: 2, order_ref: '#636584', due_date: '2026-11-12', instructions: 'Left chest only', lines: [{ product: 'Polo shirt', sku_base: 'POLO', colour: 'Navy', methods: ['embroidery'], placement: 'Left chest', sizes: [{ size: 'M', qty: 24 }], total_qty: 24 }], artwork: [{ area: 'Left chest', process: 'embroidery', version: 2, file_format: 'dst', file: 'pa/left-chest-v2.dst', file_name: 'left-chest-v2.dst', stitch_count: 5200, width_mm: 90, height_mm: 40, placement: 'Left chest', approval: 'approved' }, { area: 'Back', process: 'embroidery', version: 1, file_format: null, file: null, file_name: null, stitch_count: null, width_mm: null, height_mm: null, placement: null, approval: 'pending' }] }] });
@@ -60,6 +61,11 @@ try {
     ok(st.calls.some((c) => c.fn === 'otp' && c.body.create_user === false), 'invite-only: the portal never asks to create an account'); await ctx.close(); }
   { const { page, ctx } = await newPage(browser, { signedOut: true }); await page.goto(APP); await page.getByLabel('Email').fill('uninvited@nowhere.test'); await page.getByRole('button', { name: 'Email me a sign-in link' }).click(); await page.getByText('If that address has been invited').waitFor();
     ok((await page.getByRole('alert').count()) === 0, 'an uninvited address sees the same message as an invited one, so invitations cannot be probed'); await ctx.close(); }
+  console.log('portal security');
+  { const { page, ctx, st } = await newPage(browser, { idle: 0.03 }); await page.goto(APP); await page.getByRole('heading', { name: /Jobs|Your jobs|Job/ }).first().waitFor().catch(() => {});
+    await page.getByRole('heading', { name: 'Sign in' }).waitFor({ timeout: 8000 }); ok((await page.getByText(/signed out after .* minutes of inactivity/).count()) === 1, 'after a quiet spell the portal signs the decorator out and says why'); await ctx.close(); }
+  { const { page, ctx, st } = await newPage(browser, { noAccess: true }); await page.goto(APP); await page.getByRole('heading', { name: 'No access' }).waitFor(); await page.waitForTimeout(300);
+    ok(st.calls.some((c) => c.fn === 'portal_report_refused'), 'a login that is not an invited decorator is reported so staff can see it'); await ctx.close(); }
   console.log('no access');
   { const { page, ctx } = await newPage(browser, { noAccess: true }); await page.goto(APP); await page.getByRole('heading', { name: 'No access' }).waitFor(); ok((await page.getByText('Ask ATAM for an invitation').count()) === 1, 'a login without an invitation is told so'); await ctx.close(); }
   console.log('the job, start to finish');

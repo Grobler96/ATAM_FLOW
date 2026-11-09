@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { ScanPanel } from '../scan/ScanPanel';
 import { parseScan } from '../scan/parse';
-import { BUCKET, fmtDate, fmtTime, ISSUES, rpc, sb, STATE_LABEL, type Me, type PortalItem, type PortalJob, type PortalJobRow } from './client';
+import { BUCKET, setNotice, takeNotice, fmtDate, fmtTime, ISSUES, rpc, sb, STATE_LABEL, type Me, type PortalItem, type PortalJob, type PortalJobRow } from './client';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
 const Pill = ({ s }: { s: string }) => <span className="chip on" style={{ cursor: 'default' }}>{STATE_LABEL[s] ?? s}</span>;
@@ -16,6 +16,20 @@ export function Portal() {
   return <Signed />;
 }
 
+// Signs the decorator out after a stretch with no activity, and keeps the server's activity clock fresh while they are working.
+function useIdleSignOut(minutes: number | undefined) {
+  useEffect(() => {
+    if (!minutes || minutes <= 0) return;
+    const limit = minutes * 60_000; let last = Date.now(); let beat = Date.now(); let gone = false;
+    const leave = () => { if (gone) return; gone = true; setNotice(`You were signed out after ${minutes} minutes of inactivity. Please sign in again.`); void sb.auth.signOut(); };
+    const touch = () => { const now = Date.now(); if (now - last > limit) { leave(); return; } last = now; if (now - beat > 4 * 60_000) { beat = now; void rpc('portal_whoami'); } };
+    const check = () => { if (Date.now() - last > limit) leave(); };
+    const ev = ['pointerdown', 'keydown', 'touchstart', 'scroll'] as const;
+    ev.forEach((e) => addEventListener(e, touch, { passive: true })); const vis = () => { if (document.visibilityState === 'visible') check(); }; document.addEventListener('visibilitychange', vis); const t = setInterval(check, Math.max(500, Math.min(20_000, limit / 4)));
+    return () => { ev.forEach((e) => removeEventListener(e, touch)); document.removeEventListener('visibilitychange', vis); clearInterval(t); };
+  }, [minutes]);
+}
+
 function Shell({ children, who, onOut }: { children: React.ReactNode; who?: string; onOut?: () => void }) {
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '16px 16px 64px' }}>
@@ -26,7 +40,7 @@ function Shell({ children, who, onOut }: { children: React.ReactNode; who?: stri
 }
 
 function SignIn() {
-  const [email, setEmail] = useState(''); const [sent, setSent] = useState(false); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
+  const [email, setEmail] = useState(''); const [notice] = useState<string | null>(() => takeNotice()); const [sent, setSent] = useState(false); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
   async function send(e: FormEvent) {
     e.preventDefault(); setBusy(true); setErr(null);
     // Invite-only: never create an account from here. An address that has not been invited gets no email, and sees exactly the same message, so nobody can use this page to find out who is invited.
@@ -48,6 +62,7 @@ function SignIn() {
         <label className="so-field"><input type="email" autoComplete="username" required placeholder=" " value={email} onChange={(e) => setEmail(e.target.value)} disabled={sent} /><span>Email</span></label>
         {sent && <><div className="so-sent" role="status"><span className="so-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5 L10 17.5 L19 7" /></svg></span><span>If that address has been invited, a sign-in link is on its way. Open it on this device. If you were sent a code instead, type it here.</span></div>
           <label className="so-field"><input inputMode="numeric" autoComplete="one-time-code" placeholder=" " value={code} onChange={(e) => setCode(e.target.value)} /><span>Code from the email (if you have one)</span></label></>}
+        {notice && <div className="so-sent" role="status" style={{ background: 'rgba(79,141,255,.1)', borderColor: 'rgba(79,141,255,.4)' }}><span>{notice}</span></div>}
         {err && <div className="so-err" role="alert">{err}</div>}
         {!sent ? <button className="so-btn" disabled={busy || !email}>{busy ? <><span className="so-spin" aria-hidden="true" />Sending…</> : 'Email me a sign-in link'}</button>
           : <div className="so-actions"><button className="so-btn" disabled={busy || !code}>Sign in with code</button><button type="button" className="so-btn ghost" onClick={() => { setSent(false); setCode(''); }}>Use a different email</button></div>}
@@ -60,7 +75,8 @@ function SignIn() {
 
 function Signed() {
   const [me, setMe] = useState<Me | null>(null); const [err, setErr] = useState<string | null>(null); const hash = useHash();
-  useEffect(() => { void rpc<Me>('portal_whoami').then((r) => { if (r.ok) setMe(r.data as Me); else setErr(r.error ?? 'Could not sign you in.'); }); }, []);
+  useEffect(() => { void rpc<Me>('portal_whoami').then((r) => { if (r.ok) setMe(r.data as Me); else { setErr(r.error ?? 'Could not sign you in.'); void rpc('portal_report_refused'); } }); }, []);
+  useIdleSignOut(me?.idle_minutes);
   const out = () => void sb.auth.signOut();
   if (err) return <Shell onOut={out}><div className="panel stack" style={{ padding: 24 }}><h1 style={{ margin: 0 }}>No access</h1><p>{err}</p></div></Shell>;
   if (!me) return <Shell onOut={out}><p className="dim">Loading…</p></Shell>;

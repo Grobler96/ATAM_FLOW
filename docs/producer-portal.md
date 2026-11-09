@@ -28,6 +28,13 @@ Everything feeds the existing consignment lifecycle, events, audit trail and exc
 - The portal keeps its session separately from the main app.
 - Tests: `supabase/tests/portal_test.sql` (isolation, refusal cases, every action, exceptions, switch-off) and `e2e/portal.e2e.mjs`.
 
+## Portal hardening (migration 59, 10 Nov 2026)
+- **Inactivity sign-out:** after `portal.security.idle_minutes` (placeholder 120; 0 switches it off) with no activity the decorator is signed out. It is enforced by the database on every portal call, so it holds even if the page is tampered with, and the page also signs out on its own and says why. While someone is working the page quietly keeps the clock fresh.
+- **Sign-in log:** each new session is recorded (first sign-in, new device, ordinary sign-in), plus any login that reaches the portal but is not an invited decorator ("Refused", once an hour per address). Staff see the last few under **Portal sign-in** on the Producers page. The address comes from the request headers; the device is a fingerprint of the browser string, not a location lookup.
+- **Company addresses only:** inviting a personal-mail address (gmail, outlook, hotmail, yahoo, icloud and similar; list in `portal.security.personal_domains`) is refused. An admin can allow one named address with a written reason (audited). Existing logins are not removed, but are flagged "personal address".
+- Not built: second-step (two-factor) sign-in, unusual-location alerts, shorter link expiry (a project-wide Supabase setting shared with other apps).
+- Tests: `supabase/tests/portal_security_test.sql`, `e2e/portal.e2e.mjs`.
+
 ## One-off setup in Supabase (needs your project settings, not done by me)
 1. **Authentication, URL configuration:** add the portal address to the allowed redirect URLs, or the emailed link will not bring people back to it.
 2. **Authentication, email:** the default sender is rate limited and branded Supabase. Before real use, set up your own email sender (for example Resend) and a clear subject and wording.
