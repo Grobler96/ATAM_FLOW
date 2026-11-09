@@ -15,6 +15,7 @@ import { useToast } from '../ui/overlay';
 import type { ExceptionRow, HistoryRow } from '../types';
 import { useFocus } from '../data/focus';
 import { FocusBar } from '../components/FocusBar';
+import { ExceptionDigest } from '../components/ExceptionDigest';
 
 const STATUSES = ['open', 'investigating', 'awaiting_supplier', 'awaiting_producer', 'awaiting_customer'];
 const METHODS: [string, string][] = [['fixed', 'Fixed'], ['replacement_received', 'Replacement received'], ['credit_issued', 'Credit issued'], ['rework_complete', 'Rework complete'], ['rerouted', 'Re-routed'], ['customer_agreed', 'Customer agreed new date'], ['supplier_resolved', 'Supplier resolved'], ['producer_resolved', 'Producer resolved'], ['no_action_needed', 'No action needed'], ['other', 'Other']];
@@ -55,6 +56,7 @@ export function ExceptionsPage({ route }: { route: Route }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
         <Kpi label="Open" value={k.open} /><Kpi label="Critical" value={k.critical} tone={k.critical ? 'critical' : ''} /><Kpi label="Overdue" value={k.overdue} tone={k.overdue ? 'high' : ''} /><Kpi label="Blocking work" value={k.blocking} tone={k.blocking ? 'high' : ''} /><Kpi label="No owner" value={k.unowned} tone={k.unowned ? 'medium' : ''} /><Kpi label="At stake" text={gbp(k.money)} />
       </div>
+      <ExceptionDigest hide={focus.hideException} email={email ?? null} />
       <Panel flush><DataTable<ExceptionRow> rows={rows} columns={cols} rowKey={(e) => e.exc_ref} loading={ex.loading} error={ex.error} onRetry={() => void ex.refresh()} views={views} filters={filters} storageKey="exceptions" exportName="exceptions"
         searchText={(e) => [e.exc_ref, e.type_label, e.description, e.owner, ...e.order_refs, ...e.skus, ...e.po_refs, ...e.movement_refs, ...e.producers].join(' ')} searchPlaceholder="Search issue, order, SKU, PO, person…"
         onRowClick={(e) => navigate('exceptions/' + e.exc_ref)} activeKey={open} rowTone={(e) => (e.severity === 'critical' || e.severity === 'high' || e.severity === 'medium' ? e.severity : '')} defaultSort={{ col: 'sev', dir: 1 }} initial={tableStateFromQuery(route)} /></Panel>
