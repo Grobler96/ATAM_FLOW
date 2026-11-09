@@ -14,7 +14,7 @@ export function ScanPanel({ onScan, onClose, hint }: { onScan: (text: string) =>
   const [state, setState] = useState<'off' | 'starting' | 'on'>('off'); const [err, setErr] = useState<string | null>(null); const [text, setText] = useState('');
   const canCamera = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
-  const finish = (v: string) => { if (done.current) return; done.current = true; stop.current?.(); stop.current = null; onScan(v); };
+  const finish = (v: string) => { if (done.current) return; done.current = true; stop.current?.(); stop.current = null; setState('off'); onScan(v); };
   useEffect(() => () => { stop.current?.(); stop.current = null; }, []);
 
   async function startCamera() {

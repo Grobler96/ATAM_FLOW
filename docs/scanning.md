@@ -12,6 +12,7 @@ One scanner for the whole system, in the staff app and in the decorator portal. 
 |---|---|
 | Consignment: `TP-2026-00007`, the consignment label code (`PRO-TP-2026-00007-261109`), or the link inside the printed QR (`.../#/tp/TP-2026-00007`) | The consignment (staff); that job (portal) |
 | Order: `order:#636220`, order label code (`ORD-636220-261109`), the order QR link, or a bare order number | The order |
+| Parcel label on an outgoing parcel: `DSP-636220-1of3` (the courier label made on the Dispatch page) | The order on the Dispatch page; inside the **Hand over (scan)** window it records the hand-over |
 | Bin: `bin:A-01-03` or the bin QR; a bare bin code is recognised if the bin exists | The bin |
 | Stock item: `sku:POLO-NVY-M`; a bare SKU is recognised if the SKU exists | The stock item |
 Anything else says "That code was not recognised". The reading rules are in `src/scan/parse.ts` with unit tests.
@@ -20,4 +21,4 @@ Anything else says "That code was not recognised". The reading rules are in `src
 Only consignment labels make sense there. A parcel that is not one of the decorator's own jobs is refused ("not one of your jobs") and nothing opens; the server independently refuses access to any job that is not theirs.
 
 ## Not built yet
-Scanning that performs a step (pick, pack, dispatch, receive back) straight from the scan: today a scan opens the consignment and the step is done with the buttons there. Per-garment barcodes and scanning to count units at check-in (garments carry no ATAM barcode). The camera path is covered by a start-up check with a fake camera, not by decoding a real printed code in automated tests: please try it once on the real phones and labels.
+Scanning that performs the other steps (pick, pack, send to a decorator, receive back): today a scan opens the consignment and the step is done with the buttons there. The one scan that does a step is the parcel hand-over in the Dispatch window (see [dispatch.md](dispatch.md)). Per-garment barcodes and scanning to count units at check-in (garments carry no ATAM barcode). The camera path is covered by a start-up check with a fake camera, not by decoding a real printed code in automated tests: please try it once on the real phones and labels.

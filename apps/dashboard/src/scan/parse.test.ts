@@ -12,6 +12,12 @@ describe('parseScan', () => {
     expect(p('PRO-TP-2026-00007-261109')).toBe('consignment:TP-2026-00007');   // the printed barcode is the label code
     expect(p('  tp-2026-00007\r\n')).toBe('consignment:TP-2026-00007');          // hardware scanners add an Enter
   });
+  it('reads the courier label on an outgoing parcel', () => {
+    expect(p('DSP-636220-1of3')).toBe('parcel:DSP-636220-1OF3');
+    expect(p('dsp-636220-2of3')).toBe('parcel:DSP-636220-2OF3');
+    expect(p('DSP-636220-1of1-a1b2')).toBe('parcel:DSP-636220-1OF1-A1B2');
+    expect(p('DSP-636220')).toBe('unknown:');
+  });
   it('reads orders', () => {
     expect(p('order:#636220')).toBe('order:#636220');
     expect(p('order:636220')).toBe('order:#636220');
