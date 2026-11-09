@@ -29,6 +29,7 @@ import { LabelsPage } from '../pages/Labels';
 import { AnalyticsPage } from '../pages/Analytics';
 import { SettingsPage } from '../pages/Settings';
 import { ControlPage } from '../pages/Control';
+import { WastePage } from '../pages/Waste';
 import { CrewPage } from '../pages/Crew';
 import { FloorPage } from '../pages/Floor';
 import '../shell/shell.css';
@@ -74,7 +75,7 @@ function Frame() {
         <main className="content" id="main">
           {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
           {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'goods-in' && <GoodsInPage />}{page === 'quality' && <QualityPage route={route} />}
-          {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'control' && <ControlPage />}{page === 'crew' && <CrewPage />}{page === 'floor' && <FloorPage />}{page === 'settings' && <SettingsPage />}
+          {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'control' && <ControlPage />}{page === 'waste' && <WastePage />}{page === 'crew' && <CrewPage />}{page === 'floor' && <FloorPage />}{page === 'settings' && <SettingsPage />}
           {!NAV.some((n) => n.id === page) && <div className="state"><h3>Page not found</h3><a href="#/">Back to the Command Centre</a></div>}
         </main>
         <StatusBar />
