@@ -76,3 +76,10 @@ A second run changed nothing.
 
 Machine downtime and recovery planning, producer risk scoring and suspension, supplier auto-chase and approved alternatives, QC gates and rework, order-change impact, courier tracking and claims,
 manual override set, and the dashboard page. Pushing notifications to email / Slack is also still to do (notifications are recorded but not sent anywhere).
+
+## In-app digest and due-soon warnings (migration 57, no emails)
+- **Needs a person** panel at the top of the Exceptions page: every open issue that is overdue, escalated, close to its deadline, high/critical with no owner, or untouched (no human action) for too long, each with the reasons shown. Chips filter by responsible role; "Assigned to me" filters by your login.
+- **Due soon:** the existing escalation run now also raises an in-app notification once per deadline when a deadline is within `due_soon_hours` (default 4).
+- Settings key `exceptions.digest` (`due_soon_hours`, `stale_hours` = 48) are placeholders until you set real values; the escalation ladder placeholders in `exceptions.config` still apply.
+- Views: `ui_exception_attention`, `ui_exception_digest`. Tested in `supabase/tests/exception_digest_test.sql` and the e2e suite.
+- Emailed digests/escalation are deliberately not built yet.
