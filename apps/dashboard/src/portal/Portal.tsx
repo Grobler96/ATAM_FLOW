@@ -12,7 +12,7 @@ export function Portal() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   useEffect(() => { void sb.auth.getSession().then(({ data }) => setSession(data.session)); const { data } = sb.auth.onAuthStateChange((_e, s) => setSession(s)); return () => data.subscription.unsubscribe(); }, []);
   if (session === undefined) return <Shell><p className="dim">Loading…</p></Shell>;
-  if (!session) return <Shell><SignIn /></Shell>;
+  if (!session) return <SignIn />;
   return <Signed />;
 }
 
@@ -36,15 +36,25 @@ function SignIn() {
   }
   async function verify(e: FormEvent) { e.preventDefault(); setBusy(true); setErr(null); const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' }); setBusy(false); if (error) setErr('That code did not work. Check it and try again.'); }
   return (
-    <form className="panel stack" style={{ padding: 24, gap: 14, maxWidth: 420 }} onSubmit={sent ? verify : send}>
-      <h1 style={{ margin: 0 }}>Sign in</h1>
-      <p className="muted">This portal is by invitation only. Use the email address ATAM invited and we will email you a secure sign-in link. There is no password to remember.</p>
-      <label className="stack" style={{ gap: 4 }}><span>Email</span><input className="input" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={sent} /></label>
-      {sent && <><div className="callout" role="status">If that address has been invited, a sign-in link is on its way. Open it on this device. If you were sent a code instead, type it here.</div>
-        <label className="stack" style={{ gap: 4 }}><span>Code from the email (if you have one)</span><input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></label></>}
-      {err && <Err m={err} />}
-      {!sent ? <button className="btn primary" disabled={busy || !email}>{busy ? 'Sending…' : 'Email me a sign-in link'}</button> : <div className="row"><button className="btn primary" disabled={busy || !code}>Sign in with code</button><button type="button" className="btn" onClick={() => { setSent(false); setCode(''); }}>Use a different email</button></div>}
-    </form>
+    <main className="so-stage">
+      <div className="so-bg" aria-hidden="true"><span className="so-orb a" /><span className="so-orb b" /><span className="so-orb c" /></div>
+      <div className="so-grid" aria-hidden="true" />
+      <svg className="so-thread" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="so-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4f8dff" /><stop offset="1" stopColor="#2dd4bf" /></linearGradient></defs>
+        <path d="M-40 560 C 180 420, 330 700, 560 540 S 920 300, 1240 420" /><path className="two" d="M-40 250 C 220 340, 360 120, 620 230 S 980 560, 1240 330" /></svg>
+      <form className="so-card" onSubmit={sent ? verify : send} aria-labelledby="so-title">
+        <div className="so-brand"><span className="so-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19 L12 4 L20 19 M7.5 14 H16.5" /></svg></span><span><span className="so-name">ATAM</span><span className="so-sub">Decorator portal</span></span></div>
+        <h1 id="so-title">Sign in</h1>
+        <p className="so-lead">This portal is by invitation only. Use the email address ATAM invited and we will email you a secure sign-in link. There is no password to remember.</p>
+        <label className="so-field"><input type="email" autoComplete="username" required placeholder=" " value={email} onChange={(e) => setEmail(e.target.value)} disabled={sent} /><span>Email</span></label>
+        {sent && <><div className="so-sent" role="status"><span className="so-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5 L10 17.5 L19 7" /></svg></span><span>If that address has been invited, a sign-in link is on its way. Open it on this device. If you were sent a code instead, type it here.</span></div>
+          <label className="so-field"><input inputMode="numeric" autoComplete="one-time-code" placeholder=" " value={code} onChange={(e) => setCode(e.target.value)} /><span>Code from the email (if you have one)</span></label></>}
+        {err && <div className="so-err" role="alert">{err}</div>}
+        {!sent ? <button className="so-btn" disabled={busy || !email}>{busy ? <><span className="so-spin" aria-hidden="true" />Sending…</> : 'Email me a sign-in link'}</button>
+          : <div className="so-actions"><button className="so-btn" disabled={busy || !code}>Sign in with code</button><button type="button" className="so-btn ghost" onClick={() => { setSent(false); setCode(''); }}>Use a different email</button></div>}
+        <p className="so-note"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11 V8 a4 4 0 0 1 8 0 v3" /></svg><span>Secure one-time link. You will only ever see jobs sent to your company.</span></p>
+      </form>
+      <p className="so-foot" aria-hidden="true">ATAM Workwear &middot; Third-party decorators</p>
+    </main>
   );
 }
 
