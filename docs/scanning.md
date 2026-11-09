@@ -13,6 +13,7 @@ One scanner for the whole system, in the staff app and in the decorator portal. 
 | Consignment: `TP-2026-00007`, the consignment label code (`PRO-TP-2026-00007-261109`), or the link inside the printed QR (`.../#/tp/TP-2026-00007`) | The consignment (staff); that job (portal) |
 | Order: `order:#636220`, order label code (`ORD-636220-261109`), the order QR link, or a bare order number | The order |
 | Parcel label on an outgoing parcel: `DSP-636220-1of3` (the courier label made on the Dispatch page) | The order on the Dispatch page; inside the **Hand over (scan)** window it records the hand-over |
+| Stock label barcode `STO-<sku>-<date>` (or `sku:` QR) | The stock item; on the Stock-takes count screen it picks the item to count |
 | Bin: `bin:A-01-03` or the bin QR; a bare bin code is recognised if the bin exists | The bin |
 | Stock item: `sku:POLO-NVY-M`; a bare SKU is recognised if the SKU exists | The stock item |
 Anything else says "That code was not recognised". The reading rules are in `src/scan/parse.ts` with unit tests.

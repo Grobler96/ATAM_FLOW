@@ -31,6 +31,9 @@ describe('parseScan', () => {
     expect(p('bin:A-01-03')).toBe('bin:A-01-03');
     expect(p('#/warehouse/A-01-03')).toBe('bin:A-01-03');
     expect(p('sku:POLO-NVY-M')).toBe('sku:POLO-NVY-M');
+    expect(p('STO-POLO-NVY-M-261109')).toBe('sku:POLO-NVY-M');   // the printed barcode on a stock label
+    expect(p('STO-POLO-NVY-M-261109-a1b2')).toBe('sku:POLO-NVY-M');
+    expect(p('BIN-A-01-03-261109')).toBe('bin:A-01-03');         // the printed barcode on a bin label
     expect(p('POLO-NVY-M')).toBe('unknown:');
     expect(p('POLO-NVY-M', { skus: new Set(['POLO-NVY-M']) })).toBe('sku:POLO-NVY-M');
     expect(p('A-01-03', { bins: new Set(['A-01-03']) })).toBe('bin:A-01-03');

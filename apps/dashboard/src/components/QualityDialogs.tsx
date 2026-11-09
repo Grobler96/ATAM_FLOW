@@ -3,7 +3,7 @@ import { Modal, useToast } from '../ui/overlay';
 import { Button, Field, Status } from '../ui/primitives';
 import { useView, refreshAll } from '../data/store';
 import { useCtx } from '../data/context';
-import { CAUSES, DEFECTS, GATES, OUTCOMES, humanise, qcAction, type CriterionRow, type QcCheckRow, type ReworkRow } from '../lib/quality';
+import { CAUSES, DEFECTS, GATES, OUTCOMES, humanise, qcAction, applicableItems, checklistProblem, type CriterionRow, type QcCheckRow, type ReworkRow } from '../lib/quality';
 import type { OrderLineRow, OrderRow } from '../data/types';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
@@ -13,15 +13,16 @@ const num = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
 export function RecordCheckDialog({ orderId, pending, onClose }: { orderId?: string; pending?: QcCheckRow; onClose: () => void }) {
   const orders = useView<OrderRow>('ui_orders'); const lines = useView<OrderLineRow>('ui_order_lines'); const crit = useView<CriterionRow>('ui_qc_criteria'); const toast = useToast();
   const [oid, setOid] = useState(pending?.order_id ?? orderId ?? ''); const [gate, setGate] = useState(pending?.gate ?? 'final'); const [line, setLine] = useState(pending?.order_line_id ?? ''); const [checked, setChecked] = useState(pending?.units_checked ? String(pending.units_checked) : ''); const [failed, setFailed] = useState('0');
-  const [ticks, setTicks] = useState<Record<string, boolean>>({}); const [defect, setDefect] = useState(''); const [cause, setCause] = useState(''); const [notes, setNotes] = useState(''); const [evidence, setEvidence] = useState(''); const [pct, setPct] = useState('');
+  const [ticks, setTicks] = useState<Record<string, boolean>>({}); const [itemNotes, setItemNotes] = useState<Record<string, string>>({}); const [defect, setDefect] = useState(''); const [cause, setCause] = useState(''); const [notes, setNotes] = useState(''); const [evidence, setEvidence] = useState(''); const [pct, setPct] = useState('');
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState<Record<string, any> | null>(null);
-  const order = orders.rows.find((o) => o.id === oid); const myLines = lines.rows.filter((l) => l.order_id === oid); const method = (myLines.find((l) => l.id === line) ?? myLines[0])?.decoration_methods?.[0] ?? null;
-  const list = useMemo(() => crit.rows.filter((c) => c.is_active && (c.method_code === null || c.method_code === method)).sort((a, b) => a.sort_order - b.sort_order), [crit.rows, method]);
+  const order = orders.rows.find((o) => o.id === oid); const myLines = lines.rows.filter((l) => l.order_id === oid); const methods = Array.from(new Set((line ? myLines.filter((l) => l.id === line) : myLines).flatMap((l) => l.decoration_methods ?? [])));
+  const list = useMemo(() => applicableItems(crit.rows, gate, methods), [crit.rows, gate, methods.join(',')]);
+  const evidenceLinks = evidence.split(/\s+/).filter((u) => /^https?:\/\//.test(u)); const problem = checklistProblem(list, ticks, itemNotes, notes, evidenceLinks.length > 0);
   const failedCount = num(failed); const anyFailedTick = list.some((c) => ticks[c.id] === false);
   async function go() {
     setBusy(true); setErr(null);
-    const results = list.filter((c) => c.id in ticks).map((c) => ({ criterion_id: c.id, passed: ticks[c.id] }));
-    const r: any = await qcAction('record_check', { check_id: pending?.id, order_id: oid, gate, order_line_id: line || undefined, units_checked: num(checked), units_failed: failedCount, results, defect_type: defect, cause, notes, checkpoint_pct: pct || undefined, evidence: evidence.split(/\s+/).filter((u) => /^https?:\/\//.test(u)).map((url) => ({ url, name: 'Quality evidence' })) });
+    const results = list.filter((c) => c.id in ticks).map((c) => ({ criterion_id: c.id, passed: ticks[c.id], ...(itemNotes[c.id]?.trim() ? { note: itemNotes[c.id].trim() } : {}) }));
+    const r: any = await qcAction('record_check', { check_id: pending?.id, order_id: oid, gate, order_line_id: line || undefined, units_checked: num(checked), units_failed: failedCount, results, defect_type: defect, cause, notes, checkpoint_pct: pct || undefined, evidence: evidenceLinks.map((url) => ({ url, name: 'Quality evidence' })) });
     setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'Could not record the check.')); return; }
     void refreshAll(); toast.push({ tone: r.status === 'failed' ? 'info' : 'good', title: `${r.check_ref}: ${r.status}`, body: r.rework_ref ? `Rework job ${r.rework_ref} opened for ${failedCount} unit(s).` : undefined }); setDone(r);
   }
@@ -36,15 +37,17 @@ export function RecordCheckDialog({ orderId, pending, onClose }: { orderId?: str
           {gate === 'in_line' && <Field label="At % of the run"><select className="select" value={pct} onChange={(e) => setPct(e.target.value)}><option value="">—</option><option value="10">10%</option><option value="50">50%</option><option value="90">90%</option></select></Field>}</div>
         <div className="row wrap"><Field label="Units checked"><input className="input" type="number" min={1} value={checked} onChange={(e) => setChecked(e.target.value)} /></Field><Field label="Units that failed"><input className="input" type="number" min={0} value={failed} onChange={(e) => setFailed(e.target.value)} /></Field></div>
         <Field label="Checklist (tick what is right; cross what is wrong)">
-          <div className="panel" style={{ padding: 8 }}>{list.length === 0 ? <p className="dim">No checklist items for this method. A manager can add them on the Checklist tab.</p> : list.map((c) => <div key={c.id} className="row" style={{ gap: 8, padding: '3px 0' }}><span className="grow">{c.name}{c.method_code === null && <span className="dim"> · all methods</span>}</span>
+          <div className="panel" style={{ padding: 8 }}>{list.length === 0 ? <p className="dim">No checklist items apply to this method and stage. A manager can add them on the Checklist tab.</p> : list.map((c) => <div key={c.id} className="stack" style={{ gap: 2, padding: '3px 0' }}><div className="row" style={{ gap: 8 }}><span className="grow">{c.name}{c.is_critical && <> <Status tone="high" plain>critical</Status></>}{c.is_required && <span className="dim"> · required</span>}{c.needs_photo && <span className="dim"> · photo if it fails</span>}</span>
             <button type="button" className={`chip ${ticks[c.id] === true ? 'on' : ''}`} aria-pressed={ticks[c.id] === true} aria-label={`${c.name}: pass`} onClick={() => setTicks((t) => ({ ...t, [c.id]: true }))}>Pass</button>
-            <button type="button" className={`chip ${ticks[c.id] === false ? 'on' : ''}`} aria-pressed={ticks[c.id] === false} aria-label={`${c.name}: fail`} onClick={() => { setTicks((t) => ({ ...t, [c.id]: false })); if (failedCount === 0) setFailed('1'); }}>Fail</button></div>)}</div></Field>
+            <button type="button" className={`chip ${ticks[c.id] === false ? 'on' : ''}`} aria-pressed={ticks[c.id] === false} aria-label={`${c.name}: fail`} onClick={() => { setTicks((t) => ({ ...t, [c.id]: false })); if (failedCount === 0) setFailed('1'); }}>Fail</button></div>
+            {c.description && <span className="dim">{c.description}</span>}
+            {ticks[c.id] === false && <input className="input" aria-label={`Note for ${c.name}`} placeholder="What is wrong?" value={itemNotes[c.id] ?? ''} onChange={(e) => setItemNotes((n) => ({ ...n, [c.id]: e.target.value }))} />}</div>)}</div></Field>
         {(failedCount > 0 || anyFailedTick) && <div className="stack"><div className="callout" role="status"><Status tone="high" plain>{failedCount} failed</Status> A rework job will be opened for these units, and the order cannot complete until they are fixed and re-checked.</div>
           <div className="row wrap"><Field label="What is wrong"><select className="select" value={defect} onChange={(e) => setDefect(e.target.value)}><option value="">Choose…</option>{DEFECTS.map((d) => <option key={d} value={d}>{humanise(d)}</option>)}</select></Field><Field label="Likely cause"><select className="select" value={cause} onChange={(e) => setCause(e.target.value)}><option value="">Choose…</option>{CAUSES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></Field></div></div>}
         <Field label="Photos (paste links, optional)"><input className="input" value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="https://…" /></Field>
         <Field label="Notes"><input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
-        {err && <Err m={err} />}
-        <div className="row"><Button variant={failedCount > 0 ? 'danger' : 'primary'} disabled={busy || !oid || num(checked) < 1 || (failedCount > 0 && (!defect || !cause))} onClick={() => void go()}>{busy ? 'Saving…' : failedCount > 0 ? 'Record failure and open rework' : 'Record pass'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
+        {problem && <p className="dim" role="status">{problem}</p>}{err && <Err m={err} />}
+        <div className="row"><Button variant={failedCount > 0 ? 'danger' : 'primary'} disabled={busy || !!problem || !oid || num(checked) < 1 || (failedCount > 0 && (!defect || !cause))} onClick={() => void go()}>{busy ? 'Saving…' : failedCount > 0 ? 'Record failure and open rework' : 'Record pass'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
       </div>
     </Modal>);
 }
@@ -86,12 +89,17 @@ export function ReworkStepDialog({ job, step, onClose }: { job: ReworkRow; step:
 }
 
 export function CriterionDialog({ item, onClose }: { item?: CriterionRow; onClose: () => void }) {
-  const toast = useToast(); const [name, setName] = useState(item?.name ?? ''); const [method, setMethod] = useState(item?.method_code ?? ''); const [desc, setDesc] = useState(item?.description ?? ''); const [active, setActive] = useState(item?.is_active ?? true); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
-  async function go() { setBusy(true); setErr(null); const r: any = await qcAction('set_criterion', { id: item?.id, method, name, description: desc, active }); setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'Could not save it.')); return; } void refreshAll(); toast.push({ tone: 'good', title: 'Checklist updated' }); onClose(); }
+  const toast = useToast(); const [name, setName] = useState(item?.name ?? ''); const [method, setMethod] = useState(item?.method_code ?? ''); const [desc, setDesc] = useState(item?.description ?? ''); const [active, setActive] = useState(item?.is_active ?? true);
+  const [gates, setGates] = useState<string[]>(item?.gates ?? []); const [required, setRequired] = useState(item?.is_required ?? true); const [critical, setCritical] = useState(item?.is_critical ?? false); const [photo, setPhoto] = useState(item?.needs_photo ?? false);
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
+  async function go() { setBusy(true); setErr(null); const r: any = await qcAction('set_criterion', { id: item?.id, method, name, description: desc, active, gates, required, critical, needs_photo: photo }); setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'Could not save it.')); return; } void refreshAll(); toast.push({ tone: 'good', title: 'Checklist updated' }); onClose(); }
   return (<Modal open onClose={onClose} title={item ? 'Edit checklist item' : 'Add a checklist item'}><div className="stack">
+    {item?.is_placeholder && <div className="callout" role="status">This is a starter item, not your standard yet. Saving it makes it yours.</div>}
     <Field label="What to check"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Backing trimmed" /></Field>
     <Field label="Applies to"><select className="select" value={method} disabled={!!item} onChange={(e) => setMethod(e.target.value)}><option value="">Every method</option>{['embroidery', 'dtf', 'dtg', 'uv', 'heat_press'].map((m) => <option key={m} value={m}>{humanise(m)}</option>)}</select></Field>
+    <Field label="Stages (none ticked = every stage)"><div className="row wrap">{GATES.map((g) => <label key={g.id} className="check"><input type="checkbox" checked={gates.includes(g.id)} onChange={(e) => setGates((cur) => e.target.checked ? [...cur, g.id] : cur.filter((x) => x !== g.id))} />{g.label}</label>)}</div></Field>
     <Field label="What good looks like"><input className="input" value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
+    <div className="row wrap"><label className="check"><input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />Must be answered</label><label className="check"><input type="checkbox" checked={critical} onChange={(e) => setCritical(e.target.checked)} />Critical</label><label className="check"><input type="checkbox" checked={photo} onChange={(e) => setPhoto(e.target.checked)} />Photo needed if it fails</label></div>
     {item && <label className="check"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />In use</label>}{err && <Err m={err} />}
     <div className="row"><Button variant="primary" disabled={busy || name.trim().length < 3} onClick={() => void go()}>{busy ? 'Saving…' : 'Save'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div></div></Modal>);
 }

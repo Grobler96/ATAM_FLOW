@@ -40,6 +40,10 @@ export function parseScan(input: string, known: Known = {}): ScanResult {
   if (tp) return out('consignment', tp[0].toUpperCase());
   const ord = raw.match(/^ORD-(\d{4,9})-\d{6}(?:-[0-9a-f]{4})?$/i);   // order label code
   if (ord) return out('order', '#' + ord[1]);
+  const sto = raw.match(/^STO-(.+?)-\d{6}(?:-[0-9a-f]{4})?$/i);         // stock label code: STO-<sku>-yymmdd
+  if (sto) return out('sku', sto[1]);
+  const bin = raw.match(/^BIN-(.+?)-\d{6}(?:-[0-9a-f]{4})?$/i);         // bin label code: BIN-<code>-yymmdd
+  if (bin) return out('bin', bin[1]);
   if (/^#?\d{5,8}$/.test(raw)) return out('order', '#' + raw.replace(/^#/, ''));   // a bare DecoNetwork order number
   if (known.bins?.has(raw)) return out('bin', raw);
   if (known.skus?.has(raw)) return out('sku', raw);

@@ -13,6 +13,8 @@ Status as of 7 Nov 2026.
 
 - **Artwork storage and customer proofs** (migration 53, live): upload, preview, download and version artwork on screen; record customer proofs and their answers; an approval only counts for the artwork it showed. See [artwork.md](artwork.md). There are **no artwork files in the system yet**, so every decorated order is blocked on artwork until files are uploaded (or DecoNetwork's artwork fetch is connected).
 
+- **Stock-takes** (migration 54, live): blind counting by scan, recount by a different person, reasons and manager limits, shortfalls suggested as waste, a reminder to correct DecoNetwork. See [stocktakes.md](stocktakes.md). No shelf locations are entered yet, so counts by shelf have nothing to match.
+
 ## Needs you before real use
 1. **Enter the producers.** There are **0 active producers** and 0 rates. Add each decorator (name, contact, email, what they can do, turnaround, rates) on the Producers page.
 2. **Roles.** All 10 accounts in `flow.user_roles` are **admin**. Give everyone else the narrowest role that lets them do their job (manager, production, warehouse, viewer).

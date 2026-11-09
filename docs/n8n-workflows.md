@@ -120,3 +120,5 @@ Operations actions also handles `assign_job`, `worker_save`, `worker_skill`, `wo
 Operations actions also handles `dispatch_pack`, `dispatch_printed`, `dispatch_tracking`, `dispatch_handover` and `dispatch_cancel` (added 9 Nov 2026; floor roles, and only a manager or admin may send an order that is not ready). See [dispatch.md](dispatch.md).
 
 Operations actions also handles `proof_create`, `proof_send`, `proof_respond` and `proof_withdraw` (added 9 Nov 2026; manager, admin or production planner). See [artwork.md](artwork.md).
+
+Operations actions also handles `stocktake_start`, `stocktake_count`, `stocktake_review`, `stocktake_recount`, `stocktake_accept`, `stocktake_accept_small`, `stocktake_close`, `stocktake_cancel` and `stocktake_adjusted` (added 10 Nov 2026; floor roles count and accept, managers and admins close and cancel and decide the larger differences). See [stocktakes.md](stocktakes.md).
