@@ -17,7 +17,7 @@ An internal command centre for an apparel decoration business. It **launches for
 - `cd apps/dashboard && npm test && npm run build && npm run e2e && npm run e2e:portal` (rebuild before e2e; run one e2e at a time; the main e2e takes about two minutes, so run it in the background and write its output to a file)
 - e2e runs against a fully mocked Supabase and n8n. **A mock cannot catch a permission problem**; query views as the real role.
 
-## Live state (migrations 1-60 applied; **61 is in the repo but NOT live**, see `docs/security-audit-2026-11.md`)
+## Live state (migrations 1-61 applied, repo and live match; the API guard from 61 is on, see `docs/security-audit-2026-11.md`)
 Merged to `main` this phase: holding pen, third-party focus view, decorator spoilage reporting, job packs and artwork downloads, scanning (staff and portal), dispatch queue and courier labels, artwork storage and customer proofs, stock-takes, real QC checklists (mechanism only), exception digest and due-soon warnings, purchasing controls (approval rules, invoice matching, draft-only scheduled chasing; **database and n8n actions only, no screens yet**), floor set-up (machines and operator skills), decorator sign-in page redesign, portal hardening (inactivity sign-out enforced in the database, sign-in log, company addresses only).
 
 n8n workflows **published (live)**: Operations actions, Movement actions, Exception actions, Quality actions, Warehouse actions, Artwork actions, Producer risk actions (all via webhook behind Verify caller), plus the pre-existing sync and allocation workflows and Verify caller.

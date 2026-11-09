@@ -2,16 +2,16 @@
 
 Scope: the live database as each real role (signed-out, a staff login, a decorator login, the service role), the decorator portal, the seven published n8n action workflows, storage, and a sweep of every staff view. Read-only, except the fixes listed.
 
-## 1. CRITICAL: a decorator login can reach the other app's data (fix written, NOT yet switched on)
+## 1. CRITICAL: a decorator login could reach the other app's data (guard switched on 10 Nov 2026 with the owner's go-ahead)
 This Supabase project is shared with another app (ATAM GO). That app trusts **any** logged-in user: its tables use "any signed-in user may read", and its write functions only check "is someone signed in". That was safe while every login was a team member. The decorator portal created a new kind of login in the same project.
 
 Confirmed on the live database, as the test decorator login, counts only: 8,107 Xero sales documents, 1,340 quotes, 474 supplier invoices and 370 sales invoices awaiting review, 5,348 sales order lines, 3,064 SKU costs, 53 customer accounts, and all 526 files in the `invoice-pdfs` bucket were readable. The other app's write functions (approve an invoice, queue a customer email, set sales targets and about 60 more) would also have accepted the call. A decorator who has been switched off keeps this access, because switching off only closes the portal functions.
 
 What limits it today: sign-ups are switched off project-wide (checked), so only people ATAM invites get a login, and the only decorator login that exists is the owner's own test account. The staff side of ATAM_FLOW itself held: a decorator login got zero rows from every `flow` table and staff view.
 
-**Do not invite real decorators until this is fixed.**
+**Do not invite real decorators until the two sign-in checks below have been done by a person.**
 
-Fix (migration 61, in the repo, tested, **not applied live** because part of it is a project-wide API setting):
+Fix (migration 61, applied live). Checked on the live database: as the test decorator login the guard allows a portal function and refuses the other app's table, and the 526 invoice PDFs are no longer visible; as a staff login nothing changed; signed-out API calls behave as before. **Not yet proven:** that the API service has picked the guard up for real requests, because that needs a real decorator sign-in. Details:
 - `public.portal_api_guard()` runs before every API request. A decorator login may only call `public.portal_*` functions; everyone else passes straight through. It fails open if its own lookup errors, so it cannot take the other app down.
 - A restrictive storage rule confines a decorator login to the two buckets the portal uses.
 - Inviting an address that already has a login is refused, so a team member can never be turned into a decorator.
