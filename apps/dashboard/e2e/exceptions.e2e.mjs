@@ -145,7 +145,7 @@ try {
 
   const { page, ctx, st } = await newPage(browser, { dsf: 1 }); await signIn(page);
   console.log('shell');
-  ok((await page.locator('.nav a').count()) === 20, 'sidebar lists the 20 sections'); ok((await page.locator('.nav a[aria-current=page]').innerText()).includes('Command Centre'), 'Command Centre is current');
+  ok((await page.locator('.nav a').count()) === 21, 'sidebar lists the 21 sections'); ok((await page.locator('.nav a[aria-current=page]').innerText()).includes('Command Centre'), 'Command Centre is current');
   ok((await page.locator('.nav a', { hasText: 'Exceptions' }).locator('.badge').innerText()) === '3', 'sidebar shows the critical exception count');
   await page.keyboard.press('/'); await page.getByRole('dialog', { name: 'Command palette' }).waitFor(); ok(true, 'press / opens the command palette');
   await page.getByLabel('Search or run a command').fill('700101'); await page.waitForSelector('.palette .res >> text=#700101'); ok(true, 'palette finds an order from the live search');
@@ -457,6 +457,25 @@ try {
     { const { page: pw2, ctx: cw2 } = await newPage(browser, { role: 'warehouse' }); await signIn(pw2);
       await goto(pw2, '#/purchasing/po-0'); await pw2.getByRole('dialog').waitFor(); ok((await pw2.getByRole('button', { name: 'Approve…' }).count()) === 0, 'a warehouse login cannot approve a PO');
       await goto(pw2, '#/purchasing/po-1'); await pw2.getByRole('dialog').waitFor(); await pw2.getByText('Supplier invoices (3)').waitFor(); ok((await pw2.getByRole('button', { name: 'Record invoice' }).count()) === 0 && (await pw2.getByRole('button', { name: 'Accept difference' }).count()) === 0 && (await pw2.getByText(/£30\.00 more than expected/).count()) === 1, 'a warehouse login can read invoices but not record or decide them'); await cw2.close(); } }
+
+  console.log('holding pen');
+  { const withPen = { ui_pen: F.pen, ui_pen_log: F.penLog };
+    { const { page: pn, ctx: cn } = await newPage(browser, { role: 'manager', views: withPen }); await signIn(pn);
+      ok((await pn.locator('.nav a', { hasText: 'Holding pen' }).count()) === 1, 'the sidebar has a Holding pen page');
+      await goto(pn, '#/pen'); await pn.getByRole('heading', { name: 'Holding pen', exact: true }).waitFor(); await pn.waitForSelector('.dt-row');
+      ok((await pn.locator('.dt-row').count()) === 3 && (await pn.getByText('3 orders held back · 1 overdue · 1 not in ATAM_FLOW yet').count()) === 1, 'the pen lists every held order and says how many are overdue or not in ATAM_FLOW yet');
+      ok((await pn.locator('.dt-row', { hasText: '#700101' }).getByText('No delivery address').count()) === 1 && (await pn.locator('.dt-row', { hasText: '#700101' }).getByText('No due date').count()) === 1 && (await pn.getByText('This screen is read-only.').count()) === 1, 'each row names what is wrong, and the screen says it is read-only');
+      ok((await pn.getByText('Went into the pen').count()) >= 1 && (await pn.getByText('Problem waived').count()) === 1, 'recent activity shows who entered and what was waived'); await settle(pn); await shot(pn, '21-holding-pen');
+      await pn.locator('.dt-row', { hasText: '#700102' }).click(); await pn.getByRole('dialog').waitFor(); await pn.getByText('Why it is held').waitFor();
+      const dlg = pn.getByRole('dialog'); ok((await dlg.getByText('Choose a shipping method on the order in DecoNetwork.').count()) === 1 && (await dlg.getByText('Collection order, no address needed', { exact: true }).count()) === 1 && (await dlg.getByText('Asked the customer which courier they want.').count()) === 1 && (await dlg.getByText('1 Mill Street, Leeds').count()) === 1, 'a held order shows why, how to fix it, what was waived, its note and its address');
+      ok((await pn.getByText('Assigning an owner, adding a note and waiving a problem are not available on this screen yet.').count()) === 1, 'what cannot be done here is said plainly'); await settle(pn); await shot(pn, '22-pen-case');
+      await pn.getByRole('button', { name: 'Open the order' }).click(); await pn.waitForFunction(() => location.hash.startsWith('#/orders/700102')); await pn.getByRole('dialog').waitFor(); await pn.getByText('In the holding pen.').waitFor();
+      ok((await pn.getByText('In the holding pen.').count()) === 1 && (await pn.getByRole('link', { name: 'See why and how to fix it' }).count()) === 1, 'the order drawer says the order is in the pen and links back'); await pn.getByRole('link', { name: 'See why and how to fix it' }).click(); await pn.waitForFunction(() => location.hash.startsWith('#/pen/o:o-2'));
+      await goto(pn, '#/pen/s:700999'); await pn.getByRole('dialog').waitFor(); await pn.getByText('DecoNetwork has this order but ATAM_FLOW does not yet.').waitFor(); ok((await pn.getByRole('button', { name: 'Open the order' }).count()) === 0 && (await pn.getByText('It appears in ATAM_FLOW after the next order sync.').count()) === 1, 'an order that is not in ATAM_FLOW yet has no order to open');
+      await goto(pn, '#/pen/o:gone'); await pn.getByText('This order is no longer in the pen').waitFor(); ok(true, 'a link to an order that has left the pen says so');
+      await goto(pn, '#/orders/700103'); await pn.getByRole('dialog').waitFor(); ok((await pn.getByText('In the holding pen.').count()) === 0, 'an order that is not in the pen shows no pen notice'); await cn.close(); }
+    { const { page: pe, ctx: ce } = await newPage(browser, { role: 'viewer', views: { ui_pen: [], ui_pen_log: [] } }); await signIn(pe); await goto(pe, '#/pen'); await pe.getByRole('heading', { name: 'Holding pen', exact: true }).waitFor();
+      ok((await pe.getByText('The holding pen is empty').count()) === 1 && (await pe.getByText('Nothing is being held back.').count()) === 1 && (await pe.getByText('No orders have entered or left the pen yet.').count()) === 1, 'an empty pen says so, for a view-only login too'); await ce.close(); } }
 
   console.log('roles, offline, mobile');
   { const { page: pv, ctx: cv } = await newPage(browser, { role: 'viewer' }); await signIn(pv); await pv.getByRole('button', { name: /Quick actions/ }).click(); ok(await pv.getByRole('menuitem', { name: /Allocate stock/ }).isDisabled(), 'viewers cannot run workflows'); await cv.close(); }

@@ -13,6 +13,7 @@ import { useRunner } from './useRunner';
 import { CreatePoDialog } from '../components/CreatePoDialog';
 import { ScanHost } from '../components/ScanHost';
 import { DispatchPage } from '../pages/Dispatch';
+import { PenPage } from '../pages/Pen';
 import { StockTakesPage } from '../pages/StockTakes';
 import { Home } from '../pages/Home';
 import { OrdersPage } from '../pages/Orders';
@@ -76,7 +77,7 @@ function Frame() {
       <div className="main">
         <TopBar onMenu={() => setMobileOpen((o) => !o)} onCollapse={() => setCollapsed((c) => !c)} onSearch={() => setPalette(true)} onCreatePo={() => { setPoPreset([]); setPoOpen(true); }} onGenerateLabels={() => setLabelDlg({})} onNewMovement={() => setMoveDlg({})} onRun={(d) => void runner.run(d)} running={runner.running} canRun={runner.can} email={email} />
         <main className="content" id="main">
-          {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
+          {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'pen' && <PenPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
           {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'dispatch' && <DispatchPage route={route} />}{page === 'stocktake' && <StockTakesPage route={route} />}{page === 'goods-in' && <GoodsInPage />}{page === 'quality' && <QualityPage route={route} />}
           {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'control' && <ControlPage />}{page === 'waste' && <WastePage />}{page === 'crew' && <CrewPage />}{page === 'floor' && <FloorPage />}{page === 'settings' && <SettingsPage />}
           {!NAV.some((n) => n.id === page) && <div className="state"><h3>Page not found</h3><a href="#/">Back to the Command Centre</a></div>}

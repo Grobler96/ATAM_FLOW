@@ -7,6 +7,7 @@ import { useCtx } from '../data/context';
 import { AssignDialog } from '../components/CrewParts';
 import { OrderChangesPanel } from '../components/OrderChangesPanel';
 import type { ChangeRow } from '../lib/orderChanges';
+import { defectLabel, penCaseFor, sortedDefects, type PenRow } from '../lib/pen';
 import { href } from '../router';
 import { exceptionActionTo } from '../lib/api';
 import { gbp, deadlineText, dateTime } from '../lib/format';
@@ -35,7 +36,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tpo = useView<TpOrderRow>('ui_tp_orders'), moves = useView<MovementRow>('ui_tp_movements'), pos = useView<PoRow>('ui_purchase_orders'), sel = useView<SelectionRow>('ui_selection');
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
-  const chg = useView<ChangeRow>('ui_order_changes'); const [assign, setAssign] = useState<QueueRow | null>(null);
+  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const [assign, setAssign] = useState<QueueRow | null>(null);
   const { canAct } = useCtx(); const toast = useToast();
   const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
@@ -57,7 +58,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   }
 
   if (!o) return <Drawer open onClose={onClose} title={`Order ${orderRef}`}>{orders.loading ? <div className="stack"><Skeleton h={20} /><Skeleton h={20} w="70%" /><Skeleton h={120} /></div> : <EmptyState icon="search" title="Order not found">It may be dispatched, cancelled or not synced yet.</EmptyState>}</Drawer>;
-  const ss = stockStatus(o);
+  const ss = stockStatus(o); const penCase = penCaseFor(pen.rows, o.id);
   const tabs: { id: Tab; label: string; count?: number }[] = [{ id: 'overview', label: 'Overview' }, { id: 'lines', label: 'Lines & stock', count: d!.lines.length }, { id: 'artwork', label: 'Artwork', count: d!.versions.length }, { id: 'production', label: 'Production', count: d!.steps.length },
     { id: 'producer', label: 'Producer', count: d!.moves.length }, { id: 'purchasing', label: 'Purchasing', count: d!.pos.length }, { id: 'warehouse', label: 'Warehouse', count: d!.bins.length }, { id: 'exceptions', label: 'Exceptions', count: d!.ex.length }, { id: 'changes', label: 'Changes & control', count: chg.rows.filter((c) => c.order_id === o.id && c.status === 'new').length }, { id: 'history', label: 'History' }];
 
@@ -67,6 +68,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {tab === 'overview' && d && <div className="stack" style={{ gap: 16 }}>
         <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
+        {penCase && <div className="callout" role="status"><b>In the holding pen.</b> This order is left out of planning and cannot be dispatched or completed until it is put right: {sortedDefects(penCase).map((x) => defectLabel(x.code)).join(', ')}. <a href={href('pen/' + penCase.case_key)}>See why and how to fix it</a></div>}
         {d.acc && <div className="callout soft"><b>Owner · location · next action</b><div className="row wrap" style={{ gap: 18 }}><span><span className="fact-l">Owner</span><br />{d.acc.owner}</span><span><span className="fact-l">Where it is</span><br />{d.acc.location ?? <span className="warn">Unknown</span>}</span><span><span className="fact-l">Next action</span><br />{d.acc.next_action ?? <span className="warn">Unknown: needs a decision</span>}</span></div></div>}
         <Panel title="Why the system says this" icon="info">
           <div className="stack">

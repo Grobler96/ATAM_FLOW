@@ -66,3 +66,18 @@ export const poInvoices = [
   { ...invBase, id: 'inv-disp', invoice_ref: 'INV-5400', net_total: 60, variance: -40, match_status: 'under_billed', resolution: 'disputed', resolution_reason: 'Asked the supplier for a corrected invoice', resolved_by: 'dashboard:u2', resolved_at: iso(-1), created_at: iso(-3) }];
 // A draft PO over the approval limit, to show that a manager is stopped and an admin is not.
 export const bigDraftPo = { ...pos[0], po_id: 'po-big', po_ref: 'AF-PO-1090', po_status: 'draft', subtotal: 750, total_cost: 900, is_late: false, days_late: 0, open_discrepancies: 0 };
+
+// Holding pen: one order missing its address and due date, one overdue order with a waived problem and an owner, one order not in ATAM_FLOW yet.
+const penBase = { deco_order_id: '', source_status: 1, ship_address: null, shipping_method: null, owner: null, note: null, note_by: null, note_at: null, waived: [], first_seen_at: iso(-0.5), age_hours: 12 };
+export const pen = [
+  { ...penBase, case_key: 'o:o-1', order_id: 'o-1', order_ref: '#700101', deco_order_id: '700101', customer_name: 'Acme Safety Ltd', due_date: iso(6), units: 40, order_value: 612, in_flow: true, is_overdue: false, severity_rank: 3, problem_count: 2, codes: 'no_address,no_due_date',
+    defects: [{ code: 'no_due_date', severity: 'medium', detail: 'The order has no due date.' }, { code: 'no_address', severity: 'high', detail: 'No delivery address on the order.' }] },
+  { ...penBase, case_key: 'o:o-2', order_id: 'o-2', order_ref: '#700102', deco_order_id: '700102', customer_name: 'Northside FC', due_date: iso(-2), units: 120, order_value: 980, in_flow: true, is_overdue: true, severity_rank: 2, problem_count: 1, codes: 'no_shipping_method', age_hours: 80,
+    owner: 'sam@atam.test', note: 'Asked the customer which courier they want.', note_by: 'dashboard:u1', note_at: iso(-1), ship_address: '1 Mill Street, Leeds',
+    waived: [{ defect: 'no_address', reason: 'Collection order, no address needed', by: 'dashboard:u2', at: iso(-1) }], defects: [{ code: 'no_shipping_method', severity: 'medium', detail: 'No shipping method chosen.' }] },
+  { ...penBase, case_key: 's:700999', order_id: null, order_ref: '#700999', deco_order_id: '700999', customer_name: 'Late Arrivals Ltd', due_date: iso(3), units: null, order_value: null, in_flow: false, is_overdue: false, severity_rank: 4, problem_count: 1, codes: 'not_synced', age_hours: 2,
+    defects: [{ code: 'not_synced', severity: 'critical', detail: 'DecoNetwork has this order but ATAM_FLOW does not yet.' }] }];
+export const penLog = [
+  { id: 1, at: iso(-3), case_key: 'o:o-2', order_ref: '#700102', kind: 'entered', actor: null, detail: 'No delivery address; no shipping method' },
+  { id: 2, at: iso(-1), case_key: 'o:o-2', order_ref: '#700102', kind: 'waived', actor: 'dashboard:u2', detail: 'No delivery address: Collection order, no address needed' },
+  { id: 3, at: iso(-0.5), case_key: 'o:o-1', order_ref: '#700101', kind: 'entered', actor: null, detail: 'No delivery address; no due date' }];
