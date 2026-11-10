@@ -26,7 +26,7 @@ The tasks below fix these in that order: safety nets first, then docs, then miss
 - [x] Add a short "how to restore a workflow from the repo" section to `docs/n8n-workflows.md`
 - [x] Add the two browser test runs (`npm run e2e`, `npm run e2e:portal`) to `.github/workflows/ci.yml` so every pull request runs them
 - [x] Rewrite the README status line and layout table to match today (live, third-party launch, portal, 61 migrations) and link `docs/handoff.md` and `docs/launch-checklist.md`
-- [ ] Bring `docs/launch-checklist.md` up to date: move the decorator portal and other finished items out of "Not built", re-date it, and keep one clear "Needs you before real use" list
+- [x] Bring `docs/launch-checklist.md` up to date: move the decorator portal and other finished items out of "Not built", re-date it, and keep one clear "Needs you before real use" list
 - [ ] Tidy `docs/assumptions-and-open-questions.md`: remove the finished deployment steps and the reference to `supabase/pending/`, which no longer exists
 - [ ] Purchasing screen: add "Approve" with a required reason to the PO drawer, showing why a PO needs approval and who may approve it (uses the existing migration 58 functions)
 - [ ] Purchasing screen: add invoice entry and matching to the PO drawer, showing matched, over and under amounts against the tolerance
