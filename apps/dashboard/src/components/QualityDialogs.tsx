@@ -4,6 +4,7 @@ import { Button, Field, Status } from '../ui/primitives';
 import { useView, refreshAll } from '../data/store';
 import { useCtx } from '../data/context';
 import { CAUSES, DEFECTS, GATES, OUTCOMES, humanise, qcAction, applicableItems, checklistProblem, type CriterionRow, type QcCheckRow, type ReworkRow } from '../lib/quality';
+import { QC_MAX_FILES, QC_TYPES, qcPhotoProblem, uploadQcPhoto, type QcEvidence } from '../lib/qcPhotos';
 import type { OrderLineRow, OrderRow } from '../data/types';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
@@ -14,15 +15,29 @@ export function RecordCheckDialog({ orderId, pending, onClose }: { orderId?: str
   const orders = useView<OrderRow>('ui_orders'); const lines = useView<OrderLineRow>('ui_order_lines'); const crit = useView<CriterionRow>('ui_qc_criteria'); const toast = useToast();
   const [oid, setOid] = useState(pending?.order_id ?? orderId ?? ''); const [gate, setGate] = useState(pending?.gate ?? 'final'); const [line, setLine] = useState(pending?.order_line_id ?? ''); const [checked, setChecked] = useState(pending?.units_checked ? String(pending.units_checked) : ''); const [failed, setFailed] = useState('0');
   const [ticks, setTicks] = useState<Record<string, boolean>>({}); const [itemNotes, setItemNotes] = useState<Record<string, string>>({}); const [defect, setDefect] = useState(''); const [cause, setCause] = useState(''); const [notes, setNotes] = useState(''); const [evidence, setEvidence] = useState(''); const [pct, setPct] = useState('');
+  const [files, setFiles] = useState<File[]>([]); const [uploaded, setUploaded] = useState<QcEvidence[]>([]); const [fileErr, setFileErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState<Record<string, any> | null>(null);
   const order = orders.rows.find((o) => o.id === oid); const myLines = lines.rows.filter((l) => l.order_id === oid); const methods = Array.from(new Set((line ? myLines.filter((l) => l.id === line) : myLines).flatMap((l) => l.decoration_methods ?? [])));
   const list = useMemo(() => applicableItems(crit.rows, gate, methods), [crit.rows, gate, methods.join(',')]);
-  const evidenceLinks = evidence.split(/\s+/).filter((u) => /^https?:\/\//.test(u)); const problem = checklistProblem(list, ticks, itemNotes, notes, evidenceLinks.length > 0);
+  const evidenceLinks = evidence.split(/\s+/).filter((u) => /^https?:\/\//.test(u)); const problem = checklistProblem(list, ticks, itemNotes, notes, evidenceLinks.length + files.length + uploaded.length > 0);
   const failedCount = num(failed); const anyFailedTick = list.some((c) => ticks[c.id] === false);
+  function addFiles(picked: FileList | null) {
+    const next = [...files]; const problems: string[] = [];
+    for (const f of Array.from(picked ?? [])) { const bad = qcPhotoProblem(f); if (bad) problems.push(bad); else if (next.length + uploaded.length >= QC_MAX_FILES) { problems.push(`Only ${QC_MAX_FILES} files can be added to one check.`); break; } else next.push(f); }
+    setFiles(next); setFileErr(problems.length ? problems.join(' ') : null);
+  }
   async function go() {
     setBusy(true); setErr(null);
+    // upload first, one at a time; a file that went up is kept (and not sent again) if a later one fails
+    const done = [...uploaded]; const left = [...files];
+    while (left.length) {
+      const up = await uploadQcPhoto(left[0], order?.order_ref ?? '');
+      if (!up.ok) { setUploaded(done); setFiles(left); setBusy(false); setErr(up.error); return; }
+      done.push(up.evidence); left.shift();
+    }
+    setUploaded(done); setFiles([]);
     const results = list.filter((c) => c.id in ticks).map((c) => ({ criterion_id: c.id, passed: ticks[c.id], ...(itemNotes[c.id]?.trim() ? { note: itemNotes[c.id].trim() } : {}) }));
-    const r: any = await qcAction('record_check', { check_id: pending?.id, order_id: oid, gate, order_line_id: line || undefined, units_checked: num(checked), units_failed: failedCount, results, defect_type: defect, cause, notes, checkpoint_pct: pct || undefined, evidence: evidenceLinks.map((url) => ({ url, name: 'Quality evidence' })) });
+    const r: any = await qcAction('record_check', { check_id: pending?.id, order_id: oid, gate, order_line_id: line || undefined, units_checked: num(checked), units_failed: failedCount, results, defect_type: defect, cause, notes, checkpoint_pct: pct || undefined, evidence: [...done, ...evidenceLinks.map((url) => ({ url, name: 'Quality evidence' }))] });
     setBusy(false); if (r.ok === false) { setErr(String(r.error ?? 'Could not record the check.')); return; }
     void refreshAll(); toast.push({ tone: r.status === 'failed' ? 'info' : 'good', title: `${r.check_ref}: ${r.status}`, body: r.rework_ref ? `Rework job ${r.rework_ref} opened for ${failedCount} unit(s).` : undefined }); setDone(r);
   }
@@ -44,6 +59,10 @@ export function RecordCheckDialog({ orderId, pending, onClose }: { orderId?: str
             {ticks[c.id] === false && <input className="input" aria-label={`Note for ${c.name}`} placeholder="What is wrong?" value={itemNotes[c.id] ?? ''} onChange={(e) => setItemNotes((n) => ({ ...n, [c.id]: e.target.value }))} />}</div>)}</div></Field>
         {(failedCount > 0 || anyFailedTick) && <div className="stack"><div className="callout" role="status"><Status tone="high" plain>{failedCount} failed</Status> A rework job will be opened for these units, and the order cannot complete until they are fixed and re-checked.</div>
           <div className="row wrap"><Field label="What is wrong"><select className="select" value={defect} onChange={(e) => setDefect(e.target.value)}><option value="">Choose…</option>{DEFECTS.map((d) => <option key={d} value={d}>{humanise(d)}</option>)}</select></Field><Field label="Likely cause"><select className="select" value={cause} onChange={(e) => setCause(e.target.value)}><option value="">Choose…</option>{CAUSES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></Field></div></div>}
+        <div className="stack" style={{ gap: 4 }}>
+          <Field label="Photo files from this device (optional)"><input type="file" accept={QC_TYPES.join(',')} multiple onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} /></Field>
+          {(uploaded.length > 0 || files.length > 0) && <ul className="dim" style={{ margin: 0, paddingLeft: 18 }}>{uploaded.map((u, i) => <li key={'u' + i}>{u.name} (uploaded)</li>)}{files.map((f, i) => <li key={f.name + i}>{f.name} <button type="button" className="btn ghost sm" aria-label={`Remove ${f.name}`} onClick={() => setFiles(files.filter((_, j) => j !== i))}>Remove</button></li>)}</ul>}
+          {fileErr && <span className="bad" role="alert">{fileErr}</span>}</div>
         <Field label="Photos (paste links, optional)"><input className="input" value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="https://…" /></Field>
         <Field label="Notes"><input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
         {problem && <p className="dim" role="status">{problem}</p>}{err && <Err m={err} />}

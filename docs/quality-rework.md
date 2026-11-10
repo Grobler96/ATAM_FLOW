@@ -29,9 +29,16 @@ The mechanism for your own standards is built; **the items themselves are yours 
 - n8n Quality actions: `set_criterion` (now saves all the fields above) and `confirm_checklist` (managers/admins only). Tests: `supabase/tests/qc_checklist_test.sql`, `src/lib/quality.test.ts`, e2e.
 - Also fixed in migration 55: the stock-take detector used root-cause values the exceptions table rejects, so a stale stock-take would have errored instead of raising an issue.
 
+## Photos on a check (added 10 Nov 2026)
+When recording a check you can now choose **photo files from this device** as well as pasting links. Photos and PDFs up to 10 MB, up to 6 per check. They are uploaded one at a time before the check is saved, into the existing private `producer-evidence` bucket at `qc/<order>/<time>-<name>`, and the check keeps a reference (`{ bucket, path, name }`). A file that already went up is kept, not uploaded again, if a later one fails; if an upload is refused the check is **not** recorded without it, and the person is told in plain words.
+- **Viewing:** the **Checks** tab has a **Photos** column. A pasted link opens as it is (only real web addresses are shown as links); an uploaded file opens through a short-lived signed link, because the bucket is private. Staff could already read the whole bucket.
+- **Writing needs migration 64** (`20261110000064_flow_qc_evidence_storage.sql`, written and tested, **not yet applied to the live database**): an insert rule so admin, manager, production and warehouse logins can add files under `qc/` only, in that bucket only. Viewers, decorator logins and signed-out visitors cannot. `supabase/tests/qc_evidence_storage_test.sql` runs the real migration file against a stand-in `storage.objects` table; it has not been run against real Supabase storage, so after applying it, record a check with a photo and open it from the Checks tab.
+- Files are never deleted from here (there is no delete rule), and a failed-item rule still needs a photo or a link.
+- Code: `lib/qcPhotos.ts` (checks, paths, wording, with unit tests), `components/EvidenceLinks.tsx`, `components/QualityDialogs.tsx`; covered by the browser test (section "quality photos", screenshots 24 and 25).
+
 ## Honest gaps
 - Defect types and the 24-hour threshold are placeholders until you set them (`qc.options` in Settings). The checklist items are still the starter ones until you replace and confirm them on the Quality page.
 - Order status is not advanced automatically after a pass; the system blocks and raises issues but does not move orders on.
 - Replacement garments are tracked, not bought automatically: raise a PO yourself and mark it ordered. Scrapped units do not adjust stock or the order quantity.
-- No photo upload from the device (links only), and no claim tracking against producers or suppliers for faulty goods yet.
+- Photos from a device are built but **need migration 64 applied** before they work (see below); until then the upload says it is not allowed and a pasted link still works. There is no claim tracking against producers or suppliers for faulty goods yet.
 - Existing producer return checks on the Producers page still work as before; recording a QC check there is separate.

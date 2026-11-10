@@ -10,6 +10,7 @@ import { dateTime } from '../lib/format';
 import { gateLabel, humanise, qcAction, type QcStandardsRow, type CriterionRow, type QcCheckRow, type QcQueueRow, type ReworkRow } from '../lib/quality';
 import { OrderLink, DueCell } from '../components/common';
 import { CriterionDialog, OpenReworkDialog, RecordCheckDialog, ReworkStepDialog, type ReworkStep } from '../components/QualityDialogs';
+import { EvidenceLinks } from '../components/EvidenceLinks';
 
 type Mode = 'queue' | 'rework' | 'checks' | 'checklist';
 const rwTone = (s: string) => (s === 'complete' ? 'good' : s === 'cancelled' ? 'low' : s === 'in_progress' ? 'info' : 'high') as 'good' | 'low' | 'info' | 'high';
@@ -49,6 +50,7 @@ export function QualityPage({ route }: { route: Route }) {
     { id: 'u', header: 'Checked / failed', width: '120px', align: 'r', render: (c) => (c.units_checked != null ? `${c.units_checked} / ${c.units_failed ?? 0}` : '—'), csv: (c) => c.units_checked }, { id: 'df', header: 'Problem', width: '140px', render: (c) => (c.defect_type ? humanise(c.defect_type) : <span className="dim">—</span>), csv: (c) => c.defect_type },
     { id: 'pr', header: 'Producer', width: '150px', render: (c) => c.producer_name ?? <span className="dim">in-house</span>, csv: (c) => c.producer_name }, { id: 'by', header: 'Checked by', width: '140px', render: (c) => <span className="dim">{c.checked_by?.replace('dashboard:', '') ?? '—'}</span>, csv: (c) => c.checked_by },
     { id: 'at', header: 'When', width: '130px', render: (c) => <span className="dim">{c.checked_at ? dateTime(c.checked_at) : c.due_by ? 'due ' + dateTime(c.due_by) : '—'}</span>, sort: (c) => c.checked_at ?? c.created_at, csv: (c) => c.checked_at },
+    { id: 'ph', header: 'Photos', width: '170px', render: (c) => <EvidenceLinks items={c.evidence} />, csv: (c) => (c.evidence ?? []).map((e) => e.path ?? e.url).join(' ') },
     { id: 'a', header: '', width: '110px', render: (c) => c.status === 'pending' ? <Button size="sm" variant="primary" disabled={!canAct} onClick={(e) => { e.stopPropagation(); setDlg({ k: 'check', pending: c }); }}>Do check</Button> : null }
   ];
   return (

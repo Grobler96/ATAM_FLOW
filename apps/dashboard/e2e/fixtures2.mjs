@@ -81,3 +81,8 @@ export const penLog = [
   { id: 1, at: iso(-3), case_key: 'o:o-2', order_ref: '#700102', kind: 'entered', actor: null, detail: 'No delivery address; no shipping method' },
   { id: 2, at: iso(-1), case_key: 'o:o-2', order_ref: '#700102', kind: 'waived', actor: 'dashboard:u2', detail: 'No delivery address: Collection order, no address needed' },
   { id: 3, at: iso(-0.5), case_key: 'o:o-1', order_ref: '#700101', kind: 'entered', actor: null, detail: 'No delivery address; no due date' }];
+
+// A finished quality check with photos: an uploaded file, a pasted link, and a link that is not a web address (it must never be shown as a link).
+export const qcPhotoChecks = [{ id: 'qc-ph1', check_ref: 'QC-2026-00005', order_id: 'o-1', order_ref: '#700101', customer_name: 'Acme Safety Ltd', due_date: iso(6), order_line_id: null, sku: null, gate: 'final', checkpoint_pct: null, status: 'failed', units_checked: 40, units_failed: 4,
+  defect_type: 'stitching', cause: 'operator', producer_name: null, movement_code: null, notes: 'Puckering', due_by: null, checked_by: 'dashboard:u1', checked_at: iso(-0.2), created_at: iso(-0.3), results: [], is_overdue: false,
+  evidence: [{ bucket: 'producer-evidence', path: 'qc/700101/1700000000000-left-chest.jpg', name: 'left-chest.jpg' }, { url: 'https://example.test/p.jpg', name: 'Quality evidence' }, { url: 'javascript:alert(1)', name: 'Quality evidence' }] }];
