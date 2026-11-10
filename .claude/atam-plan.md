@@ -39,7 +39,7 @@ The tasks below fix these in that order: safety nets first, then docs, then miss
 - [x] Migration 62 with a test: cap how many files and how much total size a decorator can upload per job (repo only, not applied live)
 - [x] Migration 63 with a test: add audit-trail triggers to the set-up tables that can still be written directly (machines, bins, settings, producers, suppliers, roles) (repo only, not applied live)
 - [x] Quality page: allow a photo to be uploaded from the device for a QC check instead of a link only, stored in the existing evidence bucket with a test
-- [ ] Final pass: run every test suite, update `docs/handoff.md` with what changed and what is waiting to go live, and list the migrations that need the owner's go-ahead
+- [x] Final pass: run every test suite, update `docs/handoff.md` with what changed and what is waiting to go live, and list the migrations that need the owner's go-ahead
 
 ## Not in this plan: needs the owner, not the builder
 
