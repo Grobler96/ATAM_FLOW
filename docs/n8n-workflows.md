@@ -34,6 +34,30 @@ data your existing syncs already land in Supabase.
 Each sync returns the JSON summary from its Postgres function (`ok`, `run_id`, counts). A scheduled run that
 returns `ok:false` raises an error so Daniel and Oliver are emailed (6-hour cooldown per workflow).
 
+## Backups in the repo and how to restore a workflow
+
+`n8n/workflows/` holds a copy of the ten workflows that are live (10 Nov 2026): Verify caller, Operations actions, Quality actions,
+Producer risk actions, Movement actions, Warehouse actions, Exception actions, Artwork actions, Exception detector and escalation, and
+Sync priority flags. n8n's own version history is no longer the only way back if one is damaged or deleted.
+
+The files are n8n workflow JSON with the live `id` kept, so the sub-workflow references still line up. Credentials appear only as an id
+and a name (`Supabase account 2`, `Deconetwork log in`), never a value. The only key in them is the Supabase publishable key in Verify
+caller, which is public by design (it is also in the dashboard). `scripts/check-n8n-exports.mjs` runs in CI and fails if anything that
+looks like a secret is added. The `active` flag in each file is the real state; some descriptions still say "Unpublished" from before
+they were published.
+
+To restore one:
+1. In n8n choose **Import from file** and pick the JSON file. Restore **Verify caller first**: every action workflow calls it by id
+   (`lALM3G47uOizvD9t`). If n8n gives the restored copy a new id, open each action workflow's **Verify caller** node and pick the new one.
+2. Open the nodes that use a credential and check the existing credential is selected (the names above).
+3. Check the webhook path on the trigger matches the table above, then **publish**. Editing or importing creates a draft: it is not live until
+   you publish, so check the workflow shows as published afterwards.
+4. Send one test call with a real login (a refused call is the quickest check: a bad token must give `401`).
+
+These files are a snapshot. After any edit to a live workflow, export it again and replace its file so the copy stays current. Not copied
+yet: the four live data workflows (Sync orders, Sync stock, Sync purchase orders, Stock allocation) and every workflow that is not
+live (Purchasing actions, Goods-in processor, Communications sender, the scheduler and the others in the table).
+
 ## Test results (4 Nov 2026)
 
 - Scheduled orders sync against live data: success, 0 changes (idempotent).
