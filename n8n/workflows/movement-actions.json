@@ -1,0 +1,322 @@
+{
+  "id": "pT0lTbUUD3KMJf3D",
+  "name": "ATAM_FLOW · Movement actions",
+  "active": true,
+  "description": "Dashboard producer-movement actions: add/edit producers and rates, create consignments, pick/pack/dispatch, record producer steps, book returns in, check them, direct dispatch, resolve discrepancies, cancel. Role-checked and audited. Unpublished.",
+  "nodes": [
+    {
+      "id": "2674b5a5-8064-4f5b-89a4-bb0d61fb4ff7",
+      "name": "Dashboard: movement action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/movements",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "fe131124-d4f2-46fe-9893-41cfedd2d27c"
+    },
+    {
+      "id": "58003b29-150e-4640-884f-6cc80ebdb8db",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"production\", \"warehouse\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "61e7e586-3f07-4854-bf11-9f307e90247d",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "92f8c2b2-c8e2-4ed3-a22a-a07cf599b3d7",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: movement action').first().json.body || {};\nconst p = req.params || {};\nconst who = $('Verify caller').first().json;\nconst role = who.role;\nconst actor = 'dashboard:' + who.userId;\nconst bad = (error, code = 400) => [{ json: { valid: false, code, error } }];\nconst ok = (rpc, body, note) => [{ json: { valid: true, rpc, body, note } }];\nconst s = (v) => String(v == null ? '' : v).trim();\nconst only = (...roles) => roles.includes(role);\nconst FLOOR = ['admin', 'manager', 'warehouse'];\nconst PRODUCER_SIDE = ['received_by_producer', 'production_started', 'production_complete', 'awaiting_return', 'return_dispatched'];\nswitch (req.action) {\n  case 'upsert_producer':\n    if (!only('admin', 'manager')) return bad('Only a manager or admin can add or change producers.', 403);\n    if (!p.producer || typeof p.producer !== 'object') return bad('Producer details are required.');\n    return ok('flow_mv_upsert_producer', { p: p.producer, p_actor: actor }, 'Producer saved.');\n  case 'set_rate':\n    if (!only('admin', 'manager')) return bad('Only a manager or admin can change a rate card.', 403);\n    if (!p.producer_id) return bad('Choose a producer.');\n    return ok('flow_mv_set_rate', { p_producer: p.producer_id, p_method: s(p.method), p_basis: s(p.basis), p_unit_price: Number(p.unit_price), p_setup_fee: Number(p.setup_fee || 0), p_min_job: Number(p.min_job_charge || 0), p_notes: s(p.notes) || null, p_actor: actor }, 'Rate saved. The producer selection engine will use it from the next recommendation.');\n  case 'create_movement':\n    if (!only(...FLOOR, 'production')) return bad('Your role cannot create producer movements.', 403);\n    if (!p.producer_id) return bad('Choose a producer.');\n    if (!Array.isArray(p.items) || !p.items.length) return bad('Choose at least one line to send.');\n    return ok('flow_create_outbound_movement', { p_producer: p.producer_id, p_items: p.items.map((i) => ({ order_line_id: i.order_line_id, qty: Number(i.qty) })), p_actor: actor, p_type: s(p.type) || 'outbound_to_producer', p_carrier: s(p.carrier) || null, p_notes: s(p.notes) || null }, 'Consignment created. Pick it, pack it and print its labels next.');\n  case 'scan': {\n    if (!s(p.code) || !s(p.event)) return bad('A movement and an event are required.');\n    const ev = s(p.event);\n    if (PRODUCER_SIDE.includes(ev)) { if (!only(...FLOOR, 'production')) return bad('Your role cannot record producer steps.', 403); }\n    else if (!only(...FLOOR)) return bad('Your role cannot pick, pack or dispatch consignments.', 403);\n    const payload = Object.assign({}, p.payload || {});\n    if (PRODUCER_SIDE.includes(ev) && !s(payload.note)) payload.note = 'Recorded by ' + role + ' on the producer’s behalf';\n    return ok('flow_tp_scan', { p_movement: s(p.code), p_event: ev, p_actor: actor, p_payload: payload }, 'Recorded.');\n  }\n  case 'record_return':\n    if (!only(...FLOOR)) return bad('Your role cannot book a return in.', 403);\n    if (!s(p.code) || !Array.isArray(p.items) || !p.items.length) return bad('Enter what came back.');\n    return ok('flow_tp_record_return', { p_movement: s(p.code), p_items: p.items, p_actor: actor, p_payload: p.payload || {} }, 'Return recorded. Any shortage is now tracked as a discrepancy.');\n  case 'check_return':\n    if (!only(...FLOOR)) return bad('Your role cannot check returned goods.', 403);\n    if (!s(p.code) || !Array.isArray(p.items) || !p.items.length) return bad('Enter the check result.');\n    return ok('flow_tp_check_return', { p_movement: s(p.code), p_items: p.items, p_actor: actor, p_payload: p.payload || {} }, 'Check recorded.');\n  case 'direct_dispatch':\n    if (!only(...FLOOR)) return bad('Your role cannot confirm direct dispatch.', 403);\n    return ok('flow_tp_direct_dispatch', { p_movement: s(p.code), p_tracking: s(p.tracking), p_carrier: s(p.carrier), p_pod: p.pod || {}, p_actor: actor }, 'Direct dispatch recorded.');\n  case 'resolve_discrepancy':\n    if (!only('admin', 'manager')) return bad('Only a manager or admin can resolve a producer discrepancy.', 403);\n    if (!p.id || s(p.note).length < 3) return bad('A resolution and a note are required.');\n    return ok('flow_tp_resolve_discrepancy', { p_id: p.id, p_resolution: s(p.resolution), p_note: s(p.note), p_actor: actor }, 'Discrepancy resolved.');\n  case 'cancel_movement':\n    if (!only(...FLOOR)) return bad('Your role cannot cancel a consignment.', 403);\n    return ok('flow_mv_cancel_movement', { p_movement: s(p.code), p_actor: actor, p_reason: s(p.reason) }, 'Consignment cancelled. The units are free to send again.');\n  default:\n    return bad('Unknown action.');\n}\n"
+      }
+    },
+    {
+      "id": "13786040-2ced-4664-908d-257707c430fe",
+      "name": "Valid request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "f858fcad-80a5-4da9-b645-ae74ec76e605",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "db98f266-e985-46cc-89d0-969e718604fc",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify(Object.assign({}, $json, { note: $(\"Choose database action\").first().json.note })) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "882ead80-cfd7-432b-ba83-f64947186233",
+      "name": "Respond: refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      }
+    },
+    {
+      "id": "c8337626-f383-4264-a6f8-8a5b3216badd",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: movement action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Valid request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid request?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 120
+  }
+}

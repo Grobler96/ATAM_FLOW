@@ -1,0 +1,269 @@
+{
+  "id": "lALM3G47uOizvD9t",
+  "name": "ATAM_FLOW · Verify caller",
+  "active": true,
+  "description": "Shared sub-workflow: verifies Supabase login and ATAM_FLOW role for dashboard-triggered webhooks.",
+  "nodes": [
+    {
+      "id": "a831420e-f2ae-47b9-baed-d6c4bec5b598",
+      "name": "Called by ATAM_FLOW workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "authHeader",
+              "type": "string"
+            },
+            {
+              "name": "allowedRoles",
+              "type": "array"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f0473781-f01c-4e71-adae-5443aa686dc2",
+      "name": "Verify Supabase login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://aobosyvlhgkxhjxkfzlz.supabase.co/auth/v1/user",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $json.authHeader }}"
+            },
+            {
+              "name": "apikey",
+              "value": "sb_publishable_4Ii8Z8bGgQ5OrSKB2at_GA_GubBsWC1"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c13f3f09-bfc7-4c52-92ce-818ed465cbf7",
+      "name": "Is signed in?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id ?? \"\" }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2539673d-23c5-4d7c-a7c3-31d167be0ca4",
+      "name": "Look up ATAM_FLOW role",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/flow_caller_role",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_user: $json.id }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "c7745e17-2043-4012-87cd-9bf911472f31",
+      "name": "Decide access",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        -100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "role",
+              "type": "string",
+              "value": "={{ $json.role ?? $json.data ?? \"\" }}"
+            },
+            {
+              "id": "a2",
+              "name": "userId",
+              "type": "string",
+              "value": "={{ $(\"Verify Supabase login\").item.json.id }}"
+            },
+            {
+              "id": "a3",
+              "name": "allowed",
+              "type": "boolean",
+              "value": "={{ $(\"Called by ATAM_FLOW workflow\").item.json.allowedRoles.includes($json.role ?? $json.data ?? \"\") }}"
+            },
+            {
+              "id": "a4",
+              "name": "reason",
+              "type": "string",
+              "value": "={{ $(\"Called by ATAM_FLOW workflow\").item.json.allowedRoles.includes($json.role ?? $json.data ?? \"\") ? \"ok\" : \"no ATAM_FLOW role or role not permitted for this action\" }}"
+            }
+          ]
+        },
+        "mode": "manual",
+        "options": {}
+      }
+    },
+    {
+      "id": "6ef300b4-f931-4f55-a4a4-dfc8383c5461",
+      "name": "Deny: not signed in",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "role",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "userId",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "allowed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "d4",
+              "name": "reason",
+              "value": "missing or invalid login token",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Called by ATAM_FLOW workflow": {
+      "main": [
+        [
+          {
+            "node": "Verify Supabase login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Supabase login": {
+      "main": [
+        [
+          {
+            "node": "Is signed in?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is signed in?": {
+      "main": [
+        [
+          {
+            "node": "Look up ATAM_FLOW role",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Deny: not signed in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look up ATAM_FLOW role": {
+      "main": [
+        [
+          {
+            "node": "Decide access",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  }
+}

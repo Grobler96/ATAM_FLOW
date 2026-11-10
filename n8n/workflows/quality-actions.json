@@ -1,0 +1,322 @@
+{
+  "id": "5gw5MwH9CIgDFtdw",
+  "name": "ATAM_FLOW · Quality actions",
+  "active": true,
+  "description": "Dashboard quality actions: record QC checks, open and progress rework jobs, track replacements, manage the checklist. Role-checked, audited. Unpublished.",
+  "nodes": [
+    {
+      "id": "a734a9cc-a21c-4b95-8958-185668049e76",
+      "name": "Dashboard: quality action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/quality",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "7e3ae609-5971-4c4d-b397-ffe8a0d6d625"
+    },
+    {
+      "id": "4b2f084c-3bf9-4ac0-9997-e708f736cc54",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"production\", \"warehouse\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ab4013bb-b1fe-485a-a25f-42529c42dcd3",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "4700f705-9490-4c2c-a79a-5832fce11b15",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: quality action').first().json.body || {};\nconst p = req.params || {};\nconst who = $('Verify caller').first().json;\nconst role = who.role;\nconst actor = 'dashboard:' + who.userId;\nconst senior = ['admin', 'manager'].includes(role);\nconst bad = (error, code = 400) => [{ json: { valid: false, code, error } }];\nconst ok = (rpc, body, note) => [{ json: { valid: true, rpc, body, note } }];\nconst s = (v) => String(v == null ? '' : v).trim();\nconst num = (v) => (s(v) === '' ? null : Number(v));\nswitch (req.action) {\n  case 'record_check':\n    if (!p.check_id && !p.order_id) return bad('Choose an order, or the pending check you are completing.');\n    return ok('flow_qc_record_check', { p_check: p.check_id || null, p_order: p.order_id || null, p_gate: s(p.gate) || null, p_checked: num(p.units_checked), p_failed: num(p.units_failed) ?? 0, p_results: Array.isArray(p.results) ? p.results : [], p_defect: s(p.defect_type) || null, p_cause: s(p.cause) || null, p_notes: s(p.notes) || null, p_evidence: Array.isArray(p.evidence) ? p.evidence : [], p_line: p.order_line_id || null, p_movement: s(p.movement) || null, p_checkpoint: num(p.checkpoint_pct), p_actor: actor }, 'Check recorded.');\n  case 'open_rework':\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_qc_open_rework', { p_order: p.order_id, p_line: p.order_line_id || null, p_units: num(p.units), p_defect: s(p.defect_type), p_cause: s(p.cause), p_outcome: s(p.outcome) || 'redo', p_movement: s(p.movement) || null, p_notes: s(p.notes) || null, p_actor: actor }, 'Rework job opened.');\n  case 'rework':\n    if (!p.id) return bad('Choose a rework job.');\n    if (!['start', 'assign', 'complete', 'cancel', 'replacement'].includes(s(p.step))) return bad('Unknown rework step.');\n    if (s(p.step) === 'replacement' && s(p.payload && p.payload.status) === 'not_needed' && !senior) return bad('Only a manager or admin can decide that no replacement is needed.', 403);\n    if (s(p.step) === 'complete' && p.payload && p.payload.no_replacement && !senior) return bad('Only a manager or admin can decide that scrapped units need no replacement.', 403);\n    return ok('flow_qc_rework_update', { p_id: p.id, p_action: s(p.step), p_payload: p.payload || {}, p_actor: actor }, 'Rework updated.');\n  case 'set_criterion':\n    if (!senior) return bad('Only a manager or admin can change the quality checklist.', 403);\n    return ok('flow_qc_criterion_save', { p: { id: p.id || null, method: s(p.method) || null, name: s(p.name), description: s(p.description) || null, gates: Array.isArray(p.gates) ? p.gates : [], required: p.required !== false, critical: p.critical === true, needs_photo: p.needs_photo === true, active: p.active !== false, sort_order: p.sort_order == null ? null : p.sort_order }, p_actor: actor }, 'Checklist updated.');\n  case 'confirm_checklist':\n    if (!senior) return bad('Only a manager or admin can confirm the quality checklist.', 403);\n    return ok('flow_qc_confirm_checklist', { p_note: s(p.note) || null, p_actor: actor }, 'Checklist confirmed.');\n  default:\n    return bad('Unknown action.');\n}\n"
+      }
+    },
+    {
+      "id": "54dd48fd-fc33-462d-988e-3b1edbf799cd",
+      "name": "Valid request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "19bfe054-039b-48a5-84b8-8e69ffacd49e",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "58fd5493-28f9-4edd-8a69-e6b26148aa62",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify(Object.assign({}, $json, { note: $(\"Choose database action\").first().json.note })) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "b8dbea9f-87b1-4c08-8232-e81d9c5bc830",
+      "name": "Respond: refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      }
+    },
+    {
+      "id": "ea0774be-81a5-49ec-b441-858c9dd1ed7b",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: quality action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Valid request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid request?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 120
+  }
+}

@@ -1,0 +1,412 @@
+{
+  "id": "ZPEjWqfNDOqpDPCo",
+  "name": "ATAM_FLOW · Exception detector and escalation",
+  "active": true,
+  "description": "Every 30 minutes (and on demand from the dashboard): checks stock, POs, artwork, producers, orders, syncs and data integrity, raises and auto-resolves exceptions, escalates overdue ones. Unpublished.",
+  "nodes": [
+    {
+      "id": "6a50ac8e-6eaa-4d86-a732-8a1dda555bcd",
+      "name": "Every 30 minutes (:05 and :35)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        288
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5,35 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32a85baa-77e9-4e90-92ce-220e8bb2e3f0",
+      "name": "Detect exceptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/flow_exceptions_detect_all",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "1a8823fb-ed27-4c41-abee-479b378c1c33",
+      "name": "Dashboard: run exception check",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/run-exceptions",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "d1496604-c3b0-40b2-b24e-585a304330cf"
+    },
+    {
+      "id": "2181035e-8922-467e-b895-819b5a36f4ac",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"warehouse\", \"production\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f71efc22-3450-49b3-8098-ff155cd7f462",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "6ed1db55-0c62-49d8-ba2d-a3178f0ae616",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    },
+    {
+      "id": "a0651da7-bccc-4942-8c71-05d1d60f3669",
+      "name": "Escalate overdue exceptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "contentType": "json",
+        "jsonBody": "{}",
+        "method": "POST",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/flow_exceptions_escalate"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "2ea1c393-6a57-46e1-a550-0f13ce805c2c",
+      "name": "All detectors ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Detect exceptions\").first().json.ok }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          }
+        }
+      }
+    },
+    {
+      "id": "b5e97fdb-b659-4888-8082-291cbc8ea3c0",
+      "name": "Called from dashboard?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1680,
+        -100
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Dashboard: run exception check\").isExecuted }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          }
+        }
+      }
+    },
+    {
+      "id": "7c7a601e-5529-41ab-b630-560523b000c6",
+      "name": "Respond with summary",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1920,
+        -200
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, detection: $(\"Detect exceptions\").first().json, escalation: $json }) }}"
+      }
+    },
+    {
+      "id": "d2326843-ef1c-4e45-80dc-5e55d77d98bb",
+      "name": "Fail loudly (alerts Daniel and Oliver)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        150
+      ],
+      "parameters": {
+        "errorMessage": "=ATAM_FLOW exception check: a detector failed. {{ JSON.stringify($(\"Detect exceptions\").first().json.detectors.filter(d => d.error)) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 minutes (:05 and :35)": {
+      "main": [
+        [
+          {
+            "node": "Detect exceptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard: run exception check": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Detect exceptions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect exceptions": {
+      "main": [
+        [
+          {
+            "node": "Escalate overdue exceptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate overdue exceptions": {
+      "main": [
+        [
+          {
+            "node": "All detectors ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All detectors ok?": {
+      "main": [
+        [
+          {
+            "node": "Called from dashboard?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fail loudly (alerts Daniel and Oliver)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Called from dashboard?": {
+      "main": [
+        [
+          {
+            "node": "Respond with summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 300
+  }
+}
