@@ -31,7 +31,6 @@
 
 ## Deployment steps that need a human
 
-- ~~Apply migrations to the live project~~ Done 4 Nov 2026 (migrations 1-7; syncs verified idempotent on live data).
-- Add `flow` to **Exposed schemas** (Supabase → Settings → API) before the dashboard (Phase 4). Not needed for n8n: it uses `public.flow_*` wrappers.
-- Decide roles for the non-superuser ATAM GO users (only superusers are seeded as admins).
-- Apply `supabase/pending/*` (contain delete/drop statements, so Supabase asks for an interactive confirmation).
+- ~~Apply migrations to the live project~~ Done. Migrations 1-61 are applied and match the repo (checked 10 Nov 2026). A new migration is applied only with the owner's go-ahead; see [handoff.md](handoff.md).
+- ~~Add `flow` to Exposed schemas~~ Not needed, and deliberately not done: the staff app reads only `public.ui_*` views and writes go through n8n into `public.flow_*` functions, so the `flow` schema stays unexposed (see [security-audit-2026-11.md](security-audit-2026-11.md)).
+- Decide roles for the staff logins. All 10 accounts are admin today; see [launch-checklist.md](launch-checklist.md).
