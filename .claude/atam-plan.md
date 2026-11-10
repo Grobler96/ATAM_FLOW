@@ -28,11 +28,11 @@ The tasks below fix these in that order: safety nets first, then docs, then miss
 - [x] Rewrite the README status line and layout table to match today (live, third-party launch, portal, 61 migrations) and link `docs/handoff.md` and `docs/launch-checklist.md`
 - [x] Bring `docs/launch-checklist.md` up to date: move the decorator portal and other finished items out of "Not built", re-date it, and keep one clear "Needs you before real use" list
 - [x] Tidy `docs/assumptions-and-open-questions.md`: remove the finished deployment steps and the reference to `supabase/pending/`, which no longer exists
-- [ ] Purchasing screen: add "Approve" with a required reason to the PO drawer, showing why a PO needs approval and who may approve it (uses the existing migration 58 functions)
-- [ ] Purchasing screen: add invoice entry and matching to the PO drawer, showing matched, over and under amounts against the tolerance
-- [ ] Settings page: show the purchasing rules (approval limit, tolerances) and the scheduled-chasing switch, with chasing visibly disabled and the reason "no emails yet"
-- [ ] Add e2e coverage and screenshots for the new purchasing approval and invoice screens
-- [ ] Update `docs/purchasing.md` and `docs/handoff.md` to say the purchasing screens now exist
+- [x] Purchasing screen: add "Approve" with a required reason to the PO drawer, showing why a PO needs approval and who may approve it (uses the existing migration 58 functions) (built: the reason is asked for only when the database requires one, that is an admin approving a PO they created; every approval shows the rules)
+- [x] Purchasing screen: add invoice entry and matching to the PO drawer, showing matched, over and under amounts against the tolerance
+- [x] Settings page: show the purchasing rules (approval limit, tolerances) and the scheduled-chasing switch, with chasing visibly disabled and the reason "no emails yet"
+- [x] Add e2e coverage and screenshots for the new purchasing approval and invoice screens
+- [x] Update `docs/purchasing.md` and `docs/handoff.md` to say the purchasing screens now exist
 - [ ] Holding pen screen: a read-only list of orders in the pen with the reason each is held, linked from the sidebar and from the order drawer
 - [ ] Add e2e coverage for the holding pen screen and note it in `docs/scope-control.md`
 - [ ] Show a visible warning on any table that reaches the 5,000-row load limit, so a cut-off list is never mistaken for a complete one
