@@ -7,6 +7,7 @@
 - **Reads** only `public.ui_*` views and three functions (`ui_search`, `ui_activity`, `ui_order_history`), all applying the signed-in person's own access (migrations 22-25). Anonymous users and people with no ATAM_FLOW role get nothing.
 - **Acts** only through n8n webhooks, which re-check the login and role on every call: sync-orders, sync-stock, sync-purchase-orders, run-allocation, run-scheduler, run-exceptions, exceptions, purchasing, selection, production.
 - One shared data cache (`data/store.ts`): each view is fetched once, shared by every screen, refreshed every minute while visible, and a failed refresh keeps the last good data.
+- **Cut-off lists are never silent.** Every view is loaded with a row limit (5,000 by default; the stock movements on a SKU use 2,000). If a list reaches its limit, a red **Not everything is shown** banner appears above the page naming the list and how many rows it holds, and says counts and totals may be too low. A big list (1,000 rows or more) that did not reach the limit gets one extra count request, to catch the API returning fewer rows than exist (a server-side maximum). The banner goes away when the list is no longer on screen. Code: `data/cutoff.ts` (rules, with unit tests), `data/store.ts`, `components/CutOffBanner.tsx`. Not done: loading the rest of a cut-off list (there is no page-by-page loading: paging needs a stable order, and the views do not guarantee one); a list that is cut off is warned about, not completed.
 
 ## Design system (`src/design`, `src/ui`)
 

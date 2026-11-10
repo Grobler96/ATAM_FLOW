@@ -98,10 +98,12 @@ const purchasingReply = (body, st) => {
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 1440, height: 900 }, deviceScaleFactor: o.dsf || 1, acceptDownloads: true });
   if (!o.focusDefault) await ctx.addInitScript(() => { try { if (localStorage.getItem('atamflow.focus') === null) localStorage.setItem('atamflow.focus', 'off'); } catch { /* none */ } });   // older checks look at every order
-  const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200))); const st = { role: o.role ?? 'manager', uploads: [], signs: [], removed: [], n8n: [], n8nStatus: o.n8nStatus ?? 200, badLogin: o.badLogin ?? false, approve: o.approve ?? null, views: o.views ?? {}, exStatus: o.exStatus === undefined ? new Date(Date.now() - 600000).toISOString() : o.exStatus };
+  const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200))); const st = { role: o.role ?? 'manager', uploads: [], signs: [], removed: [], n8n: [], n8nStatus: o.n8nStatus ?? 200, badLogin: o.badLogin ?? false, approve: o.approve ?? null, views: o.views ?? {}, counts: o.counts ?? {}, exStatus: o.exStatus === undefined ? new Date(Date.now() - 600000).toISOString() : o.exStatus };
   await page.route(`${SB}/**`, async (route) => {
     const req = route.request(), u = new URL(req.url()); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const json = (b, s = 200) => route.fulfill({ status: s, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(b) });
+    // A count request (what the app sends to find out whether a big list was cut short by the server): answer with the total, or the list's own length.
+    if (req.method() === 'HEAD') { const hv = u.pathname.match(/\/rest\/v1\/(\w+)/)?.[1] ?? ''; return route.fulfill({ status: 200, headers: { ...cors, 'access-control-expose-headers': 'content-range', 'content-range': `*/${st.counts[hv] ?? (st.views[hv] ?? VIEWS[hv] ?? []).length}` }, body: '' }); }
     if (u.pathname.startsWith('/auth/v1/token')) return st.badLogin ? json({ error: 'invalid_grant', error_description: 'Invalid login credentials' }, 400) : json(session);
     if (u.pathname.startsWith('/auth/v1/user')) return json(session.user); if (u.pathname.startsWith('/auth/v1/logout')) return route.fulfill({ status: 204, headers: cors });
     if (u.pathname.startsWith('/storage/v1/')) {
@@ -476,6 +478,18 @@ try {
       await goto(pn, '#/orders/700103'); await pn.getByRole('dialog').waitFor(); ok((await pn.getByText('In the holding pen.').count()) === 0, 'an order that is not in the pen shows no pen notice'); await cn.close(); }
     { const { page: pe, ctx: ce } = await newPage(browser, { role: 'viewer', views: { ui_pen: [], ui_pen_log: [] } }); await signIn(pe); await goto(pe, '#/pen'); await pe.getByRole('heading', { name: 'Holding pen', exact: true }).waitFor();
       ok((await pe.getByText('The holding pen is empty').count()) === 1 && (await pe.getByText('Nothing is being held back.').count()) === 1 && (await pe.getByText('No orders have entered or left the pen yet.').count()) === 1, 'an empty pen says so, for a view-only login too'); await ce.close(); } }
+
+  console.log('cut-off lists');
+  { const many = (n) => Array.from({ length: n }, (_, i) => ({ ...F.stockMoves[0], id: 1000 + i }));
+    { const { page: pc, ctx: cc } = await newPage(browser, { role: 'manager', views: { ui_labels: Array.from({ length: 5000 }, (_, i) => ({ ...WL[0], id: 'l' + i, label_code: 'ORD-' + (700000 + i) })) } }); await signIn(pc); await goto(pc, '#/labels'); await pc.getByRole('heading', { name: 'Labels', exact: true }).waitFor();
+      await pc.getByText('Not everything is shown.').waitFor(); ok((await pc.getByText(/Labels \(first 5,000 rows\)/).count()) === 1 && (await pc.getByText(/counts and totals here may be too low/).count()) === 1, 'a list that reached its row limit says it is cut off, and what that means for counts'); await settle(pc); await shot(pc, '23-cut-off-list');
+      await goto(pc, '#/orders'); await pc.waitForSelector('.dt-row'); await pc.waitForTimeout(400); ok((await pc.getByText('Not everything is shown.').count()) === 0, 'the warning goes away when the cut-off list is no longer on screen'); await cc.close(); }
+    { const { page: p2, ctx: c2 } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(2000) } }); await signIn(p2); await goto(p2, '#/stock/SKU-3-M'); await p2.getByText('Not everything is shown.').waitFor();
+      ok((await p2.getByText(/Stock movements \(first 2,000 rows\)/).count()) === 1, 'a list loaded with a smaller limit is cut off at that limit'); await c2.close(); }
+    { const { page: pd, ctx: cd } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(1000) }, counts: { ui_stock_movements: 1450 } }); await signIn(pd); await goto(pd, '#/stock/SKU-3-M'); await pd.getByText('Not everything is shown.').waitFor();
+      ok((await pd.getByText(/Stock movements \(first 1,000 rows\)/).count()) === 1, 'a list the server cut short (fewer rows than exist) is caught by a count'); await cd.close(); }
+    { const { page: pf, ctx: cf } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(1000) }, counts: { ui_stock_movements: 1000 } }); await signIn(pf); await goto(pf, '#/stock/SKU-3-M'); await pf.getByRole('dialog').waitFor(); await pf.waitForTimeout(800);
+      ok((await pf.getByText('Not everything is shown.').count()) === 0, 'a big list that is complete shows no warning'); await cf.close(); } }
 
   console.log('roles, offline, mobile');
   { const { page: pv, ctx: cv } = await newPage(browser, { role: 'viewer' }); await signIn(pv); await pv.getByRole('button', { name: /Quick actions/ }).click(); ok(await pv.getByRole('menuitem', { name: /Allocate stock/ }).isDisabled(), 'viewers cannot run workflows'); await cv.close(); }

@@ -35,7 +35,7 @@ The tasks below fix these in that order: safety nets first, then docs, then miss
 - [x] Update `docs/purchasing.md` and `docs/handoff.md` to say the purchasing screens now exist
 - [x] Holding pen screen: a read-only list of orders in the pen with the reason each is held, linked from the sidebar and from the order drawer
 - [x] Add e2e coverage for the holding pen screen and note it in `docs/scope-control.md`
-- [ ] Show a visible warning on any table that reaches the 5,000-row load limit, so a cut-off list is never mistaken for a complete one
+- [x] Show a visible warning on any table that reaches the 5,000-row load limit, so a cut-off list is never mistaken for a complete one
 - [ ] Migration 62 with a test: cap how many files and how much total size a decorator can upload per job (repo only, not applied live)
 - [ ] Migration 63 with a test: add audit-trail triggers to the set-up tables that can still be written directly (machines, bins, settings, producers, suppliers, roles) (repo only, not applied live)
 - [ ] Quality page: allow a photo to be uploaded from the device for a QC check instead of a link only, stored in the existing evidence bucket with a test
