@@ -39,5 +39,5 @@ Longer term the cleaner design is one of: decorators in their own Supabase proje
 - **n8n workflows are not in the repo** (`n8n/workflows` is empty). If one is damaged there is only n8n's own version history to recover from.
 - **Webhooks are open to the internet** and each call, even a refused one, uses an n8n execution and a Supabase check. Someone could burn the n8n quota by hammering them. No rate limit exists.
 - **Admins and managers can still write some set-up tables directly** (machines, bins, settings, producers, suppliers, roles) through database rules that pre-date the "all writes go through n8n" pattern. Those writes skip the audit trail.
-- **Decorators can upload unlimited files** (10 MB each) into their own folder.
+- **Decorators can upload unlimited files** (10 MB each) into their own folder. *Fix written, not live:* migration 62 limits a job's folder to 40 files and 250 MB (placeholders); see [producer-portal.md](producer-portal.md).
 - **Other app, not ours to change:** supplier stock tables are readable signed-out (looks deliberate); several of its tables grant write rights that only row level security holds back.

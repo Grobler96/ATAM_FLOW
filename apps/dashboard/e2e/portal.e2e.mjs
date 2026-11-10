@@ -15,7 +15,7 @@ const session = { access_token: 'tok', refresh_token: 'ref', expires_in: 3600, e
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 420, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200)));
-  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [] };
+  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [], uploadRefused: false };
   if (!o.signedOut) await page.addInitScript((s) => localStorage.setItem('atam-portal-auth', JSON.stringify(s)), session);
   const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: false, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
   await page.route(`${SB}/**`, async (route) => {
@@ -26,6 +26,7 @@ async function newPage(browser, o = {}) {
     if (u.pathname.startsWith('/auth/v1/logout')) return route.fulfill({ status: 204, headers: cors });
     if (u.pathname.includes('/storage/v1/object/sign') && req.method() === 'GET') return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/octet-stream', 'content-disposition': 'attachment; filename="left-chest-v2.dst"' }, body: 'DST-DATA' });
     if (u.pathname.includes('/storage/v1/object/sign')) { st.signs.push(u.pathname); return json({ signedURL: '/object/sign/producer-evidence/x.jpg?token=t' }); }
+    if (u.pathname.includes('/storage/v1/object/') && req.method() === 'POST' && st.uploadRefused) return route.fulfill({ status: 403, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy' }) });
     if (u.pathname.includes('/storage/v1/object/') && req.method() === 'POST') { st.uploads.push(u.pathname); return json({ Key: 'producer-evidence/x' }); }
     const rpc = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/);
     if (rpc) {
@@ -106,6 +107,13 @@ try {
   const sp = st.calls.find((c) => c.fn === 'portal_report_spoilage');
   ok(sp && sp.body.p_code === 'TP-2026-00007' && sp.body.p_item === 'i1' && sp.body.p_qty === 2 && sp.body.p_what === 'stained' && sp.body.p_evidence === null, 'the report names the job, line, units and what happened');
   ok((await page.getByText('With ATAM to review').count()) === 1, 'the decorator sees their report and where it stands');
+  // the upload limit: a refused photo is explained in plain words, not as a database message, and nothing is sent without it
+  { st.uploadRefused = true; const before = st.calls.filter((c) => c.fn === 'portal_report_spoilage').length;
+    await page.getByRole('button', { name: 'Report spoiled units' }).click(); await page.getByLabel('Units spoiled').fill('1'); await page.getByLabel('What happened').selectOption('stained'); await page.getByLabel('Spoilage note').fill('One more stained shirt');
+    await page.getByLabel('Photo (optional)').setInputFiles({ name: 'more.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fakejpeg3') }); await page.getByRole('button', { name: 'Send report' }).click();
+    await page.getByText(/this job may already hold as many files as ATAM allows/).waitFor();
+    ok((await page.getByText(/row-level security/).count()) === 0 && st.calls.filter((c) => c.fn === 'portal_report_spoilage').length === before, 'a photo refused by the upload limit is explained in plain words and the report is not sent without it');
+    st.uploadRefused = false; await page.getByRole('button', { name: 'Cancel' }).first().click().catch(() => {}); }
   await page.getByRole('button', { name: 'Start production' }).click(); await page.getByRole('button', { name: 'Production is complete' }).waitFor();
   await page.getByRole('button', { name: 'Report a delay' }).click(); ok(await page.getByRole('region', { name: 'What to do next' }).getByRole('button', { name: 'Send', exact: true }).isDisabled(), 'a delay needs a date and a reason'); await page.getByRole('button', { name: 'Cancel' }).click();
   await page.getByRole('button', { name: 'Production is complete' }).click(); await page.getByRole('button', { name: /Send the goods back/ }).waitFor();
