@@ -29,7 +29,6 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/dashboard } }
-    env: { SHOTS: '${{ runner.temp }}/e2e-shots' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,6 +37,7 @@ jobs:
       - run: npm run build
       - run: npm install --no-save --no-audit --no-fund playwright@1.63.0
       - run: npx playwright install --with-deps chromium
+      - run: echo "SHOTS=$RUNNER_TEMP/e2e-shots" >> "$GITHUB_ENV"   # the runner context is not allowed in a job-level env
       - run: npm run e2e
       - run: npm run e2e:portal
       - uses: actions/upload-artifact@v4
