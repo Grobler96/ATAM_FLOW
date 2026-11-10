@@ -24,6 +24,25 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+  # Real-browser checks of the staff app and the decorator portal, with Supabase and n8n fully mocked.
+  # Playwright is installed here, not in package.json, so the shipped app gains no dependency.
+  e2e:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/dashboard } }
+    env: { SHOTS: '${{ runner.temp }}/e2e-shots' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: apps/dashboard/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: npm install --no-save --no-audit --no-fund playwright@1.63.0
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - run: npm run e2e:portal
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: e2e-screenshots, path: '${{ runner.temp }}/e2e-shots', if-no-files-found: ignore }
   database:
     runs-on: ubuntu-24.04
     steps:
