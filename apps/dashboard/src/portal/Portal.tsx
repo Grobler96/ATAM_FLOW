@@ -129,6 +129,9 @@ function JobCard({ code, me }: { code: string; me: Me }) {
       <div className="row wrap" style={{ gap: 10 }}><h1 style={{ margin: 0 }} className="mono">{job.code}</h1><Pill s={job.state} /></div>
       <div className="dim">Sent {fmtDate(job.dispatch_date)} · due back {fmtDate(job.expected_return_date)}{job.tracking_in ? ` · tracking in: ${job.carrier_in ?? ''} ${job.tracking_in}` : ''}</div>
       {job.instructions && <div className="callout" role="note"><b>Instructions for your work</b><div>{job.instructions}</div></div>}
+      {job.direct_to_customer && job.ship_to && job.ship_to.length > 0 && <section className="callout" role="note" aria-label="Where to send it" data-testid="ship-to"><b>Where to send it</b>
+        <p className="muted" style={{ margin: '2px 0 6px' }}>This job goes straight to the customer. Do not send it back to ATAM.</p>
+        {job.ship_to.map((t) => <div key={t.order_ref} style={{ marginBottom: 8 }}><div><b>{t.order_ref}</b>{t.customer ? ` · ${t.customer}` : ''}</div>{t.address ? <div style={{ whiteSpace: 'pre-line' }}>{t.address}</div> : <div className="warn">We do not have a delivery address for this one yet. Message us before you ship it.</div>}{t.shipping_method && <div className="dim">Delivery method: {t.shipping_method}</div>}</div>)}</section>}
       {job.declined_reason && <div className="callout" role="status">You declined this job: {job.declined_reason}. Message us if that has changed.</div>}
       <Items items={job.items} />
       <JobPack code={job.code} />
@@ -186,6 +189,22 @@ function Items({ items }: { items: PortalItem[] }) {
   );
 }
 
+// Direct jobs go to the customer without passing through us, so a photo of the finished goods is required before the job can be marked complete.
+function FinishedPhoto({ job, me, onDone }: { job: PortalJob; me: Me; onDone: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const have = job.evidence.filter((e) => e.kind === 'finished').length;
+  async function add(files: FileList | null) {
+    const f = files?.[0]; if (!f) return; setBusy(true); setErr(null);
+    const path = `${me.producer_id}/${job.code}/${Date.now()}-finished-${f.name.replace(/[^\w.-]+/g, '_')}`;
+    const up = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type });
+    if (up.error) { setBusy(false); setErr(`The photo did not upload: ${uploadProblem(up.error.message)}. Try again.`); return; }
+    const r = await rpc('portal_evidence_add', { p_code: job.code, p_item: null, p_path: path, p_kind: 'finished', p_caption: 'Finished goods' });
+    setBusy(false); if (!r.ok) { setErr(r.error ?? 'The photo was not saved.'); return; } await onDone();
+  }
+  return (<div className="stack" style={{ gap: 6 }} data-testid="finished-photo">
+    <label className="stack" style={{ gap: 4 }}><span>Photo of the finished goods (needed before you can mark this job complete)</span><input type="file" accept="image/*" capture="environment" disabled={busy} onChange={(e) => void add(e.target.files)} /></label>
+    {have > 0 && <p className="good" role="status">{have} finished goods photo{have === 1 ? '' : 's'} added.</p>}{err && <Err m={err} />}</div>);
+}
+
 function Actions({ job, me, onDone }: { job: PortalJob; me: Me; onDone: () => Promise<void> }) {
   const [mode, setMode] = useState<null | 'decline' | 'checkin' | 'delay' | 'ship'>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [note, setNote] = useState(''); const [date, setDate] = useState('');
   async function run(fn: string, args: Record<string, unknown>, after?: () => void) { setBusy(true); setErr(null); const r = await rpc(fn, args); setBusy(false); if (!r.ok) { setErr(r.error ?? 'That did not work.'); return false; } setMode(null); setNote(''); after?.(); await onDone(); return true; }
@@ -198,7 +217,8 @@ function Actions({ job, me, onDone }: { job: PortalJob; me: Me; onDone: () => Pr
       {mode === 'decline' && <div className="stack"><label className="stack" style={{ gap: 4 }}><span>Why can you not take it?</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} /></label><div className="row"><button className="btn primary" disabled={busy || note.trim().length < 5} onClick={() => void run('portal_decline', { p_code: code, p_reason: note })}>Send</button><button className="btn" onClick={() => setMode(null)}>Cancel</button></div></div>}
       {(s === 'to_accept' || s === 'accepted') && mode !== 'decline' && (mode === 'checkin' ? <CheckIn job={job} me={me} onCancel={() => setMode(null)} onDone={async () => { setMode(null); await onDone(); }} /> : <div className="stack" style={{ gap: 6 }}>{s === 'accepted' && <p className="muted">You have accepted this job. When the goods arrive, check them in.</p>}<button className="btn primary" onClick={() => setMode('checkin')}>The goods have arrived: check them in</button></div>)}
       {s === 'checked_in' && mode === null && <div className="row wrap"><button className="btn primary" disabled={busy} onClick={() => void run('portal_stage', { p_code: code, p_stage: 'in_production', p_note: null, p_new_date: null })}>Start production</button><button className="btn" onClick={() => setMode('delay')}>Report a delay</button></div>}
-      {s === 'in_production' && mode === null && <div className="row wrap"><button className="btn primary" disabled={busy} onClick={() => void run('portal_stage', { p_code: code, p_stage: 'production_complete', p_note: null, p_new_date: null })}>Production is complete</button><button className="btn" onClick={() => setMode('delay')}>Report a delay</button></div>}
+      {s === 'in_production' && mode === null && job.direct_to_customer && <FinishedPhoto job={job} me={me} onDone={onDone} />}
+      {s === 'in_production' && mode === null && <div className="row wrap"><button className="btn primary" disabled={busy || (job.direct_to_customer && !job.evidence.some((e) => e.kind === 'finished'))} title={job.direct_to_customer && !job.evidence.some((e) => e.kind === 'finished') ? 'Add a photo of the finished goods first' : ''} onClick={() => void run('portal_stage', { p_code: code, p_stage: 'production_complete', p_note: null, p_new_date: null })}>Production is complete</button><button className="btn" onClick={() => setMode('delay')}>Report a delay</button></div>}
       {s === 'ready_to_ship' && mode === null && <button className="btn primary" onClick={() => setMode('ship')}>{job.direct_to_customer ? 'Record shipping to the customer' : 'Send the goods back to ATAM'}</button>}
       {mode === 'delay' && <div className="stack"><label className="stack" style={{ gap: 4 }}><span>New date you can finish by</span><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label><label className="stack" style={{ gap: 4 }}><span>Why is it delayed?</span><input className="input" value={note} onChange={(e) => setNote(e.target.value)} /></label><div className="row"><button className="btn primary" disabled={busy || !date || note.trim().length < 5} onClick={() => void run('portal_stage', { p_code: code, p_stage: 'delayed', p_note: note, p_new_date: date })}>Send</button><button className="btn" onClick={() => setMode(null)}>Cancel</button></div></div>}
       {mode === 'ship' && <Ship job={job} onCancel={() => setMode(null)} onDone={async () => { setMode(null); await onDone(); }} />}
