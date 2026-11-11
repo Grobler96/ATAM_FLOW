@@ -21,6 +21,8 @@ Built 4 Nov 2026 (migrations 16-17, tested by `supabase/tests/purchasing_test.sq
    replacement received, credit issued, cancelled, accepted or manual. A note is mandatory. The PO closes when nothing is outstanding and nothing is open.
 7. **Escalation** (`supplier_discrepancy_check`): once a discrepancy is past its required-by date, one escalation email is queued and the team is notified. Idempotent.
 
+**Deliver straight to a decorator (11 Nov 2026):** the Create PO dialog now asks where the stock goes: our warehouse (default) or straight to a chosen decorator. Stock delivered to a decorator is booked in against the decorator and never enters warehouse stock. The supplier should be marked as able to deliver to a producer (the dialog warns if not).
+
 ## Communication log
 
 Every outbound message is a row in `flow.communications` (draft / pending_review / approved / sending / sent / failed / cancelled).
