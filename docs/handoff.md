@@ -12,24 +12,34 @@ An internal command centre for an apparel decoration business. It **launches for
 - Dashboard: Vite + React + TypeScript in `apps/dashboard` (`index.html` staff, `portal.html` decorators), deployed to GitHub Pages from `main`. Repo `Grobler96/ATAM_FLOW`.
 
 ## Tests (run all before a PR)
-- `bash scripts/test-db.sh` (local Postgres, every migration, every SQL suite, `permissions_test.sql` guard)
+- CI runs all of these on every pull request: engines, dashboard (unit tests and build), **browser tests (`e2e` job, both suites)**, database, and the n8n export secret check.
+- `bash scripts/test-db.sh` (local Postgres, every migration, every SQL suite, `permissions_test.sql` guard). Some suites (`portal_upload_cap_test.sql`, `qc_evidence_storage_test.sql`) read the real migration file and run it against a stand-in `storage.objects` table, because the local database has no storage schema.
 - `cd packages/engine && node --test`
 - `cd apps/dashboard && npm test && npm run build && npm run e2e && npm run e2e:portal` (rebuild before e2e; run one e2e at a time; the main e2e takes about two minutes, so run it in the background and write its output to a file)
 - e2e runs against a fully mocked Supabase and n8n. **A mock cannot catch a permission problem**; query views as the real role.
 
 ## Live state (migrations 1-61 applied, repo and live match; the API guard from 61 is on, see `docs/security-audit-2026-11.md`)
-Merged to `main` this phase: holding pen, third-party focus view, decorator spoilage reporting, job packs and artwork downloads, scanning (staff and portal), dispatch queue and courier labels, artwork storage and customer proofs, stock-takes, real QC checklists (mechanism only), exception digest and due-soon warnings, purchasing controls (approval rules, invoice matching, draft-only scheduled chasing; **database and n8n actions only, no screens yet**), floor set-up (machines and operator skills), decorator sign-in page redesign, portal hardening (inactivity sign-out enforced in the database, sign-in log, company addresses only).
+**Written, tested locally, NOT applied to the live database (need the owner's go-ahead, see the next section): migrations 62, 63 and 64.** Everything else added in the open pull request is dashboard code and docs, which goes live when the pull request is merged to `main` (the Pages deploy).
+Merged to `main` this phase: holding pen, third-party focus view, decorator spoilage reporting, job packs and artwork downloads, scanning (staff and portal), dispatch queue and courier labels, artwork storage and customer proofs, stock-takes, real QC checklists (mechanism only), exception digest and due-soon warnings, purchasing controls (approval rules, invoice matching, draft-only scheduled chasing; database and n8n actions; **the approval and invoice screens and a read-only rules panel are built in the open pull request, not merged yet**), floor set-up (machines and operator skills), decorator sign-in page redesign, portal hardening (inactivity sign-out enforced in the database, sign-in log, company addresses only).
 
 n8n workflows **published (live)**: Exception detector and escalation (every 30 minutes at :05 and :35, plus the Check now button; in-app only), Sync priority flags (hourly at :25, read-only on DecoNetwork), Operations actions, Movement actions, Exception actions, Quality actions, Warehouse actions, Artwork actions, Producer risk actions (all via webhook behind Verify caller), plus the pre-existing sync and allocation workflows and Verify caller.
 **Left unpublished on purpose**: Purchasing actions and Goods-in processor (n8n will not publish them until the Communications sender is published, and the owner has said no emails yet), Communications sender, the scheduler, daily housekeeping, Machine and Production actions (in-house), supplier actions, selection, artwork download job.
 Gotcha: editing a published workflow creates a draft. **It is not live until you publish again** (check `activeVersionId`).
 Existing live workflow WF3 (`5oK8u0HSPJgrd7pa`, DecoNetwork capture) must not be edited without asking.
 
+## Waiting for the owner's go-ahead (nothing here has been applied or published)
+Built in the open pull request, tested locally, and safe to merge: merging changes the dashboard and docs only, not the live database or n8n.
+1. **Migration 62: decorator upload limit** (`20261110000062_flow_portal_upload_cap.sql`). 40 files and 250 MB per job folder (placeholders in `portal.upload_limits`), team not limited. After applying: upload as the test decorator until the limit and check the next file is refused, and that the portal shows the plain-words message. Storage rules have only been run against a stand-in table.
+2. **Migration 63: audit trail for direct writes** (`20261110000063_flow_config_audit.sql`). Triggers on 16 set-up tables record who changed what in `flow.audit_log` when a logged-in person writes directly. After applying: change a setting or a role as a test admin and look for the `direct_update` row.
+3. **Migration 64: QC photos from a device** (`20261110000064_flow_qc_evidence_storage.sql`). Lets admin, manager, production and warehouse add files under `qc/` in the `producer-evidence` bucket. Until it is applied, the upload in the QC form says it is not allowed and pasted links still work. After applying: record a check with a photo and open it from the Checks tab.
+4. **Publish the Purchasing actions workflow** so the approve and invoice buttons write. It also waits on the Communications sender and your decision about email.
+Apply order does not matter. Migrations sent through the Supabase tool: none of these three contains the words "drop" or "delete from". The next migration is **65** (file prefix `20261110000065_`).
+
 ## Standing rules from the owner
 - Plain-English explanations. Never expose secrets. Ask before anything destructive. Overrides need a reason and an audit record. Unbuilt things must be visibly disabled with a reason, never faked. Report honestly what is and is not done.
 - **No emails yet**: no email sending or notification to decorators or staff. Drafts that wait for review are existing behaviour.
 - Merge a PR **only when asked**; mark drafts ready first. Open a draft PR after pushing and subscribe to it.
-- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **62**, file prefix `20261110000062_`).
+- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **65**, file prefix `20261110000065_`: 62 to 64 are in the repo but not live).
 - No model names in repo artifacts (commits, code, docs).
 - Do not guess the things the owner still has to supply: producers list and rates, who gets which role, supplier emails and offers, machine shift hours, press speeds, QC checklist items, risk weights, the DecoNetwork artwork credential. Supabase settings only the owner can change: portal redirect URL (done), email sender, turning off new sign-ups, link expiry.
 
@@ -43,8 +53,12 @@ Existing live workflow WF3 (`5oK8u0HSPJgrd7pa`, DecoNetwork capture) must not be
 - Audit trail tables are append-only (triggers); do not update them in tests.
 
 ## Known gaps and honest caveats
-- **Purchasing screens not built**: approve with a reason (a PO over the limit needs an admin; creators cannot approve their own PO unless an admin gives a reason), invoice entry and matching on the PO drawer, and the scheduled-chasing switch. Defaults are placeholders in `purchasing.rules` (`approve_over_value` 500, tolerances 2% or 5 pounds, chasing off).
-- QC checklist items are still the 13 placeholder items; nobody has confirmed standards. Photos are links only (no device upload).
+- **Purchasing screens**: approve with a reason, invoice entry and matching on the PO drawer, and a read-only rules panel on Settings are built (see `docs/purchasing.md`). Still not built: changing the rules from a screen and the scheduled-chasing switch (shown off and disabled). Defaults are placeholders in `purchasing.rules` (`approve_over_value` 500, tolerances 2% or 5 pounds, chasing off). The Purchasing actions n8n workflow is still unpublished, so the buttons write nothing until it is published.
+- QC checklist items are still the 13 placeholder items; nobody has confirmed standards. Photos from a device are built but need migration 64; staff QC photos can be pasted links until then (see `docs/quality-rework.md`).
+- **Holding pen**: there is now a read-only screen (sidebar, `#/pen`, see `docs/scope-control.md`). Assigning an owner, adding a note and waiving a problem exist as database functions but have no n8n action, so they cannot be done from the screen.
+- **Cut-off lists** now show a red banner (`docs/ui.md`). Lists are still loaded with a 5,000-row limit and there is no page-by-page loading, so a cut-off list is warned about, not completed.
+- **n8n workflows**: copies of the ten live ones are in `n8n/workflows/` (restore steps in `docs/n8n-workflows.md`). They are a snapshot: re-export after editing a live workflow. The four live data workflows (sync orders, stock, purchase orders, allocation) and all unpublished ones are not copied yet.
+- The `e2e` CI job installs Playwright 1.63.0 in the job (not in `package.json`). The portal browser test overwrites a tracked screenshot (`e2e/shots/portal-job.png`) when it runs; do not commit that change.
 - Live data: no artwork files stored, no SKU has a shelf location, "Own Product Supplied - T-Shirt" shows 999 units (placeholder-like), no ATAM_FLOW purchase orders yet (only 421 DecoNetwork ones). One test decorator ("TEST ACC") exists.
 - Portal: no two-factor sign-in, no unusual-location alerts; the decorator email has a link but no code (editing the template needs a custom SMTP sender, which is project-wide).
 - Escalation emails and digests are in-app only.
@@ -55,6 +69,6 @@ A fresh, adversarial pass over the whole system, because the same session wrote 
 1. **Permissions audit as each real role** (`anon`, `authenticated` staff roles, a portal decorator, `service_role`): query every `ui_*` view, call every `public.*` function, read storage buckets (`artwork`, `producer-evidence`). Look for leaks, views that fail for staff, and functions callable by the wrong role. Compare with `permissions_test.sql`, which only checks some of this.
 2. **Decorator portal threat model**: isolation between decorators, the invite and claim path, the n8n invite flow that creates the sign-in account, storage policies, rate and abuse limits, what a logged-in non-decorator can learn.
 3. **n8n action workflows**: role checks in each "Choose database action" node match the intent; no action lets a lower role do a senior thing; error handling leaks nothing.
-4. **Schema review for things that pass tests but fail for real users**: grants, RLS, security-definer search paths, long-running queries, paging beyond 5,000 rows.
-5. **Migration drift**: live versus repo (they match through 59 today).
+4. **Schema review for things that pass tests but fail for real users**: grants, RLS, security-definer search paths, long-running queries, and what to do about lists that reach the 5,000-row limit (the warning is built; loading more is not).
+5. **Migration drift**: live versus repo (they match through 61 today; 62 to 64 are written but not applied).
 Report findings plainly; do not change the shared Auth settings; fix confirmed defects in small PRs with a test each.

@@ -1,0 +1,322 @@
+{
+  "id": "Lkj4z3RxQSzIw6Ek",
+  "name": "ATAM_FLOW · Producer risk actions",
+  "active": true,
+  "description": "Dashboard producer risk actions: suspend / resume a producer, record contact, set limits and backups, draft the producer job sheet email (review-first). Role-checked, audited. Unpublished.",
+  "nodes": [
+    {
+      "id": "cd7061c0-5d73-408c-ba40-b15dd0f9d132",
+      "name": "Dashboard: producer risk action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/producer-risk",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "eded3395-c345-4cf6-9a20-f5f8811a6fa7"
+    },
+    {
+      "id": "913beeed-9931-43ff-a8de-0d870decd6e3",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"production\", \"warehouse\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0487148c-f9d3-4b5a-9dba-4a54b0f2394e",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "5ce7b4a7-620e-495a-9715-cc1849480639",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: producer risk action').first().json.body || {};\nconst p = req.params || {};\nconst who = $('Verify caller').first().json;\nconst role = who.role;\nconst actor = 'dashboard:' + who.userId;\nconst senior = ['admin', 'manager'].includes(role);\nconst floor = ['admin', 'manager', 'warehouse'].includes(role);\nconst bad = (error, code = 400) => [{ json: { valid: false, code, error } }];\nconst ok = (rpc, body, note) => [{ json: { valid: true, rpc, body, note } }];\nconst s = (v) => String(v == null ? '' : v).trim();\nswitch (req.action) {\n  case 'suspend':\n    if (!senior) return bad('Only a manager or admin can suspend a producer.', 403);\n    if (!p.producer_id) return bad('Choose a producer.');\n    return ok('flow_pr_suspend', { p_producer: p.producer_id, p_reason: s(p.reason), p_actor: actor }, 'Producer suspended. No new work can be sent to them.');\n  case 'resume':\n    if (!senior) return bad('Only a manager or admin can let a suspended producer take work again.', 403);\n    if (!p.producer_id) return bad('Choose a producer.');\n    return ok('flow_pr_resume', { p_producer: p.producer_id, p_note: s(p.reason), p_actor: actor }, 'Producer can take work again.');\n  case 'record_contact':\n    if (!p.producer_id) return bad('Choose a producer.');\n    return ok('flow_pr_record_contact', { p_producer: p.producer_id, p_note: s(p.note), p_actor: actor }, 'Contact recorded.');\n  case 'set_limits':\n    if (!senior) return bad('Only a manager or admin can change a producer\\'s limits and contacts.', 403);\n    if (!p.producer_id) return bad('Choose a producer.');\n    return ok('flow_pr_set_limits', { p_producer: p.producer_id, p_emergency_contact: s(p.emergency_contact) || null, p_emergency_phone: s(p.emergency_phone) || null, p_backup_codes: Array.isArray(p.backup_codes) ? p.backup_codes.map(s).filter(Boolean) : [], p_max_jobs: s(p.max_jobs) ? Number(p.max_jobs) : null, p_actor: actor }, 'Limits and contacts saved.');\n  case 'job_sheet':\n    if (!floor) return bad('Your role cannot draft job sheets.', 403);\n    if (!s(p.code)) return bad('Choose a consignment.');\n    return ok('flow_mv_job_sheet_draft', { p_movement: s(p.code), p_actor: actor }, 'A job sheet email is waiting in the Emails queue for you to review. Nothing has been sent.');\n  default:\n    return bad('Unknown action.');\n}\n"
+      }
+    },
+    {
+      "id": "eab1a6b8-04f4-40bc-ad3b-0a16760246bb",
+      "name": "Valid request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "d073be72-355a-4889-933b-18e985ff2260",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "fe60f9fe-5348-4956-a159-a7f1b86a24cd",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify(Object.assign({}, $json, { note: $(\"Choose database action\").first().json.note })) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "186858af-5ecf-493f-99e6-08dd24688799",
+      "name": "Respond: refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      }
+    },
+    {
+      "id": "5881bc98-fe62-48b9-8653-8014545b9bdc",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: producer risk action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Valid request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid request?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 120
+  }
+}

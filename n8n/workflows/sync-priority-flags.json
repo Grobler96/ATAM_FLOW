@@ -1,0 +1,271 @@
+{
+  "id": "TjgPA4edC6iBfIRX",
+  "name": "ATAM_FLOW · Sync priority flags",
+  "active": true,
+  "description": "Hourly, read-only on DecoNetwork: reads recent orders, takes each order's Priority Order flag (is_priority, the shield) and saves it so ATAM_FLOW treats those orders as third-party. A manual scope on an order still wins. Unpublished.",
+  "nodes": [
+    {
+      "id": "71f909b0-c851-414a-ad84-e1f659b3a54a",
+      "name": "Every hour (:25)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 25
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "42c3aca6-1788-4e20-9950-62f9a57b95bf",
+      "name": "Pages to read",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const out = [];\nfor (let i = 0; i < 12; i++) out.push({ json: { offset: i * 100, limit: 100 } });\nreturn out;\n"
+      }
+    },
+    {
+      "id": "7cdad371-ebfc-4fd2-8719-8a0e7862f97d",
+      "name": "Read orders from DecoNetwork (read only)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://atamworkwear.co.uk/api/json/manage_orders/find",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "field",
+              "value": "5"
+            },
+            {
+              "name": "condition",
+              "value": "6"
+            },
+            {
+              "name": "date1",
+              "value": "={{ $now.minus({ days: 60 }).toFormat(\"yyyy-MM-dd'T'HH:mm:ss\") }}"
+            },
+            {
+              "name": "date2",
+              "value": "={{ $now.plus({ days: 30 }).toFormat(\"yyyy-MM-dd'T'HH:mm:ss\") }}"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $json.limit }}"
+            },
+            {
+              "name": "offset",
+              "value": "={{ $json.offset }}"
+            },
+            {
+              "name": "sortby",
+              "value": "5"
+            },
+            {
+              "name": "include_workflow_data",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "dK4fq0NoveYWlOww",
+          "name": "Deconetwork log in"
+        }
+      }
+    },
+    {
+      "id": "a0910a0e-55de-43ed-9180-73a191cd14a3",
+      "name": "Build priority flags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const flags = [];\nconst seen = new Set();\nlet total = 0;\nfor (const it of items) {\n  let p = it.json;\n  if (typeof p.data === 'string') { try { p = JSON.parse(p.data); } catch (e) { continue; } }\n  if (Number(p.total) > total) total = Number(p.total);\n  for (const o of (p.orders || [])) {\n    const id = String(o.order_id);\n    if (seen.has(id)) continue;\n    seen.add(id);\n    flags.push({ order_id: id, is_priority: o.is_priority === true });\n  }\n}\nif (total > flags.length) throw new Error('Read ' + flags.length + ' of ' + total + ' orders: raise the number of pages so no priority flag is missed.');\nreturn [{ json: { p_flags: flags, p_triggered_by: 'schedule' } }];\n"
+      }
+    },
+    {
+      "id": "5b1c8479-e470-4a03-9ba1-c2e03f4c86cf",
+      "name": "Save priority flags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/flow_sync_priority_flags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "baa09dee-f72b-4b6e-a54b-103c55864c90",
+      "name": "Saved ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "93714701-79e1-41fb-95f3-2fa2dcaf2846",
+      "name": "Fail loudly (alerts Daniel and Oliver)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "errorMessage": "=ATAM_FLOW priority flag sync failed: {{ $json.error ?? \"no detail\" }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every hour (:25)": {
+      "main": [
+        [
+          {
+            "node": "Pages to read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pages to read": {
+      "main": [
+        [
+          {
+            "node": "Read orders from DecoNetwork (read only)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read orders from DecoNetwork (read only)": {
+      "main": [
+        [
+          {
+            "node": "Build priority flags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build priority flags": {
+      "main": [
+        [
+          {
+            "node": "Save priority flags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save priority flags": {
+      "main": [
+        [
+          {
+            "node": "Saved ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Saved ok?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Fail loudly (alerts Daniel and Oliver)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 300
+  }
+}

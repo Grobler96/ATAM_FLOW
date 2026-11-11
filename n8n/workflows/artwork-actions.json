@@ -1,0 +1,322 @@
+{
+  "id": "nkOanz4G48WKPv1k",
+  "name": "ATAM_FLOW · Artwork actions",
+  "active": true,
+  "description": "Dashboard artwork actions (admin/manager/production): import artwork records, validate an order, replace artwork by hand, set approval, build a producer job pack, mark it sent. Unpublished.",
+  "nodes": [
+    {
+      "id": "095930ff-ade5-4561-adcb-dd686bc111b4",
+      "name": "Dashboard: artwork action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/artwork",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "3f199693-7d8e-4fbe-bb54-40dd5f4070c4"
+    },
+    {
+      "id": "cf862dd3-79fb-4a6f-8d24-9b5a6cd20071",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"production\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "36a98cd1-bf6f-4bcd-a2b7-e3d1011695fe",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "65cab786-e880-4227-ae45-cc50f7a0e043",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: artwork action').first().json.body || {};\nconst p = req.params || {};\nconst actor = 'dashboard:' + $('Verify caller').first().json.userId;\nconst map = {\n  import:         { rpc: 'flow_artwork_upsert',         body: { p_items: p.items, p_actor: actor } },\n  validate:       { rpc: 'flow_artwork_validate',       body: { p_order: p.order_id } },\n  manual_replace: { rpc: 'flow_artwork_manual_replace', body: { p_order: p.order_id, p_deco_line_id: p.deco_line_id || null, p_area: p.area, p_storage_path: p.storage_path, p_actor: actor, p_note: p.note, p_meta: p.meta || {} } },\n  set_approval:   { rpc: 'flow_artwork_set_approval',   body: { p_id: p.artwork_id, p_status: p.status, p_actor: actor, p_note: p.note } },\n  build_pack:     { rpc: 'flow_build_job_pack',         body: { p_order: p.order_id, p_producer: p.producer_id, p_actor: actor, p_movement: p.movement_id || null } },\n  mark_pack_sent: { rpc: 'flow_job_pack_mark_sent',     body: { p_pack: p.pack_id, p_actor: actor } }\n};\nconst m = map[req.action];\nif (!m) return [{ json: { valid: false, error: 'Unknown action. Allowed: ' + Object.keys(map).join(', ') } }];\nreturn [{ json: { valid: true, action: req.action, rpc: m.rpc, body: m.body } }];"
+      }
+    },
+    {
+      "id": "b6d70c05-ae0a-448e-b4ab-e10434aa36b8",
+      "name": "Known action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "758ea074-dab5-45a1-8e3c-a22ab316c3c0",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "29b55a8a-df75-470f-8462-e844bd8aaa12",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "b32a0d65-1161-4727-a18f-9e75c2854dc5",
+      "name": "Respond: unknown action",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "15cdaba9-1fc9-4840-a215-d54cda9d01f1",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: artwork action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Known action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Known action?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: unknown action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 300
+  }
+}

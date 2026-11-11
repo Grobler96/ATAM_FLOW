@@ -1,31 +1,45 @@
 # Launch checklist: third-party decorator work only
 
-Status as of 7 Nov 2026.
+Status as of 10 Nov 2026. [handoff.md](handoff.md) has the full picture (rules, pitfalls, live state); this page is the short list of what is done, what needs you, and what is not built.
 
 ## Done
-- In-house production switched **off** (audited, reason recorded). The old in-house plan was cleared (116 steps to 0). Reversible from the Control page.
-- DecoNetwork **Priority Order** (`is_priority`) is read into ATAM_FLOW and treated as third-party. First read: 34 open third-party orders. Manual scope on an order still wins.
-- Machines (Happy 6 head, Toyota 1 head, Black / Adkin's / Silver presses), operators, placeholder machines off. All stay in the system for when in-house is switched back on.
-- Everything for third-party work is built and tested: consignments and movements, producer risk, courier events and claims, QC and rework on returned goods, holding area, warehouse and labels, purchasing and supplier resilience, exceptions, order change review, hold / release / priority.
 
-## Done since 9 Nov
-- **Dispatch queue and courier labels** (migration 52, live): Dispatch page, packing into numbered parcels, courier label, tracking, scan-to-hand-over. See [dispatch.md](dispatch.md). Needs the Operations actions workflow published before the buttons write.
+**Scope and set-up**
+- In-house production switched **off** (audited, reason recorded). The old in-house plan was cleared (116 steps to 0). Reversible from the Control page. See [scope-control.md](scope-control.md).
+- DecoNetwork **Priority Order** (`is_priority`) is read into ATAM_FLOW hourly and treated as third-party; a manual scope on an order still wins. The Orders, Exceptions and Home pages default to third-party only, with a visible "N hidden" bar and a Show everything button.
+- Machines (Happy 6 head, Toyota 1 head, Black / Adkin's / Silver presses), operators and skills, placeholder machines off. All stay in the system for when in-house is switched back on. See [crew.md](crew.md).
+- The holding pen is live and works in the background (it stops a bad order being planned, dispatched or completed; DecoNetwork "On hold" orders are kept out on purpose). There is now a read-only **Holding pen** screen (sidebar); assigning an owner, adding a note and waiving a problem are not available from it yet.
 
-- **Artwork storage and customer proofs** (migration 53, live): upload, preview, download and version artwork on screen; record customer proofs and their answers; an approval only counts for the artwork it showed. See [artwork.md](artwork.md). There are **no artwork files in the system yet**, so every decorated order is blocked on artwork until files are uploaded (or DecoNetwork's artwork fetch is connected).
+**Third-party flow, built and tested**
+- Consignments and movements, producer risk, courier events and claims, QC and rework on returned goods, warehouse and labels, supplier resilience, exceptions, order change review, hold / release / priority. See [third-party-production.md](third-party-production.md), [producer-risk.md](producer-risk.md), [courier.md](courier.md), [quality-rework.md](quality-rework.md), [exceptions.md](exceptions.md).
+- **Decorator portal** (`portal.html`): sign-in, jobs, goods-in checks, stages, messages, spoilage reports, job packs and artwork downloads, label scanning. Hardened 10 Nov: sign-out after inactivity enforced by the database, a sign-in log with new-device notes, company email addresses only (an admin can allow one personal address with a reason). See [producer-portal.md](producer-portal.md).
+- **Dispatch queue and courier labels**: packing into numbered parcels, label, tracking, scan-to-hand-over. See [dispatch.md](dispatch.md).
+- **Artwork storage and customer proofs**: upload, preview, download, versioning, proofs and answers. An approval only counts for the artwork it showed. See [artwork.md](artwork.md).
+- **Stock-takes**: blind counts, recount by a different person, manager limits, shortfalls suggested as waste. See [stocktakes.md](stocktakes.md). **Waste** ledger: [waste.md](waste.md).
+- **Exception digest and due-soon warnings**: attention list with reasons, digest by role. See [exceptions.md](exceptions.md).
+- **Purchasing controls** (approval rules, invoice matching, draft-only scheduled chasing) have screens now: approve a PO with the rules shown, record and settle supplier invoices, and a read-only rules panel on Settings (chasing shown off and disabled). The Purchasing actions n8n workflow is unpublished, so the buttons write nothing until it is published. See [purchasing.md](purchasing.md).
 
-- **Stock-takes** (migration 54, live): blind counting by scan, recount by a different person, reasons and manager limits, shortfalls suggested as waste, a reminder to correct DecoNetwork. See [stocktakes.md](stocktakes.md). No shelf locations are entered yet, so counts by shelf have nothing to match.
+**Safety**
+- Independent security audit and fixes (10 Nov): decorator logins are confined to the portal by an API guard (migration 61, on), crew history views locked down. See [security-audit-2026-11.md](security-audit-2026-11.md).
+- Migrations 1-61 are applied and match the repo. Copies of the live n8n workflows are in `n8n/workflows/`.
 
 ## Needs you before real use
-1. **Enter the producers.** There are **0 active producers** and 0 rates. Add each decorator (name, contact, email, what they can do, turnaround, rates) on the Producers page.
-2. **Roles.** All 10 accounts in `flow.user_roles` are **admin**. Give everyone else the narrowest role that lets them do their job (manager, production, warehouse, viewer).
-3. **Supplier emails.** None of the 9 suppliers has an email yet, so PO chasers cannot be drafted.
-4. **Publish the n8n workflows** you want live. Until then dashboard buttons that change data explain that the workflow is not published; reads work. Suggested set for third-party launch: Operations actions, Movement actions, Warehouse actions, Producer risk actions, Quality actions, Supplier actions, Sync priority flags, Daily housekeeping. The Production scheduler can stay unpublished while in-house is off.
-5. **Test with a real login**, one third-party order end to end: pick, label, consignment, producer receives, returns, QC, dispatch.
-6. **Print a real label** on your actual printer, and a courier label from the Dispatch page, then scan each with your real scanner and phone.
 
-## Done since 7 Nov
-- **Focus view** (8 Nov): Orders, Exceptions and Home default to third-party only while in-house is off, with a visible "N hidden" bar and a Show everything button. See [scope-control.md](scope-control.md).
-- **Holding pen applied live** (8 Nov, migrations 43, 46, 47). Reviewed first. Two fixes: migration 45 had silently removed the pen from the exception detector (46 puts it back), and the first live run caught 72 DecoNetwork On hold orders that are paused on purpose (47 keeps held orders out). The live pen is now empty. The pen has **no screen yet**; it works in the background (it stops a bad order being planned, dispatched or completed). Its refresh runs with exception detection and before each planning run, both unpublished workflows, so until one is published nothing refreshes it.
+1. **Do the two real sign-in checks** from the security audit (a real decorator sign-in to the portal, and staff sign-ins to this app and to ATAM GO). **Do not invite real decorators until a person has done them.** The audit explains what to look for.
+2. **Enter the producers.** There are **0 active producers** and 0 rates. Add each decorator (name, contact, email, what they can do, turnaround, rates) on the Producers page.
+3. **Roles.** All 10 accounts in `flow.user_roles` are **admin**, so every role check passes for everyone. Give each person the narrowest role that lets them do their job (manager, production, warehouse, viewer).
+4. **Supplier emails.** None of the 9 suppliers has an email yet, so PO chasers cannot be drafted. (No emails are sent in any case until you say so.)
+5. **Publish the n8n workflows you want live.** Live now: Operations, Quality, Movement, Warehouse, Producer risk, Exception and Artwork actions, the exception detector, Sync priority flags, Verify caller and the data syncs. Still unpublished on purpose: Purchasing actions and Goods-in processor (n8n will not publish them until the Communications sender is published, and you have said no emails yet), Communications sender, Supplier actions, Daily housekeeping, the scheduler, Machine and Production actions (in-house), selection, artwork download job. Editing a live workflow creates a draft: it is not live until you publish again.
+6. **Confirm the real values** only you can give: QC checklist items (13 placeholder items today, nobody has confirmed standards), press speeds, per-machine shift hours, risk weights, the DecoNetwork artwork credential (so artwork can be fetched), and shelf locations for stock (none entered, so counts by shelf have nothing to match). "Own Product Supplied - T-Shirt" shows 999 units, which looks like a placeholder.
+7. **Upload artwork or connect DecoNetwork's artwork fetch.** There are no artwork files in the system, so every decorated order is blocked on artwork until files exist.
+8. **Test one third-party order end to end with a real login**: pick, label, consignment, producer receives, returns, QC, dispatch.
+9. **Give the go-ahead for migrations 62 to 64** (decorator upload limit, audit trail for direct set-up changes, QC photos from a device). They are written and tested but not applied: see [handoff.md](handoff.md) for what each does and how to check it after.
+10. **Try real hardware**: print a real label and a courier label on your actual printer and scan each with your real scanner and phone. Nothing has been tried on real hardware yet.
 
 ## Not built
-Producer portal, automatic courier tracking, operator shifts, press speeds, per-machine shift hours, QC checklists and risk weights are placeholders until you provide the real values.
+
+- Changing the purchasing rules from a screen, and switching scheduled chasing on (shown off and disabled). Assigning, noting and waiving on the holding pen screen.
+- Portal: two-factor sign-in and unusual-location alerts.
+- Loading the rest of a list that is cut off at 5,000 rows (a red warning shows, but the rows beyond are not loaded).
+- Automatic courier tracking, and escalation emails or digests (in-app only; no emails yet).
+- Operator shifts, press speeds, per-machine shift hours, real QC checklists and risk weights are placeholders until you provide the real values.

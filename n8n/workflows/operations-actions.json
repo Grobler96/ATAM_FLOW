@@ -1,0 +1,412 @@
+{
+  "id": "UvnfNdHot39VL5FI",
+  "name": "ATAM_FLOW · Operations actions",
+  "active": true,
+  "description": "Dashboard order controls: hold, release, change priority, review changes made in DecoNetwork after work began. Role-checked, reason required, audited. Unpublished.",
+  "nodes": [
+    {
+      "id": "b349886d-7573-40e8-bc1f-a6e46cc2a5ef",
+      "name": "Dashboard: operations action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/operations",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "f562c9f3-da5e-4b24-9529-f4950719d691"
+    },
+    {
+      "id": "fa5098f6-b088-4764-8f16-b445accac722",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"production\", \"warehouse\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c76f15d7-268c-4429-8304-8c6e536c9519",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a8456d4b-9cb0-4c9c-b2d4-51454432ee51",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: operations action').first().json.body || {};\nconst p = req.params || {};\nconst who = $('Verify caller').first().json;\nconst role = who.role;\nconst actor = 'dashboard:' + who.userId;\nconst senior = ['admin', 'manager'].includes(role);\nconst planner = ['admin', 'manager', 'production'].includes(role);\nconst floor = ['admin', 'manager', 'production', 'warehouse'].includes(role);\nconst bad = (error, code = 400) => [{ json: { valid: false, code, error } }];\nconst ok = (rpc, body, note) => [{ json: { valid: true, rpc, body, note } }];\nconst s = (v) => String(v == null ? '' : v).trim();\nswitch (req.action) {\n  case 'hold':\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_ov_hold_order', { p_order: p.order_id, p_reason: s(p.reason), p_actor: actor }, 'Order put on hold. Re-plan production to take it out of the schedule.');\n  case 'release':\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_ov_release_order', { p_order: p.order_id, p_note: s(p.reason), p_actor: actor }, 'Hold lifted. Re-plan production to bring the order back into the schedule.');\n  case 'priority':\n    if (!senior) return bad('Only a manager or admin can change an order\\'s priority.', 403);\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_ov_set_priority', { p_order: p.order_id, p_priority: Number(p.priority), p_reason: s(p.reason), p_actor: actor }, 'Priority changed. Re-plan production to apply it.');\n  case 'review_changes':\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_oc_review_order', { p_order: p.order_id, p_status: s(p.status), p_note: s(p.reason), p_actor: actor }, 'Changes recorded as dealt with.');\n  case 'courier_event':\n    if (!s(p.code)) return bad('Choose a consignment.');\n    return ok('flow_cr_record_event', { p_movement: s(p.code), p_event: s(p.event), p_direction: s(p.direction) || 'outbound', p_note: s(p.note), p_actor: actor }, 'Courier event recorded.');\n  case 'claim_open':\n    if (!senior) return bad('Only a manager or admin can open a courier claim.', 403);\n    if (!s(p.code)) return bad('Choose a consignment.');\n    return ok('flow_cr_open_claim', { p_movement: s(p.code), p_kind: s(p.kind), p_value: Number(p.value), p_note: s(p.note), p_actor: actor }, 'Claim recorded. Submit it to the courier yourself, then mark it submitted.');\n  case 'claim_update':\n    if (!senior) return bad('Only a manager or admin can update a courier claim.', 403);\n    if (!s(p.claim)) return bad('Choose a claim.');\n    return ok('flow_cr_claim_update', { p_claim: s(p.claim), p_status: s(p.status), p_recovered: p.recovered == null ? null : Number(p.recovered), p_note: s(p.note), p_actor: actor }, 'Claim updated.');\n  case 'assign_operator':\n    if (!planner) return bad('Only a manager, admin or production planner can assign operators.', 403);\n    if (!p.order_id || !s(p.method)) return bad('Choose a job.');\n    return ok('flow_js_set_operator', { p_order: p.order_id, p_method: s(p.method), p_operator: p.operator_id || null, p_actor: actor }, 'Operator saved.');\n  case 'assign_job':\n    if (!planner) return bad('Only a manager, admin or production planner can assign jobs.', 403);\n    if (!p.order_id || !s(p.method)) return bad('Choose a job.');\n    return ok('flow_js_assign', { p_order: p.order_id, p_method: s(p.method), p_operator: p.operator_id || null, p_recommended: p.recommended_id || null, p_reason: s(p.reason), p_actor: actor }, 'Assignment saved.');\n  case 'assign_machine':\n    if (!planner) return bad('Only a manager, admin or production planner can choose a machine for a job.', 403);\n    if (!p.order_id || !s(p.method)) return bad('Choose a job.');\n    return ok('flow_js_set_machine', { p_order: p.order_id, p_method: s(p.method), p_machine: p.machine_id || null, p_reason: s(p.reason), p_actor: actor }, 'Machine choice saved. Re-plan production to apply it.');\n  case 'worker_save':\n    if (!senior) return bad('Only a manager or admin can add or change workers.', 403);\n    return ok('flow_wk_save', { p_id: p.id || null, p_name: s(p.name), p_history_name: s(p.history_name), p_active: typeof p.active === 'boolean' ? p.active : null, p_actor: actor }, 'Worker saved.');\n  case 'worker_skill':\n    if (!senior) return bad('Only a manager or admin can change what a worker can run.', 403);\n    if (!p.operator_id || !s(p.kind) || !s(p.ref)) return bad('Choose a worker and a skill.');\n    return ok('flow_wk_skill_set', { p_op: p.operator_id, p_kind: s(p.kind), p_ref: s(p.ref), p_level: Number(p.level), p_actor: actor }, 'Skill saved.');\n  case 'worker_skill_clear':\n    if (!senior) return bad('Only a manager or admin can change what a worker can run.', 403);\n    if (!p.operator_id || !s(p.kind) || !s(p.ref)) return bad('Choose a worker and a skill.');\n    return ok('flow_wk_skill_clear', { p_op: p.operator_id, p_kind: s(p.kind), p_ref: s(p.ref), p_actor: actor }, 'Skill removed.');\n  case 'worker_shift':\n    if (!senior) return bad('Only a manager or admin can change shifts.', 403);\n    if (!p.operator_id) return bad('Choose a worker.');\n    return ok('flow_wk_shift_set', { p_op: p.operator_id, p_weekday: Number(p.weekday), p_start: s(p.start) || null, p_end: s(p.end) || null, p_actor: actor }, 'Shift saved.');\n  case 'worker_absence':\n    if (!planner) return bad('Only a manager, admin or production planner can record time away.', 403);\n    if (!p.operator_id) return bad('Choose a worker.');\n    return ok('flow_wk_absence_add', { p_op: p.operator_id, p_from: s(p.from), p_to: s(p.to), p_reason: s(p.reason), p_actor: actor }, 'Time away recorded. Check their jobs on those days.');\n  case 'worker_absence_remove':\n    if (!planner) return bad('Only a manager, admin or production planner can change time away.', 403);\n    if (!p.id) return bad('Choose an entry.');\n    return ok('flow_wk_absence_remove', { p_id: p.id, p_actor: actor }, 'Removed.');\n  case 'floor_start':\n    if (!floor) return bad('Your role cannot start jobs.', 403);\n    if (!p.step_id || !p.operator_id) return bad('Choose a job and a worker.');\n    return ok('flow_fl_start', { p_step: p.step_id, p_operator: p.operator_id, p_actor: actor }, 'Job started.');\n  case 'floor_stop':\n    if (!floor) return bad('Your role cannot stop jobs.', 403);\n    if (!p.step_id) return bad('Choose a job.');\n    return ok('flow_fl_stop', { p_step: p.step_id, p_units: p.units == null || p.units === '' ? null : Number(p.units), p_finished: p.finished === true, p_note: s(p.note), p_actor: actor }, p.finished === true ? 'Job finished.' : 'Job stopped for now.');\n  case 'set_switch':\n    if (role !== 'admin') return bad('Only an admin can change the in-house production switches.', 403);\n    if (!s(p.key) || typeof p.enabled !== 'boolean') return bad('Choose a switch and on or off.');\n    return ok('flow_sc_set_switch', { p_key: s(p.key), p_enabled: p.enabled, p_reason: s(p.reason), p_actor: actor }, 'Switch changed. Re-plan production to apply it.');\n  case 'set_scope':\n    if (!senior) return bad('Only a manager or admin can change an order\\'s scope.', 403);\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_sc_set_order_scope', { p_order: p.order_id, p_scope: p.scope || null, p_reason: s(p.reason), p_actor: actor }, 'Order scope changed. Re-plan production to apply it.');\n  case 'portal_add_user':\n    if (!senior) return bad('Only a manager or admin can invite decorator logins.', 403);\n    if (!p.producer_id || !s(p.email)) return bad('Choose a decorator and enter an email.');\n    return ok('flow_pp_add_user', { p_producer: p.producer_id, p_email: s(p.email), p_name: s(p.name), p_actor: actor }, 'Access given. They sign in at the portal with that email.');\n  case 'portal_allow_email':\n    if (role !== 'admin') return bad('Only an admin can allow a personal email address for the decorator portal.', 403);\n    if (!s(p.email)) return bad('Enter the email address.');\n    return ok('flow_portal_allow_email', { p_email: s(p.email), p_reason: s(p.reason), p_actor: actor }, 'Personal address allowed.');\n  case 'portal_set_user':\n    if (!senior) return bad('Only a manager or admin can switch decorator logins on or off.', 403);\n    if (!p.user_id || typeof p.active !== 'boolean') return bad('Choose a person.');\n    return ok('flow_pp_set_user_active', { p_user: p.user_id, p_active: p.active, p_reason: s(p.reason), p_actor: actor }, p.active ? 'Switched on.' : 'Switched off. They are signed out of the portal.');\n  case 'portal_reply':\n    if (!floor) return bad('Your role cannot reply to decorators.', 403);\n    if (!s(p.code)) return bad('Choose a consignment.');\n    return ok('flow_pp_reply', { p_movement: s(p.code), p_body: s(p.body), p_actor: actor }, 'Reply sent.');\n  case 'portal_resolve':\n    if (!floor) return bad('Your role cannot close a goods-in problem.', 403);\n    if (!s(p.code)) return bad('Choose a consignment.');\n    return ok('flow_pp_resolve_receipt', { p_movement: s(p.code), p_note: s(p.reason), p_actor: actor }, 'Goods-in problem marked as dealt with. The decorator has been told.');\n  case 'waste_record': {\n    if (!floor) return bad('Your role cannot record waste.', 403);\n    const rec = { stage: s(p.stage), cause: s(p.cause), party: s(p.party) || null, qty: Number(p.qty), sku: s(p.sku) || null, product_name: s(p.product_name) || null, order_ref: s(p.order_ref) || null, producer_code: s(p.producer_code) || null, movement_code: s(p.movement_code) || null, machine_code: s(p.machine_code) || null, operator_name: s(p.operator_name) || null, reason: s(p.reason), replacement: p.replacement === true };\n    return ok('flow_waste_record', { p: rec, p_actor: actor }, 'Waste recorded.');\n  }\n  case 'waste_confirm':\n    if (!floor) return bad('Your role cannot confirm waste.', 403);\n    if (!s(p.ref) || typeof p.confirm !== 'boolean') return bad('Choose a waste record.');\n    return ok('flow_waste_confirm', { p_ref: s(p.ref), p_confirm: p.confirm, p_note: s(p.reason), p_actor: actor }, p.confirm ? 'Confirmed as waste.' : 'Dismissed.');\n  case 'waste_decide':\n    if (!senior) return bad('Only a manager or admin can approve waste.', 403);\n    if (!s(p.ref) || typeof p.approve !== 'boolean') return bad('Choose a waste record.');\n    return ok('flow_waste_decide', { p_ref: s(p.ref), p_approve: p.approve, p_note: s(p.reason), p_actor: actor }, p.approve ? 'Waste approved.' : 'Waste rejected.');\n  case 'waste_recover':\n    if (!senior) return bad('Only a manager or admin can record a recovery.', 403);\n    if (!s(p.ref)) return bad('Choose a waste record.');\n    return ok('flow_waste_recover', { p_ref: s(p.ref), p_amount: Number(p.amount), p_claim: s(p.claim) || null, p_note: s(p.reason), p_actor: actor }, 'Recovery recorded.');\n  case 'waste_replacement':\n    if (!planner) return bad('Only a manager, admin or production planner can ask for a replacement.', 403);\n    if (!s(p.ref)) return bad('Choose a waste record.');\n    return ok('flow_waste_replacement', { p_ref: s(p.ref), p_actor: actor }, 'Replacement requested. It is flagged on the order.');\n  case 'waste_suggest':\n    if (!floor) return bad('Your role cannot do that.', 403);\n    return ok('flow_waste_suggest', {}, 'Checked quality, goods-in and courier records for waste.');\n  case 'dispatch_pack':\n    if (!floor) return bad('Your role cannot pack orders for dispatch.', 403);\n    if (!p.order_id) return bad('Choose an order.');\n    if (s(p.override) && !senior) return bad('Only a manager or admin can send an order that is not ready.', 403);\n    return ok('flow_dispatch_pack', { p_order: p.order_id, p_parcels: Number(p.parcels), p_weights: Array.isArray(p.weights) && p.weights.length ? p.weights.map(Number) : null, p_carrier: s(p.carrier) || null, p_service: s(p.service) || null, p_note: s(p.note) || null, p_override: s(p.override) || null, p_actor: actor }, 'Packed. Print the labels next.');\n  case 'dispatch_printed':\n    if (!floor) return bad('Your role cannot record printing.', 403);\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_dispatch_printed', { p_order: p.order_id, p_reason: s(p.reason) || null, p_actor: actor }, 'Recorded as printed.');\n  case 'dispatch_tracking':\n    if (!floor) return bad('Your role cannot add tracking.', 403);\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_dispatch_set_tracking', { p_order: p.order_id, p_carrier: s(p.carrier) || null, p_tracking: s(p.tracking), p_parcel_no: p.parcel_no == null ? null : Number(p.parcel_no), p_actor: actor }, 'Tracking saved.');\n  case 'dispatch_handover':\n    if (!floor) return bad('Your role cannot hand parcels to the courier.', 403);\n    if (!s(p.label)) return bad('Scan or enter a parcel label.');\n    if (s(p.override) && !senior) return bad('Only a manager or admin can hand over a parcel that is no longer clear to go.', 403);\n    return ok('flow_dispatch_handover', { p_label: s(p.label), p_override: s(p.override) || null, p_actor: actor }, 'Parcel handed over.');\n  case 'dispatch_cancel':\n    if (!floor) return bad('Your role cannot cancel packing.', 403);\n    if (!p.order_id) return bad('Choose an order.');\n    return ok('flow_dispatch_cancel', { p_order: p.order_id, p_reason: s(p.reason), p_actor: actor }, 'Packing cancelled.');\n  case 'proof_create':\n    if (!planner) return bad('Only a manager, admin or production planner can make customer proofs.', 403);\n    if (!p.order_id || !Array.isArray(p.artwork_ids) || !p.artwork_ids.length) return bad('Choose the order and the areas on the proof.');\n    return ok('flow_proof_create', { p_order: p.order_id, p_artwork_ids: p.artwork_ids, p_storage_path: s(p.storage_path), p_file_name: s(p.file_name), p_note: s(p.note) || null, p_actor: actor }, 'Proof saved as a draft.');\n  case 'proof_send':\n    if (!planner) return bad('Only a manager, admin or production planner can record a proof as sent.', 403);\n    if (!p.proof_id) return bad('Choose a proof.');\n    return ok('flow_proof_send', { p_proof: p.proof_id, p_to: s(p.to), p_via: s(p.via), p_note: s(p.note) || null, p_actor: actor }, 'Recorded as sent.');\n  case 'proof_respond':\n    if (!planner) return bad('Only a manager, admin or production planner can record the customer\\'s answer.', 403);\n    if (!p.proof_id) return bad('Choose a proof.');\n    return ok('flow_proof_respond', { p_proof: p.proof_id, p_outcome: s(p.outcome), p_by: s(p.by), p_note: s(p.note) || null, p_evidence: s(p.evidence) || null, p_actor: actor }, 'Answer recorded.');\n  case 'proof_withdraw':\n    if (!planner) return bad('Only a manager, admin or production planner can withdraw a proof.', 403);\n    if (!p.proof_id) return bad('Choose a proof.');\n    return ok('flow_proof_withdraw', { p_proof: p.proof_id, p_reason: s(p.reason), p_actor: actor }, 'Proof withdrawn.');\n  case 'stocktake_start':\n    if (!floor) return bad('Your role cannot start a stock-take.', 403);\n    return ok('flow_stocktake_start', { p_name: s(p.name), p_scope: p.scope && typeof p.scope === 'object' ? p.scope : {}, p_actor: actor }, 'Stock-take started.');\n  case 'stocktake_count':\n    if (!floor) return bad('Your role cannot enter stock counts.', 403);\n    if (!p.take_id || !s(p.sku)) return bad('Choose a stock-take and a SKU.');\n    return ok('flow_stocktake_count', { p_take: p.take_id, p_sku: s(p.sku), p_qty: p.qty == null || p.qty === '' ? null : Number(p.qty), p_actor: actor }, 'Count saved.');\n  case 'stocktake_review':\n    if (!floor) return bad('Your role cannot finish counting.', 403);\n    if (!p.take_id) return bad('Choose a stock-take.');\n    return ok('flow_stocktake_review', { p_take: p.take_id, p_actor: actor }, 'Counting finished.');\n  case 'stocktake_recount':\n    if (!floor) return bad('Your role cannot enter recounts.', 403);\n    if (!p.take_id || !s(p.sku)) return bad('Choose a stock-take and a SKU.');\n    return ok('flow_stocktake_recount', { p_take: p.take_id, p_sku: s(p.sku), p_qty: p.qty == null || p.qty === '' ? null : Number(p.qty), p_actor: actor }, 'Recount saved.');\n  case 'stocktake_accept':\n    if (!floor) return bad('Your role cannot accept stock differences.', 403);\n    if (!p.line_id) return bad('Choose a line.');\n    return ok('flow_stocktake_accept', { p_line: p.line_id, p_reason: s(p.reason), p_senior: senior, p_actor: actor }, 'Difference accepted.');\n  case 'stocktake_accept_small':\n    if (!floor) return bad('Your role cannot accept stock differences.', 403);\n    if (!p.take_id) return bad('Choose a stock-take.');\n    return ok('flow_stocktake_accept_small', { p_take: p.take_id, p_reason: s(p.reason), p_actor: actor }, 'Small differences accepted.');\n  case 'stocktake_close':\n    if (!senior) return bad('Only a manager or admin can close a stock-take.', 403);\n    if (!p.take_id) return bad('Choose a stock-take.');\n    return ok('flow_stocktake_close', { p_take: p.take_id, p_note: s(p.note) || null, p_actor: actor }, 'Stock-take closed.');\n  case 'stocktake_cancel':\n    if (!senior) return bad('Only a manager or admin can cancel a stock-take.', 403);\n    if (!p.take_id) return bad('Choose a stock-take.');\n    return ok('flow_stocktake_cancel', { p_take: p.take_id, p_reason: s(p.reason), p_actor: actor }, 'Stock-take cancelled.');\n  case 'stocktake_adjusted':\n    if (!floor) return bad('Your role cannot mark a stock-take as corrected.', 403);\n    if (!p.take_id) return bad('Choose a stock-take.');\n    return ok('flow_stocktake_mark_adjusted', { p_take: p.take_id, p_note: s(p.note) || null, p_actor: actor }, 'Marked as corrected.');\n  default:\n    return bad('Unknown action.');\n}\n"
+      }
+    },
+    {
+      "id": "f97e3c37-68a9-444f-8b12-4ce9f3170e9f",
+      "name": "Valid request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "d14bf47c-20d6-4c40-9336-ba4cb31a7bf8",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "d7629f97-7380-4eb7-b1e3-b1fe8d2e8621",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify(Object.assign({}, $('Run action in database').first().json, { note: $('Choose database action').first().json.note }, $('Create sign-in account').isExecuted ? { sign_in_ready: !($json.error || $json.code >= 400 || $json.msg) || /already|registered|exists/i.test(String($json.msg || $json.message || $json.error || '')) } : {})) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "88656038-e76b-4ac0-afd9-2f3f14c8d445",
+      "name": "Respond: refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      }
+    },
+    {
+      "id": "487b2eb0-8b25-4e85-81d3-5365caf117e9",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    },
+    {
+      "id": "b92209b3-711a-472d-bda4-58e98f7b7153",
+      "name": "Needs a sign-in account?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        -120
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $('Choose database action').first().json.rpc === 'flow_pp_add_user' && $json.ok === true }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          }
+        }
+      }
+    },
+    {
+      "id": "d9774429-bf56-465c-83c0-0fae2e864735",
+      "name": "Create sign-in account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        -200
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "contentType": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $('Choose database action').first().json.body.p_email, email_confirm: true }) }}",
+        "method": "POST",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://aobosyvlhgkxhjxkfzlz.supabase.co/auth/v1/admin/users"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: operations action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Valid request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid request?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Needs a sign-in account?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs a sign-in account?": {
+      "main": [
+        [
+          {
+            "node": "Create sign-in account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create sign-in account": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 120
+  }
+}

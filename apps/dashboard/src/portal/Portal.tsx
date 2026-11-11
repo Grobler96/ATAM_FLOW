@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ScanPanel } from '../scan/ScanPanel';
 import { parseScan } from '../scan/parse';
 import { BUCKET, setNotice, takeNotice, fmtDate, fmtTime, ISSUES, rpc, sb, STATE_LABEL, type Me, type PortalItem, type PortalJob, type PortalJobRow } from './client';
+import { uploadProblem } from './messages';
 
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
 const Pill = ({ s }: { s: string }) => <span className="chip on" style={{ cursor: 'default' }}>{STATE_LABEL[s] ?? s}</span>;
@@ -220,7 +221,7 @@ function Spoilage({ job, me }: { job: PortalJob; me: Me }) {
     if (file) {
       path = `${me.producer_id}/${job.code}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, '_')}`;
       const up = await sb.storage.from(BUCKET).upload(path, file, { contentType: file.type });
-      if (up.error) { setBusy(false); setErr(`The photo did not upload: ${up.error.message}. Try again, or send the report without it.`); return; }
+      if (up.error) { setBusy(false); setErr(`The photo did not upload: ${uploadProblem(up.error.message)}. Try again, or send the report without it.`); return; }
     }
     const r = await rpc('portal_report_spoilage', { p_code: job.code, p_item: item, p_qty: Number(qty), p_what: what, p_note: note, p_evidence: path });
     setBusy(false); if (!r.ok) { setErr(r.error ?? 'That did not work.'); return; }
@@ -263,14 +264,14 @@ function CheckIn({ job, me, onCancel, onDone }: { job: PortalJob; me: Me; onCanc
     for (const f of files) {
       const path = `${me.producer_id}/${job.code}/${Date.now()}-${f.name.replace(/[^\w.-]+/g, '_')}`;
       const up = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type });
-      if (up.error) { setErr(`Goods are checked in, but a photo (${f.name}) did not upload: ${up.error.message}. You can add it by message.`); continue; }
+      if (up.error) { setErr(`Goods are checked in, but a photo (${f.name}) did not upload: ${uploadProblem(up.error.message)}. You can add it by message.`); continue; }
       await rpc('portal_evidence_add', { p_code: job.code, p_item: null, p_path: path, p_kind: 'goods_in', p_caption: null });
     }
     for (const [itemId, list] of Object.entries(lineFiles)) {
       for (const f of list) {
         const path = `${me.producer_id}/${job.code}/${Date.now()}-${f.name.replace(/[^\w.-]+/g, '_')}`;
         const up = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type });
-        if (up.error) { setErr(`Goods are checked in, but a photo (${f.name}) did not upload: ${up.error.message}. You can add it by message.`); continue; }
+        if (up.error) { setErr(`Goods are checked in, but a photo (${f.name}) did not upload: ${uploadProblem(up.error.message)}. You can add it by message.`); continue; }
         await rpc('portal_evidence_add', { p_code: job.code, p_item: itemId, p_path: path, p_kind: 'goods_in', p_caption: job.items.find((i) => i.item_id === itemId)?.sku ?? null });
       }
     }

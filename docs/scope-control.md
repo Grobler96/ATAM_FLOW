@@ -29,5 +29,16 @@ A view setting, not a data change. With focus on, these screens hide anything th
 - A direct link to a hidden order or exception still opens it. On 8 Nov 2026 live data this hid 152 of 208 open exceptions.
 - Code: `lib/focus.ts` (rules, with unit tests), `data/focus.ts`, `components/FocusBar.tsx`.
 
+## Holding pen (screen added 10 Nov 2026)
+Orders with something wrong in their data (no delivery address, no due date, no shipping method, no lines or units, an unrecognised decoration process, an unknown DecoNetwork status, or not in ATAM_FLOW yet) are held in a **holding pen** by the database (`flow.pen_refresh`, migrations 43, 46 and 47). A held order is left out of production planning and cannot be dispatched or completed; the DecoNetwork status is never changed. It leaves by itself after the next sync once the problem is fixed in DecoNetwork. Artwork not being ready is listed on a case but does not put an order in the pen on its own, and DecoNetwork "On hold" orders are kept out on purpose.
+
+The screen is **Holding pen** in the sidebar (`#/pen`, keyboard `g` then `b`). It is read-only:
+- A table of every held order: customer, due date (overdue in red), what is wrong, how long it has been held, owner, and whether it is in ATAM_FLOW yet. Search, filter by problem, export.
+- Click a row for the case: why it is held with the database's own detail, how each problem is normally put right, any waived problems and their reasons, the note, the delivery address on the order, and its history. **Open the order** goes to the order drawer, which now shows an "In the holding pen" notice with a link back.
+- **Recent activity** lists who entered, who left and what was waived.
+- It covers every order, whether third-party or in-house: the third-party focus does not filter it.
+- It reads the existing `ui_pen` and `ui_pen_log` views, so there is nothing new in the database. The database has functions to assign an owner, add a note and waive or restore a problem (`flow_pen_assign`, `flow_pen_waive`, `flow_pen_unwaive`, `flow_pen_recheck`) but no n8n action reaches them yet, so the screen says those are not available.
+- Code: `lib/pen.ts` (words, counts, ordering, with unit tests), `pages/Pen.tsx`; covered by the browser test (`e2e/exceptions.e2e.mjs`, section "holding pen", screenshots 21 and 22).
+
 ## Not built yet
-Orders outside the 60 days back / 30 days ahead window keep whatever flag they had, a rule for mixed orders (some lines each way), muting more in-house exceptions than machine downtime, and hiding the in-house pages entirely (they show an explanation instead).
+Orders outside the 60 days back / 30 days ahead window keep whatever flag they had, a rule for mixed orders (some lines each way), muting more in-house exceptions than machine downtime, and hiding the in-house pages entirely (they show an explanation instead). Assigning an owner, adding a note and waiving a problem from the holding pen screen (the database functions exist; an n8n action is needed).

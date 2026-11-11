@@ -25,7 +25,9 @@ begin
       -- read-only configuration helpers used inside views that staff query (they only return settings values)
       'flow.exc_digest_cfg()', 'flow.purchasing_rules()', 'flow.portal_security()',
       -- answers only "is the caller a decorator login": used by the storage rule that confines decorators to the portal's buckets
-      'flow.is_portal_login()');
+      'flow.is_portal_login()',
+      -- the storage rule that limits how many files and bytes a decorator login may store in one job's folder: answers yes or no, nothing else
+      'flow.portal_upload_allowed(text)');
   if v_bad is not null then raise exception 'SECURITY: logged-in users can execute: %', v_bad; end if;
 
   -- 3. every flow table has row level security switched on

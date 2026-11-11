@@ -1,0 +1,322 @@
+{
+  "id": "4Xded7FvZRUeqr06",
+  "name": "ATAM_FLOW · Warehouse actions",
+  "active": true,
+  "description": "Dashboard warehouse actions (bins, put-away, labels, print audit): role-checked, reasons required for overrides/releases/reprints, audited in the database. Unpublished.",
+  "nodes": [
+    {
+      "id": "7f227ae8-105d-4c11-8927-a00013a0c8fb",
+      "name": "Dashboard: warehouse action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/warehouse",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "a88763b8-6b90-42ea-a01e-88b735bb81e6"
+    },
+    {
+      "id": "3bb5b1b0-6e66-4054-9138-e3170bc4bb0f",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"production\", \"warehouse\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4498efaf-795f-4e34-86ec-a0c0e2dbc2b5",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "47dc0480-91ea-44bf-a016-7d86805c1b2f",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: warehouse action').first().json.body || {};\nconst p = req.params || {};\nconst who = $('Verify caller').first().json;\nconst role = who.role;\nconst actor = 'dashboard:' + who.userId;\nconst senior = ['admin', 'manager'].includes(role);\nconst bad = (error, code = 400) => [{ json: { valid: false, code, error } }];\nconst ok = (rpc, body, note) => [{ json: { valid: true, rpc, body, note } }];\nconst s = (v) => String(v == null ? '' : v).trim();\nswitch (req.action) {\n  case 'suggest_bin':\n    if (!p.order_id) return bad('An order is required.');\n    return ok('flow_wh_suggest_bin', { p_order: p.order_id, p_units: p.units ? Number(p.units) : null }, '');\n  case 'assign_bin':\n    if (!p.order_id || !s(p.bin_code)) return bad('Choose an order and a bin.');\n    if (p.override && !senior) return bad('Only a manager or admin can override a bin rule.', 403);\n    return ok('flow_wh_assign_bin', { p_order: p.order_id, p_bin_code: s(p.bin_code), p_units: Number(p.units), p_actor: actor, p_override: !!p.override, p_reason: s(p.reason) || null, p_lines: p.lines || null }, 'Order put away. The bin and order history are updated.');\n  case 'move_order':\n    if (!p.order_id || !s(p.from_bin) || !s(p.to_bin)) return bad('Choose the order, the bin it is in and the bin to move it to.');\n    if (p.override && !senior) return bad('Only a manager or admin can override a bin rule.', 403);\n    return ok('flow_wh_move_order', { p_order: p.order_id, p_from: s(p.from_bin), p_to: s(p.to_bin), p_actor: actor, p_override: !!p.override, p_reason: s(p.reason) || null }, 'Order moved and both bins updated.');\n  case 'release_bin':\n    if (!s(p.bin_code)) return bad('Choose a bin.');\n    return ok('flow_wh_release_bin', { p_bin_code: s(p.bin_code), p_order: p.order_id || null, p_actor: actor, p_reason: s(p.reason) }, 'Bin released. History is kept.');\n  case 'set_bin_status':\n    if (!s(p.bin_code)) return bad('Choose a bin.');\n    if (s(p.status) === 'retired' && !senior) return bad('Only a manager or admin can retire a bin.', 403);\n    return ok('flow_wh_set_bin_status', { p_bin_code: s(p.bin_code), p_status: s(p.status), p_actor: actor, p_reason: s(p.reason) }, 'Bin status updated.');\n  case 'create_bins':\n    if (!['admin', 'manager', 'warehouse'].includes(role)) return bad('Your role cannot create bins.', 403);\n    return ok('flow_wh_create_bins', { p_zone: s(p.zone), p_prefix: s(p.prefix), p_count: Number(p.count), p_type: s(p.location_type) || 'bin_bay', p_capacity: p.capacity ? Number(p.capacity) : null, p_actor: actor }, 'Bins created. Print their labels from the Labels page.');\n  case 'set_stock_location':\n    if (!s(p.sku)) return bad('A SKU is required.');\n    return ok('flow_wh_set_stock_location', { p_sku: s(p.sku), p_location: s(p.location), p_actor: actor }, 'Stock location saved.');\n  case 'generate_order_labels':\n    if (!p.order_id) return bad('An order is required.');\n    return ok('flow_wh_generate_order_labels', { p_order: p.order_id, p_actor: actor, p_include_dispatch: !!p.include_dispatch }, 'Labels generated. They are waiting in the Labels page to be printed.');\n  case 'generate_labels':\n    if (!s(p.type) || !Array.isArray(p.refs)) return bad('Choose a label type and what to label.');\n    return ok('flow_wh_generate_labels_batch', { p_type: s(p.type), p_refs: p.refs.map(s), p_actor: actor }, 'Labels generated. They are waiting in the Labels page to be printed.');\n  case 'mark_printed':\n    if (!Array.isArray(p.codes) || !p.codes.length) return bad('No labels selected.');\n    return ok('flow_wh_mark_printed', { p_codes: p.codes.map(s), p_actor: actor, p_reason: s(p.reason) || null, p_format: s(p.format) || 'A4', p_copies: p.copies ? Number(p.copies) : 1 }, 'Print recorded in the audit trail.');\n  case 'print_failed':\n    if (!Array.isArray(p.codes) || !p.codes.length) return bad('No labels selected.');\n    return ok('flow_wh_mark_print_failed', { p_codes: p.codes.map(s), p_actor: actor, p_reason: s(p.reason) || null }, 'Marked as failed to print; they stay in the awaiting-print list.');\n  default:\n    return bad('Unknown action.');\n}\n"
+      }
+    },
+    {
+      "id": "1f97886f-ed9c-49c0-8f57-794e88cb438b",
+      "name": "Valid request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "c5f5fc17-01e5-48e9-a4ee-1880aec844e1",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "ac3be3e2-e117-4269-8051-6bf71925a572",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify(Object.assign({}, $json, { note: $(\"Choose database action\").first().json.note })) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "efdda5eb-1311-4d3e-9a0e-68f354c404c3",
+      "name": "Respond: refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      }
+    },
+    {
+      "id": "df7d5936-235a-4e8f-bbcc-9a98dcbccd7e",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: warehouse action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Valid request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid request?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 120
+  }
+}

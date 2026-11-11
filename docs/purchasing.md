@@ -44,9 +44,23 @@ Goods delivered straight to a producer (`deliver_to = producer`) never enter war
 | ATAM_FLOW · Communications sender | `jtKw9WQmjPY8G3Vw` | every 2 h at :25, or called by the others | n/a |
 | ATAM_FLOW · Supplier discrepancy escalation | `A8r66X2xwPBfpRGF` | weekdays 08:10 | n/a |
 
-Purchasing actions: `requirements, create_po_for_orders, create_po, approve_po, send_po, acknowledge_po, cancel_po, resolve_discrepancy, comm_edit, comm_approve, comm_cancel, comm_resend`.
+Purchasing actions: `requirements, create_po_for_orders, create_po, approve_po, send_po, acknowledge_po, cancel_po, resolve_discrepancy, invoice_record, invoice_resolve, chase_scheduled, comm_edit, comm_approve, comm_cancel, comm_resend`. `approve_po` runs the approval rules below (`flow_po_approve_checked`).
 Goods-in, cancelling a PO and resolving a discrepancy re-run stock allocation; approving or resending an email and sending a PO run the sender immediately.
 
-## Still to build for this brief
+## Approval, invoice matching and chasing (database 10 Nov 2026, screens added since)
 
-Artwork sync and job packs (needs a DecoNetwork API sample), supplier and producer selection engine, producer portal, dashboard pages.
+Rules live in `flow_settings` key `purchasing.rules` and are **placeholders** until the business sets real ones: approval limit £500, an admin is needed over it, nobody approves a PO they created (an admin may, with a reason), invoices may differ by 2% or £5 (whichever is larger), scheduled chasing off (2 days late, repeat every 3 days). Migration 58, tests in `purchasing_controls_test.sql`.
+
+On screen (open a PO on the Purchasing page):
+- **Approve…** (manager or admin, draft POs) opens a dialog that shows the PO total, why approval is needed and who can approve it. A manager is stopped on a PO over the limit and told an admin is needed. Whether *you* created the PO is only known to the database, so the dialog asks it: if the creator is refused, the database's own words are shown; an admin is then asked for a reason (at least 3 characters, recorded in the audit trail) and can approve their own PO.
+- **Supplier invoices** (ATAM_FLOW POs only, once approved and not cancelled): **Record invoice** takes the number, date, total before VAT, VAT and a note. The invoice is checked against the units actually received at this PO's unit costs, plus any delivery charge. The result is shown in plain words: *Matches*, *Billed too much*, *Billed too little* or *Waiting for goods*. A mismatch raises a "Supplier invoice does not match" exception (the detector runs it) until someone decides: **Accept difference** (manager or admin, reason required) or **Dispute with supplier** (reason required). A decided invoice can be reopened with a reason.
+- **Settings** has a **Purchasing rules** panel that shows the values above in words. It is read-only. The scheduled-chasing switch is shown **off and disabled** with the reason: no emails are being sent yet, and chasing only ever saves drafts for review.
+
+Pure logic for these screens (rules, the approval check, invoice wording) is in `apps/dashboard/src/lib/purchasing.ts` with unit tests; the screens are `apps/dashboard/src/components/PurchasingControls.tsx` and are covered by the browser test (`e2e/exceptions.e2e.mjs`, section "purchasing controls").
+
+The actions go through the **Purchasing actions** n8n workflow, which is **unpublished** (publishing waits on the Communications sender and the owner's go-ahead for email). Until it is published, the buttons answer that the action is not switched on yet; the rules and invoices still read normally.
+
+## Not built yet
+
+- Changing the purchasing rules from a screen (no action exists; they are edited in the database), and switching scheduled chasing on.
+- Price-change handling and applying a substitution in DecoNetwork (see [supplier-resilience.md](supplier-resilience.md)).

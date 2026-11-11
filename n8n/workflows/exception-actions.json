@@ -1,0 +1,322 @@
+{
+  "id": "K7aWo67bi7nqEqiQ",
+  "name": "ATAM_FLOW · Exception actions",
+  "active": true,
+  "description": "Dashboard actions on exceptions: assign an owner, change status, add notes and actions taken, resolve, link emails, raise a manual issue; manager/admin only: write off, cancel, reopen. Unpublished.",
+  "nodes": [
+    {
+      "id": "722411da-73c0-4c32-9327-6400c9cf2204",
+      "name": "Dashboard: exception action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atam-flow/exceptions",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://grobler96.github.io"
+        }
+      },
+      "webhookId": "243ec545-baf7-4474-b957-b9e1c37a9dba"
+    },
+    {
+      "id": "6e42d6fc-4a97-4a4d-99ef-cfad7b543b48",
+      "name": "Verify caller",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        192
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "lALM3G47uOizvD9t",
+          "cachedResultName": "ATAM_FLOW · Verify caller"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authHeader": "={{ $json.headers.authorization ?? \"\" }}",
+            "allowedRoles": "={{ [\"admin\", \"manager\", \"warehouse\", \"production\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authHeader",
+              "displayName": "authHeader",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "allowedRoles",
+              "displayName": "allowedRoles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "69f08bac-e672-4ef7-8dad-7e2bac660f04",
+      "name": "Caller allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.allowed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "abb367c7-d1e1-4164-8896-46bef37794dd",
+      "name": "Choose database action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const req = $('Dashboard: exception action').first().json.body || {};\nconst p = req.params || {};\nconst caller = $('Verify caller').first().json;\nconst actor = 'dashboard:' + caller.userId;\nconst senior = ['admin', 'manager'].includes(caller.role);\nconst map = {\n  assign:     { rpc: 'flow_assign_exception',               body: { p_id: p.exception_id, p_owner: p.owner, p_actor: actor, p_note: p.note || null } },\n  status:     { rpc: 'flow_set_exception_status',           body: { p_id: p.exception_id, p_status: p.status, p_actor: actor, p_note: p.note || null } },\n  note:       { rpc: 'flow_add_exception_note',             body: { p_id: p.exception_id, p_actor: actor, p_note: p.note, p_is_action: !!p.is_action } },\n  resolve:    { rpc: 'flow_resolve_exception',              body: { p_id: p.exception_id, p_method: p.method, p_note: p.note, p_actor: actor } },\n  link_comm:  { rpc: 'flow_link_exception_communication',   body: { p_id: p.exception_id, p_comm: p.communication_id, p_actor: actor } },\n  raise:      { rpc: 'flow_raise_manual_exception',         body: { p_category: p.category || 'other', p_severity: p.severity, p_description: p.description, p_links: p.links || [], p_owner: p.owner || null, p_deadline: p.deadline || null, p_actor: actor, p_blocks: p.blocks || [] } },\n  write_off:  { rpc: 'flow_write_off_exception',            body: { p_id: p.exception_id, p_reason: p.reason, p_financial_impact: p.financial_impact, p_actor: actor }, seniorOnly: true },\n  cancel:     { rpc: 'flow_cancel_exception',               body: { p_id: p.exception_id, p_reason: p.reason, p_actor: actor }, seniorOnly: true },\n  reopen:     { rpc: 'flow_reopen_exception',               body: { p_id: p.exception_id, p_actor: actor, p_reason: p.reason }, seniorOnly: true }\n};\nconst m = map[req.action];\nif (!m) return [{ json: { valid: false, code: 400, error: 'Unknown action. Allowed: ' + Object.keys(map).join(', ') } }];\nif (m.seniorOnly && !senior) return [{ json: { valid: false, code: 403, error: 'Only a manager or admin can ' + req.action.replace('_', ' ') + ' an exception.' } }];\nreturn [{ json: { valid: true, action: req.action, rpc: m.rpc, body: m.body } }];"
+      }
+    },
+    {
+      "id": "c7769707-7279-4b61-b6af-692b9aba68aa",
+      "name": "Allowed action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "732be5d4-78c7-4872-aff6-6172c18be1a7",
+      "name": "Run action in database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://aobosyvlhgkxhjxkfzlz.supabase.co/rest/v1/rpc/{{ $json.rpc }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "kMkjVWlBKm1G4EyA",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "id": "ea052583-88d7-4e5d-96b8-2af8a78e78ec",
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.ok === false ? 400 : 200 }}"
+        }
+      }
+    },
+    {
+      "id": "799f5042-2aa0-4081-a8e1-ee866ae7d9b0",
+      "name": "Respond: refused",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      }
+    },
+    {
+      "id": "dbc0fecf-8e44-4b7b-8081-545078b1d6c5",
+      "name": "Respond: access denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.reason }) }}",
+        "options": {
+          "responseCode": "={{ $json.userId ? 403 : 401 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard: exception action": {
+      "main": [
+        [
+          {
+            "node": "Verify caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify caller": {
+      "main": [
+        [
+          {
+            "node": "Caller allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Caller allowed?": {
+      "main": [
+        [
+          {
+            "node": "Choose database action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: access denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose database action": {
+      "main": [
+        [
+          {
+            "node": "Allowed action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed action?": {
+      "main": [
+        [
+          {
+            "node": "Run action in database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: refused",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run action in database": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "errorWorkflow": "VXZ5k3Gs17uVoJBS",
+    "executionTimeout": 300
+  }
+}
