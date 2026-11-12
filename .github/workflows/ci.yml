@@ -40,7 +40,7 @@ jobs:
       - run: echo "SHOTS=$RUNNER_TEMP/e2e-shots" >> "$GITHUB_ENV"   # the runner context is not allowed in a job-level env
       - run: npm run e2e
       - run: npm run e2e:portal
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with: { name: e2e-screenshots, path: '${{ runner.temp }}/e2e-shots', if-no-files-found: ignore }
   database:
