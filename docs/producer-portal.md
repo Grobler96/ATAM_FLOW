@@ -16,6 +16,13 @@ A separate, phone-friendly web page where each third-party decorator signs in se
 
 Everything feeds the existing consignment lifecycle, events, audit trail and exceptions, with the actor shown as `producer:<name>`.
 
+## Direct to customer jobs (migration 62, 11 Nov 2026)
+Some jobs are posted by the decorator straight to the customer, so the goods never come back to us (consignment type "Producer ships to the customer").
+- **Where to send it:** once the decorator has accepted the job, the job screen shows the customer's delivery address and method for each order on it, with a note not to send it back to ATAM. It is hidden before they accept and after the job is closed, and never shown on jobs that come back to us. The address comes from the order in DecoNetwork; for an order that has none, `orders.ship_to_override` is used (set by hand). If there is no address the screen says so and asks them to message us before shipping.
+- **Photo of the finished goods:** a direct job cannot be marked complete in the portal until the decorator has added at least one photo of the finished goods (evidence kind "finished"). We do not see these goods before the customer does, so this is our evidence of what left. Staff can still record the step on a decorator's behalf.
+- **Not built:** a sample or spot check by us, a customer tracking page from us, and marking the order shipped in DecoNetwork (still done by a person).
+- Tests: `supabase/tests/portal_direct_test.sql`, `e2e/portal.e2e.mjs`.
+
 ## Our side
 - **Producers page, drawer, "Portal sign-in":** invite a person by email (manager/admin), switch them off or on with a reason (locks them out at once).
 - **Consignment drawer, "From the decorator":** counts and conditions, photos, message thread with a reply box, and "Mark the problem as dealt with".

@@ -15,9 +15,9 @@ const session = { access_token: 'tok', refresh_token: 'ref', expires_in: 3600, e
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 420, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200)));
-  const st = { state: 'to_accept', calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [], uploadRefused: false };
+  const st = { state: o.state || 'to_accept', direct: !!o.direct, calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [], uploadRefused: false };
   if (!o.signedOut) await page.addInitScript((s) => localStorage.setItem('atam-portal-auth', JSON.stringify(s)), session);
-  const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: false, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
+  const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: st.direct, ship_to: st.direct && st.state !== 'to_accept' ? [{ order_ref: '#6001', customer: 'Northside FC', address: '1 Practice Street\nTestville\nTE1 1ST', shipping_method: 'Courier' }] : null, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
   await page.route(`${SB}/**`, async (route) => {
     const req = route.request(), u = new URL(req.url()); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const json = (b, s = 200) => route.fulfill({ status: s, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(b) });
@@ -69,6 +69,15 @@ try {
     ok(st.calls.some((c) => c.fn === 'portal_report_refused'), 'a login that is not an invited decorator is reported so staff can see it'); await ctx.close(); }
   console.log('no access');
   { const { page, ctx } = await newPage(browser, { noAccess: true }); await page.goto(APP); await page.getByRole('heading', { name: 'No access' }).waitFor(); ok((await page.getByText('Ask ATAM for an invitation').count()) === 1, 'a login without an invitation is told so'); await ctx.close(); }
+  console.log('direct to customer jobs');
+  { const { page, ctx, st } = await newPage(browser, { direct: true, state: 'in_production' }); await page.goto(APP + '#/job/TP-2026-00007'); await page.getByTestId('ship-to').waitFor();
+    ok((await page.getByTestId('ship-to').innerText()).includes('1 Practice Street') && (await page.getByTestId('ship-to').innerText()).includes('Do not send it back to ATAM'), 'a direct job shows where to send it and says not to send it back');
+    ok(await page.getByRole('button', { name: 'Production is complete' }).isDisabled(), 'a direct job cannot be marked complete without a finished goods photo');
+    await page.getByTestId('finished-photo').locator('input[type=file]').setInputFiles({ name: 'done.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') }); await page.getByText(/finished goods photo.* added/).waitFor();
+    ok(st.calls.some((c) => c.fn === 'portal_evidence_add' && c.body.p_kind === 'finished'), 'the photo is saved as a finished goods photo');
+    ok(!(await page.getByRole('button', { name: 'Production is complete' }).isDisabled()), 'with the photo the job can be marked complete'); await ctx.close(); }
+  { const { page, ctx } = await newPage(browser, { direct: false, state: 'in_production' }); await page.goto(APP + '#/job/TP-2026-00007'); await page.getByRole('button', { name: 'Production is complete' }).waitFor();
+    ok((await page.getByTestId('ship-to').count()) === 0 && (await page.getByTestId('finished-photo').count()) === 0 && !(await page.getByRole('button', { name: 'Production is complete' }).isDisabled()), 'a job that comes back to us shows no customer address and needs no finished goods photo'); await ctx.close(); }
   console.log('the job, start to finish');
   const { page, ctx, st } = await newPage(browser); await page.goto(APP);
   await page.getByRole('heading', { name: 'Your work' }).waitFor();
