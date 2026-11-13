@@ -82,7 +82,7 @@ grant insert on storage.objects to authenticated; grant usage, select on sequenc
 create policy producer_evidence_insert on storage.objects for insert to authenticated with check (bucket_id = 'producer-evidence' and (storage.foldername(name))[1] = public.portal_my_producer()::text);
 create policy team_insert on storage.objects for insert to authenticated with check (flow.is_member());
 \getenv root ROOT
-select pg_read_file(:'root' || '/supabase/migrations/20261110000062_flow_portal_upload_cap.sql') as mig \gset
+select pg_read_file(:'root' || '/supabase/migrations/20261110000065_flow_portal_upload_cap.sql') as mig \gset
 select :'mig' as q \gexec
 select pg_temp.assert(exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'portal_upload_cap' and permissive = 'RESTRICTIVE' and cmd = 'INSERT'), 'the migration creates a restrictive insert rule on storage objects');
 select pg_temp.login('00000000-0000-0000-0000-0000000003a2'); set role authenticated;

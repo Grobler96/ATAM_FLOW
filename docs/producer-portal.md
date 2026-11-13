@@ -51,7 +51,7 @@ Some jobs are posted by the decorator straight to the customer, so the goods nev
 - **Stock ledger:** checking in moves the full quantity sent to "at producer" (the system of record). A short or damaged count raises an exception for a person to reconcile; it does not change stock by itself.
 - No email notifications to decorators or to us yet (the exceptions and the unread flag are the alerts). - No editing a check-in after it is sent (they message us). Artwork downloads work through the storage rule `artwork_decorator_read`, which is tested through the database function it calls (`portal_packs_test.sql`), not against real storage in the automated tests.
 
-## Upload limits (migration 62, written and tested, **not yet applied to the live database**)
+## Upload limits (migration 65, written and tested, **not yet applied to the live database**)
 A decorator login can store only a limited number of files, and a limited total size, in one job's folder (`<producer id>/<consignment>/` in the `producer-evidence` bucket). Each file is already limited to 10 MB by the bucket. The limits are **placeholders** in the `portal.upload_limits` setting until the business sets real ones: 40 files and 250 MB per job.
 - Enforced by a restrictive storage rule that calls `flow.portal_upload_allowed(name)`. The team and the service role are not limited. The file count is exact. The size check looks at what is already stored (a new file's size is not known when the rule runs), so the last file can take a job a little over the size limit, by at most one file.
 - If the check itself fails it refuses the upload rather than letting an unchecked one through.
