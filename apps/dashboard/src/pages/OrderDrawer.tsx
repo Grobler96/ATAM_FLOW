@@ -8,7 +8,8 @@ import { AssignDialog } from '../components/CrewParts';
 import { OrderChangesPanel } from '../components/OrderChangesPanel';
 import type { ChangeRow } from '../lib/orderChanges';
 import { defectLabel, penCaseFor, sortedDefects, type PenRow } from '../lib/pen';
-import { href } from '../router';
+import { href, navigate } from '../router';
+import { CreateMovementDialog } from '../components/MovementDialogs';
 import { exceptionActionTo } from '../lib/api';
 import { gbp, deadlineText, dateTime } from '../lib/format';
 import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockStatus, TP_STATUS_LABEL, PRIORITY } from '../lib/domain';
@@ -38,7 +39,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
   const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const [assign, setAssign] = useState<QueueRow | null>(null);
   const { canAct } = useCtx(); const toast = useToast();
-  const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
+  const [sendDlg, setSendDlg] = useState(false); const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
   const d = useMemo(() => {
     if (!o) return null;
@@ -62,10 +63,17 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tabs: { id: Tab; label: string; count?: number }[] = [{ id: 'overview', label: 'Overview' }, { id: 'lines', label: 'Lines & stock', count: d!.lines.length }, { id: 'artwork', label: 'Artwork', count: d!.versions.length }, { id: 'production', label: 'Production', count: d!.steps.length },
     { id: 'producer', label: 'Producer', count: d!.moves.length }, { id: 'purchasing', label: 'Purchasing', count: d!.pos.length }, { id: 'warehouse', label: 'Warehouse', count: d!.bins.length }, { id: 'exceptions', label: 'Exceptions', count: d!.ex.length }, { id: 'changes', label: 'Changes & control', count: chg.rows.filter((c) => c.order_id === o.id && c.status === 'new').length }, { id: 'history', label: 'History' }];
 
+  const orderActions = (
+    <div className="row wrap" style={{ gap: 8 }}>
+      <Button icon="artwork" onClick={() => navigate('artwork/' + o.order_ref.replace('#', ''))} title="Opens this order in Artwork & Job Packs, where files are uploaded, approved and made into a job pack">Add artwork</Button>
+      <Button icon="producers" disabled={!canAct} title={canAct ? 'Opens a new consignment with this order\'s lines ready to pick' : 'Your role cannot create consignments'} onClick={() => setSendDlg(true)}>Send to a decorator</Button>
+    </div>);
+
   return (
     <Drawer open onClose={onClose} wide title={<span className="row wrap" style={{ gap: 10 }}>{o.order_ref}<StatusCell s={o.order_status} />{o.is_overdue && <Status tone="critical">Overdue</Status>}</span>} subtitle={`${o.customer_name ?? 'No customer'}${o.customer_po ? ' · PO ' + o.customer_po : ''}`}
       header={<Tabs label="Order sections" value={tab} tabs={tabs} onChange={setTab} />}>
       {tab === 'overview' && d && <div className="stack" style={{ gap: 16 }}>
+        {orderActions}
         <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
         {penCase && <div className="callout" role="status"><b>In the holding pen.</b> This order is left out of planning and cannot be dispatched or completed until it is put right: {sortedDefects(penCase).map((x) => defectLabel(x.code)).join(', ')}. <a href={href('pen/' + penCase.case_key)}>See why and how to fix it</a></div>}
@@ -88,6 +96,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       </div>}
 
       {tab === 'artwork' && d && <div className="stack">
+        {orderActions}
         <div className="row wrap"><Status tone={d.art && d.art.blocking_issues === 0 ? 'good' : 'high'}>{d.art ? (d.art.blocking_issues === 0 ? 'Ready' : `${d.art.blocking_issues} issue(s)`) : 'No decoration'}</Status>{d.art?.issue_types && <span className="muted">{d.art.issue_types.replace(/_/g, ' ')}</span>}{d.art && <span className="dim">{d.art.approved}/{d.art.areas} areas approved</span>}</div>
         {d.versions.length === 0 ? <EmptyState icon="artwork" title="No artwork recorded">Artwork is pulled from DecoNetwork once the artwork fetch is connected, or can be uploaded by hand.</EmptyState> : d.versions.map((v) => <div key={v.id} className="row" style={{ justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}><span><b>{v.area}</b> <span className="dim">v{v.version}{v.is_current ? '' : ' (old)'} · {v.process ?? '—'} · {v.file_format ?? '—'}{v.stitch_count ? ` · ${v.stitch_count.toLocaleString('en-GB')} stitches` : ''}</span></span><span className="row"><Status tone={v.approval_status === 'approved' ? 'good' : 'medium'}>{v.approval_status}</Status><Status plain>{v.storage_status.replace('_', ' ')}</Status></span></div>)}
         <h3>Job packs</h3>{d.packs.length === 0 ? <p className="dim">No job pack built yet.</p> : d.packs.map((p) => <div key={p.id} className="row" style={{ justifyContent: 'space-between' }}><span className="mono">{p.pack_ref} v{p.version} · {p.producer_name}</span><span className="row"><Status tone={p.status === 'ready' || p.status === 'sent' ? 'good' : 'high'}>{p.status}</Status>{p.is_stale && <Status tone="critical" plain>stale</Status>}</span></div>)}
@@ -104,6 +113,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       </div>}
 
       {tab === 'producer' && d && <div className="stack">
+        {orderActions}
         {d.tp ? <Facts items={[['Producer', d.tp.producer_name], ['Stage', d.tp.tp_status ? TP_STATUS_LABEL[d.tp.tp_status] ?? d.tp.tp_status : '—'], ['Movement', d.tp.movement_code], ['Expected return', shortDate(d.tp.expected_return_date)], ['Return overdue', d.tp.is_return_overdue ? 'Yes' : 'No'], ['At risk of missing due date', d.tp.at_risk_of_missing_due_date ? 'Yes' : 'No']]} /> : <EmptyState icon="producers" title="Not with a producer">This order is produced in-house or has not been routed yet.</EmptyState>}
         {d.moves.map((m) => <div key={m.movement_id} className="row wrap" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}><span><b className="mono">{m.movement_code}</b> <span className="dim">{m.producer_name} · {m.units_sent} sent · {m.units_received_good} back</span></span><span className="row"><Status tone={m.is_overdue ? 'critical' : 'info'}>{TP_STATUS_LABEL[m.status] ?? m.status}</Status>{m.is_overdue && <span className="bad num">{m.days_overdue}d overdue</span>}</span></div>)}
       </div>}
@@ -124,6 +134,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {tab === 'history' && (hist.loading ? <div className="stack"><Skeleton h={16} /><Skeleton h={16} w="80%" /><Skeleton h={16} w="60%" /></div> : hist.rows.length === 0 ? <EmptyState icon="clock" title="No history recorded yet" /> :
         <ul className="timeline">{hist.rows.map((h, i) => <li key={i} className={'k-' + h.kind}><b style={{ textTransform: 'capitalize' }}>{h.title}</b><span className="dim"> · {h.actor ?? 'system'} · {dateTime(h.at)}</span>{h.detail && <div className="muted">{h.detail}</div>}</li>)}</ul>)}
 
+      {sendDlg && <CreateMovementDialog presetOrders={[o.order_ref]} onClose={() => setSendDlg(false)} />}
       {assign && <AssignDialog step={assign} onClose={() => { setAssign(null); void refreshAll(); }} />}
       <SelectionCompare open={compare} onClose={() => setCompare(false)} orderId={o.id} orderRef={o.order_ref} />
       <Modal open={!!pin} onClose={() => setPin(null)} title="Override production position">

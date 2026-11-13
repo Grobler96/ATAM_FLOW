@@ -169,6 +169,10 @@ try {
 
   console.log('orders'); await goto(page, '#/orders'); await page.waitForSelector('.dt-row');
   ok((await page.locator('.dt-row', { hasText: '#700101' }).getByText('not yet sent').count()) === 1 && (await page.locator('.dt-row', { hasText: '#700102' }).getByText('Stitchworks Embroidery').count()) >= 1, 'Route says Third-party, not yet sent for a flagged order with no consignment, and names the decorator once one exists');
+  { const { page: po, ctx: co } = await newPage(browser, { role: 'manager' }); await signIn(po); await goto(po, '#/orders/700101'); const od = po.getByRole('dialog').first(); await od.waitFor();
+    ok((await od.getByRole('button', { name: 'Add artwork' }).count()) === 1 && (await od.getByRole('button', { name: 'Send to a decorator' }).count()) === 1, 'an order shows Add artwork and Send to a decorator');
+    await od.getByRole('button', { name: 'Send to a decorator' }).click(); await po.getByRole('dialog', { name: 'New producer movement' }).waitFor(); ok(true, 'Send to a decorator opens a new consignment for this order'); await po.keyboard.press('Escape');
+    await od.getByRole('button', { name: 'Add artwork' }).click(); await po.waitForFunction(() => location.hash.startsWith('#/artwork/700101')); ok(true, 'Add artwork opens the order in Artwork & Job Packs'); await co.close(); }
   const open = F.orders.filter((o) => o.order_status !== 'dispatched').length; ok((await page.locator('.dt-foot').innerText()).includes(`of ${open}`), 'all open orders loaded');
   ok((await page.locator('.dt .chip', { hasText: 'Due today' }).count()) === 1 && (await page.locator('.dt .chip', { hasText: 'Blocked by stock' }).count()) === 1, 'default saved views present');
   await page.locator('.dt .chip', { hasText: 'Blocked by stock' }).click(); const blocked = F.orders.filter((o) => o.order_status === 'awaiting_stock').length; ok((await page.locator('.dt-foot').innerText()).startsWith(`Showing ${blocked}`), 'Blocked by stock view filters');
