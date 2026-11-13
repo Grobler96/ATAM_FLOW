@@ -18,7 +18,7 @@ import { FocusBar } from '../components/FocusBar';
 import type { ExceptionRow } from '../types';
 import type { AllocationRow, ArtworkStatusRow, BinRow, OrderRow, SelectionRow, TpOrderRow } from '../data/types';
 
-export interface OrderVM extends OrderRow { route: 'Producer' | 'Internal'; producer: string | null; tp_status: string | null; stock: ReturnType<typeof stockStatus>; art: string; artOk: boolean | null; bin: string; margin: number | null; exCount: number; sev: '' | 'critical' | 'high' | 'medium' | 'low'; atRisk: boolean; score: number | null; stage: string }
+export interface OrderVM extends OrderRow { route: 'Producer' | 'Third-party' | 'Internal'; producer: string | null; tp_status: string | null; stock: ReturnType<typeof stockStatus>; art: string; artOk: boolean | null; bin: string; margin: number | null; exCount: number; sev: '' | 'critical' | 'high' | 'medium' | 'low'; atRisk: boolean; score: number | null; stage: string }
 const RANK = { critical: 1, high: 2, medium: 3, low: 4, '': 9 } as const;
 const AWAIT_RETURN = ['awaiting_return', 'in_transit_back', 'partially_returned', 'production_complete', 'in_production', 'received_by_producer', 'dispatched'];
 
@@ -34,9 +34,9 @@ export function OrdersPage({ route }: { route: Route }) {
     const tp = tpo.rows.find((t) => t.order_id === o.id && t.tp_status), a = art.rows.find((x) => x.order_id === o.id), s = sel.rows.find((x) => x.order_id === o.id), al = alloc.rows.find((x) => x.order_id === o.id);
     const myEx = ex.rows.filter((e) => e.order_refs.includes(o.order_ref)); const sev = myEx.reduce<OrderVM['sev']>((m, e) => (RANK[e.severity] < RANK[m] ? e.severity : m), '');
     const myBins = bins.rows.filter((b) => (b.order_refs ?? []).includes(o.order_ref)).map((b) => b.bin_code);
-    return { ...o, route: tp ? 'Producer' : 'Internal', producer: tp?.producer_name ?? null, tp_status: tp?.tp_status ?? null, stock: stockStatus(o), art: !a ? 'No decoration' : a.blocking_issues === 0 ? 'Ready' : `${a.blocking_issues} issue${a.blocking_issues > 1 ? 's' : ''}`, artOk: a ? a.blocking_issues === 0 : null,
+    return { ...o, route: tp ? 'Producer' : scopeOf.get(o.id) === 'third_party' ? 'Third-party' : 'Internal', producer: tp?.producer_name ?? null, tp_status: tp?.tp_status ?? null, stock: stockStatus(o), art: !a ? 'No decoration' : a.blocking_issues === 0 ? 'Ready' : `${a.blocking_issues} issue${a.blocking_issues > 1 ? 's' : ''}`, artOk: a ? a.blocking_issues === 0 : null,
       bin: myBins.join(', '), margin: s?.margin_pct ?? null, exCount: myEx.length, sev, atRisk: myEx.some((e) => e.type_code === 'order_at_risk'), score: al?.score ?? null, stage: o.production_stage ?? statusLabel(o.order_status) };
-  }), [orders.rows, tpo.rows, art.rows, sel.rows, bins.rows, ex.rows, alloc.rows]);
+  }), [orders.rows, tpo.rows, art.rows, sel.rows, bins.rows, ex.rows, alloc.rows, scopeOf]);
   const rows = useMemo(() => allRows.filter((o) => !focus.hideOrder(o.id)), [allRows, focus]);
   const hiddenCount = allRows.length - rows.length;
 
@@ -56,7 +56,7 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'method', label: 'Method', options: [...new Set(rows.flatMap((o) => o.decoration_methods))].map((m) => ({ value: m, label: METHOD_LABEL[m] ?? m })), test: (o, v) => o.decoration_methods.includes(v) },
     { id: 'stock', label: 'Stock', options: [{ value: 'Secured', label: 'Secured' }, { value: 'Allocated', label: 'Allocated' }, { value: 'Partial', label: 'Partial' }, { value: 'Short', label: 'Short / none' }], test: (o, v) => o.stock.label.startsWith(v) },
     { id: 'artwork', label: 'Artwork', options: [{ value: 'ok', label: 'Ready' }, { value: 'issue', label: 'Has issues' }, { value: 'none', label: 'No decoration' }], test: (o, v) => v === 'ok' ? o.artOk === true : v === 'issue' ? o.artOk === false : o.artOk === null },
-    { id: 'route', label: 'Route', options: [{ value: 'Internal', label: 'Internal' }, { value: 'Producer', label: 'Producer' }], test: (o, v) => o.route === v },
+    { id: 'route', label: 'Route', options: [{ value: 'Internal', label: 'Internal' }, { value: 'Third-party', label: 'Third-party, not yet sent' }, { value: 'Producer', label: 'With a decorator' }], test: (o, v) => o.route === v },
     { id: 'producer', label: 'Producer', options: uniq((o) => o.producer), test: (o, v) => o.producer === v },
     { id: 'bin', label: 'Bin', options: [{ value: 'in', label: 'In a bin' }, { value: 'out', label: 'No bin' }], test: (o, v) => (v === 'in') === !!o.bin },
     { id: 'exc', label: 'Exceptions', options: [{ value: 'any', label: 'Has open exceptions' }, { value: 'critical', label: 'Has critical' }, { value: 'none', label: 'None' }], test: (o, v) => v === 'any' ? o.exCount > 0 : v === 'critical' ? o.sev === 'critical' : o.exCount === 0 }
@@ -69,7 +69,7 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'priority', header: 'Priority', width: '120px', render: (o) => <PriorityCell p={o.priority} vip={o.is_vip} />, sort: (o) => o.priority, csv: (o) => PRIORITY[o.priority]?.label },
     { id: 'score', header: 'Score', width: '70px', align: 'r', render: (o) => <Num v={o.score} />, sort: (o) => o.score, csv: (o) => o.score },
     { id: 'status', header: 'Status', width: '176px', render: (o) => <StatusCell s={o.order_status} />, sort: (o) => o.order_status, csv: (o) => statusLabel(o.order_status) },
-    { id: 'route', header: 'Route', width: '150px', render: (o) => o.route === 'Producer' ? <span title={o.producer ?? ''}><Status tone="info" plain>Producer</Status> <span className="dim">{o.producer}</span></span> : <span className="dim">Internal</span>, sort: (o) => o.route, csv: (o) => o.producer ?? 'Internal' },
+    { id: 'route', header: 'Route', width: '150px', render: (o) => o.route === 'Producer' ? <span title={o.producer ?? ''}><Status tone="info" plain>Producer</Status> <span className="dim">{o.producer}</span></span> : o.route === 'Third-party' ? <span title="Marked priority in DecoNetwork, so it is a third-party order. No consignment to a decorator yet."><Status tone="info" plain>Third-party</Status> <span className="dim">not yet sent</span></span> : <span className="dim" title="Not marked as a third-party order">Internal</span>, sort: (o) => o.route, csv: (o) => o.producer ?? o.route },
     { id: 'stock', header: 'Stock', width: '120px', render: (o) => <Status tone={o.stock.tone} plain>{o.stock.label}</Status>, csv: (o) => o.stock.label },
     { id: 'art', header: 'Artwork', width: '120px', render: (o) => <Status tone={o.artOk === false ? 'high' : o.artOk ? 'good' : ''} plain>{o.art}</Status>, csv: (o) => o.art },
     { id: 'units', header: 'Units', width: '72px', align: 'r', render: (o) => <Num v={o.total_units} />, sort: (o) => o.total_units, csv: (o) => o.total_units },

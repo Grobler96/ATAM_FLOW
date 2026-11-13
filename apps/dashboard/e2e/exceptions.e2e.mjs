@@ -168,6 +168,7 @@ try {
   ok((await page.getByText('Third-party pulse').count()) === 1 && (await page.getByText('Stock pulse').count()) === 1 && (await page.getByText('Recent activity').count()) === 1, 'third-party, stock and activity panels');
 
   console.log('orders'); await goto(page, '#/orders'); await page.waitForSelector('.dt-row');
+  ok((await page.locator('.dt-row', { hasText: '#700101' }).getByText('not yet sent').count()) === 1 && (await page.locator('.dt-row', { hasText: '#700102' }).getByText('Stitchworks Embroidery').count()) >= 1, 'Route says Third-party, not yet sent for a flagged order with no consignment, and names the decorator once one exists');
   const open = F.orders.filter((o) => o.order_status !== 'dispatched').length; ok((await page.locator('.dt-foot').innerText()).includes(`of ${open}`), 'all open orders loaded');
   ok((await page.locator('.dt .chip', { hasText: 'Due today' }).count()) === 1 && (await page.locator('.dt .chip', { hasText: 'Blocked by stock' }).count()) === 1, 'default saved views present');
   await page.locator('.dt .chip', { hasText: 'Blocked by stock' }).click(); const blocked = F.orders.filter((o) => o.order_status === 'awaiting_stock').length; ok((await page.locator('.dt-foot').innerText()).startsWith(`Showing ${blocked}`), 'Blocked by stock view filters');
