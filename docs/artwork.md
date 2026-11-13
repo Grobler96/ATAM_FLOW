@@ -39,6 +39,7 @@ Open **Artwork & Job Packs**, click an order: a drawer shows its artwork **by ar
 - **Preview** (images on screen; PDFs open in a new tab; production files such as DST say they cannot be previewed here), **Download** (a short-lived signed link, 5 minutes), and **earlier versions** with who, when and why. The DecoNetwork proof link is shown when DecoNetwork has one.
 - **Change approval…** is the existing audited `set_approval` override (reason required); normally the customer's answer to a proof sets approval.
 - Everyone on the team can look and download. Warehouse and viewer roles cannot change anything.
+- **Job packs** (13 Nov 2026): the same drawer has a **Job packs** section. **Build job pack** asks which decorator, then builds the pack from the order as it stands (remaining quantities by colour and size, current artwork). A blocked pack lists the exact problems in the dialog. **Mark as sent** appears on a ready, up to date pack and records that it is released; nothing is emailed. Before this, the build and send actions existed only in the Artwork actions workflow with no button. A pack built without a consignment is still shown to the decorator in the portal for any consignment carrying that order.
 
 ## Customer proofs (migration 53)
 A **proof** is a picture or PDF the customer approves, tied to the exact artwork versions it shows. Made outside DecoNetwork (for example emailed); **nothing is sent from ATAM_FLOW**.
