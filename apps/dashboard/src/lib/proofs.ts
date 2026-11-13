@@ -28,3 +28,7 @@ export const proofCreate = (p: { order_id: string; artwork_ids: string[]; storag
 export const proofSend = (proof_id: string, to: string, via: string, note?: string): Promise<ActionResult> => opsAction('proof_send', { proof_id, to, via, note });
 export const proofRespond = (p: { proof_id: string; outcome: string; by: string; note?: string; evidence?: string | null }): Promise<ActionResult> => opsAction('proof_respond', p);
 export const proofWithdraw = (proof_id: string, reason: string): Promise<ActionResult> => opsAction('proof_withdraw', { proof_id, reason });
+
+// Job packs: the artwork workflow's build_pack and mark_pack_sent actions (already checked again in the database).
+export const packBuild = (order_id: string, producer_id: string): Promise<ActionResult> => exceptionActionTo('artwork', 'build_pack', { order_id, producer_id });
+export const packMarkSent = (pack_id: string): Promise<ActionResult> => exceptionActionTo('artwork', 'mark_pack_sent', { pack_id });

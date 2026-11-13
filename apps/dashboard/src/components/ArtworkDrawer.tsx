@@ -5,12 +5,13 @@ import { useView } from '../data/store';
 import { useCtx } from '../data/context';
 import { dateTime } from '../lib/format';
 import { ALLOWED_EXT, artworkPath, checkFile, downloadFile, extOf, fileNameOf, isImage, isPdf, PROOF_EXT, proofPath, removeFile, signedUrl, uploadFile } from '../lib/artworkFiles';
-import { APPROVAL_LABEL, APPROVAL_TONE, artworkReplace, artworkSetApproval, PROOF_LABEL, PROOF_TONE, proofCreate, proofRespond, proofSend, proofWithdraw, VIA_LABEL, type ArtworkFileRow, type ProofRow } from '../lib/proofs';
+import { APPROVAL_LABEL, APPROVAL_TONE, artworkReplace, packBuild, packMarkSent, artworkSetApproval, PROOF_LABEL, PROOF_TONE, proofCreate, proofRespond, proofSend, proofWithdraw, VIA_LABEL, type ArtworkFileRow, type ProofRow } from '../lib/proofs';
 import { href } from '../router';
 import type { ActionResult } from '../types';
+import type { JobPackRow, ProducerRow } from '../data/types';
 
 const PROCESSES: [string, string][] = [['embroidery', 'Embroidery'], ['dtf', 'DTF'], ['dtg', 'DTG'], ['uv', 'UV'], ['screen', 'Screen print'], ['transfer', 'Heat transfer'], ['other', 'Other']];
-type Dlg = null | { kind: 'upload'; file?: ArtworkFileRow } | { kind: 'approval'; file: ArtworkFileRow } | { kind: 'view'; path: string; name: string; title: string } | { kind: 'proof' }
+type Dlg = null | { kind: 'upload'; file?: ArtworkFileRow } | { kind: 'approval'; file: ArtworkFileRow } | { kind: 'view'; path: string; name: string; title: string } | { kind: 'proof' } | { kind: 'pack' } | { kind: 'packsent'; pack: JobPackRow }
   | { kind: 'send'; proof: ProofRow } | { kind: 'answer'; proof: ProofRow } | { kind: 'withdraw'; proof: ProofRow };
 
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) { return <Modal open onClose={onClose} title={title}><div className="stack" style={{ gap: 12 }}>{children}</div></Modal>; }
@@ -19,13 +20,14 @@ const Err = ({ m }: { m: string | null }) => (m ? <div className="callout" role=
 export function ArtworkDrawer({ orderRef, onClose }: { orderRef: string; onClose: () => void }) {
   const ref = '#' + orderRef; const { role, senior } = useCtx(); const toast = useToast();
   const files = useView<ArtworkFileRow>('ui_artwork_files'), proofs = useView<ProofRow>('ui_artwork_proofs'); const orders = useView<{ id: string; order_ref: string; customer_name: string | null; due_date: string | null }>('ui_orders');
-  const [dlg, setDlg] = useState<Dlg>(null); const [open, setOpen] = useState<Record<string, boolean>>({}); const [dlErr, setDlErr] = useState<string | null>(null);
+  const packs = useView<JobPackRow>('ui_job_packs'); const [dlg, setDlg] = useState<Dlg>(null); const [open, setOpen] = useState<Record<string, boolean>>({}); const [dlErr, setDlErr] = useState<string | null>(null);
   const canWrite = role === 'admin' || role === 'manager' || role === 'production';
   const all = useMemo(() => files.rows.filter((f) => f.order_ref === ref), [files.rows, ref]);
   const current = useMemo(() => all.filter((f) => f.is_current).sort((a, b) => a.area.localeCompare(b.area)), [all]);
   const order = orders.rows.find((o) => o.order_ref === ref); const orderId = order?.id ?? all[0]?.order_id ?? '';
+  const myPacks = useMemo(() => packs.rows.filter((k) => k.order_ref === ref).sort((a, b) => b.built_at.localeCompare(a.built_at)), [packs.rows, ref]);
   const myProofs = useMemo(() => proofs.rows.filter((p) => p.order_ref === ref).sort((a, b) => b.created_at.localeCompare(a.created_at)), [proofs.rows, ref]);
-  const refresh = async () => { await Promise.all([files.refresh(), proofs.refresh()]); };
+  const refresh = async () => { await Promise.all([files.refresh(), proofs.refresh(), packs.refresh()]); };
   const done = async (msg: string) => { toast.push({ tone: 'good', title: msg }); setDlg(null); await refresh(); };
   const hist = (f: ArtworkFileRow) => all.filter((x) => x.area === f.area && (x.deco_line_id ?? '') === (f.deco_line_id ?? '') && !x.is_current).sort((a, b) => b.version - a.version);
   async function dl(path: string, name: string) { setDlErr(null); if (!(await downloadFile(path, name))) setDlErr(`Could not get ${name}. Try again, or ask for the file to be re-uploaded.`); }
@@ -77,6 +79,17 @@ export function ArtworkDrawer({ orderRef, onClose }: { orderRef: string; onClose
               </div>
             </div>))}
         </section>
+
+        <section className="stack" style={{ gap: 10 }} aria-label="Job packs">
+          <div className="row" style={{ justifyContent: 'space-between' }}><h3>Job packs</h3>{canWrite && orderId && <Button icon="plus" onClick={() => setDlg({ kind: 'pack' })}>Build job pack</Button>}</div>
+          <p className="dim">A job pack is what a decorator receives for this order: the lines, sizes and quantities, and the approved artwork. It is blocked until every area has an approved, stored file. Nothing is sent from this screen; marking a pack as sent records that it is ready for the decorator.</p>
+          {myPacks.length === 0 ? <p className="dim">No job pack built for this order yet.</p> : myPacks.map((k) => (
+            <div key={k.id} className="panel stack" style={{ padding: 14, gap: 6 }}>
+              <div className="row wrap" style={{ gap: 10 }}><b className="mono">{k.pack_ref}</b><span className="dim">version {k.version} · {k.producer_name}</span><Status tone={k.status === 'ready' || k.status === 'sent' ? 'good' : 'high'}>{k.status}</Status>{k.is_stale && <Status tone="critical" plain>Artwork changed since it was built: rebuild it</Status>}</div>
+              <div className="dim">Built {dateTime(k.built_at)}{k.sent_at ? ` · marked as sent ${dateTime(k.sent_at)}` : ''}{k.status === 'blocked' ? ` · ${k.issue_count} problem${k.issue_count === 1 ? '' : 's'} to fix (build again to see them)` : ''}</div>
+              {canWrite && k.status === 'ready' && !k.is_stale && <div className="row"><Button size="sm" variant="primary" onClick={() => setDlg({ kind: 'packsent', pack: k })}>Mark as sent</Button></div>}
+            </div>))}
+        </section>
       </div>
 
       {dlg?.kind === 'upload' && <UploadDialog orderRef={ref} orderId={orderId} existing={dlg.file} nextVersion={(dlg.file ? Math.max(...all.filter((x) => x.area === dlg.file!.area).map((x) => x.version)) : 0) + 1} onClose={() => setDlg(null)} onDone={done} />}
@@ -85,6 +98,8 @@ export function ArtworkDrawer({ orderRef, onClose }: { orderRef: string; onClose
       {dlg?.kind === 'proof' && <ProofDialog orderRef={ref} orderId={orderId} areas={current} onClose={() => setDlg(null)} onDone={done} />}
       {dlg?.kind === 'send' && <SendDialog proof={dlg.proof} onClose={() => setDlg(null)} onDone={done} />}
       {dlg?.kind === 'answer' && <AnswerDialog orderRef={ref} proof={dlg.proof} onClose={() => setDlg(null)} onDone={done} />}
+      {dlg?.kind === 'pack' && <PackDialog orderId={orderId} onClose={() => setDlg(null)} onDone={done} />}
+      {dlg?.kind === 'packsent' && <PackSentDialog pack={dlg.pack} onClose={() => setDlg(null)} onDone={done} />}
       {dlg?.kind === 'withdraw' && <WithdrawDialog proof={dlg.proof} onClose={() => setDlg(null)} onDone={done} />}
     </Drawer>
   );
@@ -244,6 +259,39 @@ function WithdrawDialog({ proof, onClose, onDone }: { proof: ProofRow; onClose: 
       <Field label="Why? (required)"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} aria-label="Withdraw reason" /></Field>
       <Err m={err} />
       <div className="row"><Button variant="danger" disabled={busy || reason.trim().length < 5} onClick={() => void run(() => proofWithdraw(proof.id, reason.trim()), 'Proof withdrawn.')}>{busy ? 'Saving…' : 'Withdraw'}</Button><Button variant="ghost" onClick={onClose}>Keep it</Button></div>
+    </Dialog>
+  );
+}
+
+function PackDialog({ orderId, onClose, onDone }: { orderId: string; onClose: () => void; onDone: (m: string) => Promise<void> }) {
+  const prods = useView<ProducerRow>('ui_producers'); const [pid, setPid] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<{ ref: string; issues: { area?: string; issue?: string; detail?: string; severity?: string }[] } | null>(null);
+  const list = prods.rows.filter((p) => p.is_active).sort((a, b) => a.name.localeCompare(b.name));
+  async function build() {
+    setBusy(true); setErr(null); setBlocked(null); const r = await packBuild(orderId, pid); setBusy(false);
+    if (!r || r.ok === false) { setErr(String(r?.error ?? 'That did not work.')); return; }
+    const issues = (Array.isArray(r.issues) ? r.issues : []) as { area?: string; issue?: string; detail?: string; severity?: string }[];
+    if (r.status === 'blocked') { setBlocked({ ref: String(r.pack_ref ?? ''), issues }); return; }
+    await onDone(r.unchanged ? `Pack ${String(r.pack_ref)} is already up to date.` : `Job pack ${String(r.pack_ref)} built and ready.`);
+  }
+  return (
+    <Dialog title="Build a job pack" onClose={blocked ? () => { void onDone('Job pack built but blocked: fix the artwork problems, then build it again.'); } : onClose}>
+      <p className="muted">Pick the decorator this pack is for. It is built from the order as it stands now: remaining quantities by colour and size, and the current artwork.</p>
+      <Field label="Decorator"><select className="select" value={pid} onChange={(e) => setPid(e.target.value)} aria-label="Decorator for the job pack"><option value="">Choose a decorator…</option>{list.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+      <Err m={err} />
+      {blocked && <div className="callout" role="status"><b>{blocked.ref} was built but is blocked.</b> It cannot go to the decorator until this is fixed:<ul>{blocked.issues.map((i, n) => <li key={n}>{[i.area, i.detail ?? i.issue?.replace(/_/g, ' ')].filter(Boolean).join(': ')}</li>)}</ul>Fix the artwork, then build the pack again.</div>}
+      <div className="row"><Button variant="primary" disabled={busy || !pid || !!blocked} onClick={() => void build()}>{busy ? 'Building…' : 'Build job pack'}</Button><Button variant="ghost" onClick={blocked ? () => { void onDone('Job pack built but blocked: fix the artwork problems, then build it again.'); } : onClose}>{blocked ? 'Close' : 'Cancel'}</Button></div>
+    </Dialog>
+  );
+}
+
+function PackSentDialog({ pack, onClose, onDone }: { pack: JobPackRow; onClose: () => void; onDone: (m: string) => Promise<void> }) {
+  const { busy, err, run } = useAction(onDone);
+  return (
+    <Dialog title={`Mark ${pack.pack_ref} as sent`} onClose={onClose}>
+      <p className="muted">This records that the pack is released to {pack.producer_name}. If it goes with a consignment, the decorator sees it in their portal. Nothing is emailed from here.</p>
+      <Err m={err} />
+      <div className="row"><Button variant="primary" disabled={busy} onClick={() => void run(() => packMarkSent(pack.id), 'Job pack marked as sent.')}>{busy ? 'Saving…' : 'Mark as sent'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
     </Dialog>
   );
 }
