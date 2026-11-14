@@ -23,6 +23,18 @@ Built 4 Nov 2026 (migrations 16-17, tested by `supabase/tests/purchasing_test.sq
 
 **Deliver straight to a decorator (11 Nov 2026):** the Create PO dialog now asks where the stock goes: our warehouse (default) or straight to a chosen decorator. Stock delivered to a decorator is booked in against the decorator and never enters warehouse stock. The supplier should be marked as able to deliver to a producer (the dialog warns if not).
 
+## Streamlined purchasing (14 Nov 2026, migration `supabase/pending/20261114000066`, not yet applied to the live project)
+
+- **Product catalogue** (Purchasing → Product catalogue): supplier, item code (the DecoNetwork SKU) and cost, with one **preferred** supplier per item. It reuses `flow.supplier_offers` (new column `is_preferred`). Managers and admins load it from a spreadsheet saved as CSV (`Supplier, Item code, Cost, Preferred`), or change the preferred supplier on screen. A file with any bad row imports nothing and lists the problems. Reloading updates costs and never deletes. An item with no preferred supplier gets its cheapest.
+- **Raise purchase orders** (the Create PO screen): lists the orders that still need stock (`ui_order_buy_lines`: after reservations and stock already on a PO), groups every line by its catalogue supplier and delivery place, shows each PO's lines (item, product, colour, size, qty, cost, orders), and raises one PO per group. An order that needs stock from Ralawise and Portwest becomes two POs. Items not in the catalogue are offered a supplier choice, or left out.
+- **Delivery is pre-set**: third-party orders go straight to their decorator, everything else to our warehouse; each PO's "Deliver to" can still be changed.
+- **POs go live straight away**: the dialog sends `options.live = true`, so the PO is approved on creation (no draft, no approval rules, no limit) and the supplier email is queued. The email still waits for one click under Purchasing → Emails (and cannot send until a supplier has an address). POs created without `live` are still drafts, and the old Approve… dialog and rules still exist for them.
+- After raising, a single PO opens on screen; several go to the Purchasing list.
+- **Order lists**: *IH Orders* and *3PD Orders* in the sidebar show orders that have come in and still need stock bought, with a **Raise POs for these** button. *All Orders* is the old Orders page.
+- **Decorator per order**: every third-party order goes to the decorator in setting `third_party.default_producer` (DPS, set by the migration if a producer with code or name DPS exists) unless changed on the order (Overview → Decorator → Change…, managers, admins and production planners). This sets who a PO delivers to; it does not yet pre-fill the Send to producer dialog.
+- The new screens call the database directly (signed in, with the role check inside each function) rather than through n8n, so no n8n workflow change is needed. `create_po_for_orders` is unchanged for n8n callers apart from the new `live` option, which the existing Purchasing actions workflow passes through in `options`.
+- Tests: `supabase/tests/streamline_test.sql`, `lib/poPlan.test.ts`, `lib/catalogue.test.ts`, the browser test section "order lists and catalogue".
+
 ## Communication log
 
 Every outbound message is a row in `flow.communications` (draft / pending_review / approved / sending / sent / failed / cancelled).
