@@ -6,7 +6,7 @@ import type { Tone } from '../ui/primitives';
 export interface ArtworkFileRow {
   id: string; order_id: string; order_ref: string; customer_name: string | null; due_date: string | null; deco_line_id: string | null; area: string; process: string | null; version: number; is_current: boolean;
   source: string; approval_status: 'approved' | 'pending' | 'rejected' | 'unknown'; storage_status: string; storage_path: string | null; file_format: string | null; stitch_count: number | null;
-  width_mm: number | null; height_mm: number | null; placement: string | null; readable: boolean | null; has_deconetwork_proof: boolean; proof_url: string | null; note: string | null; created_by: string | null; created_at: string; stored_at: string | null;
+  width_mm: number | null; height_mm: number | null; placement: string | null; readable: boolean | null; has_deconetwork_proof: boolean; proof_url: string | null; thumbnail_url?: string | null; note: string | null; created_by: string | null; created_at: string; stored_at: string | null;
 }
 export type ProofStatus = 'draft' | 'sent' | 'approved' | 'changes_requested' | 'rejected' | 'superseded' | 'withdrawn';
 export interface ProofRow {
