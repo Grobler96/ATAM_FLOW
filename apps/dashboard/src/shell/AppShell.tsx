@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { ToastProvider, Modal } from '../ui/overlay';
-import { ContextProvider, useCtx } from '../data/context';
+import { ContextProvider, useCtx, type RoleStatus } from '../data/context';
 import { rpc } from '../data/store';
 import { navigate, NAV, useRoute } from '../router';
 import type { Role } from '../types';
@@ -40,9 +40,21 @@ import { FloorPage } from '../pages/Floor';
 import '../shell/shell.css';
 
 export function AppShell({ session }: { session: Session }) {
-  const [role, setRole] = useState<Role | null>(null);
-  useEffect(() => { rpc<Role | null>('ui_my_role').then(setRole).catch(() => setRole(null)); }, []);
-  return <ToastProvider><ContextProvider role={role} email={session.user.email ?? null}><Frame /></ContextProvider></ToastProvider>;
+  const [role, setRole] = useState<Role | null>(null); const [roleStatus, setRoleStatus] = useState<RoleStatus>('loading'); const [attempt, setAttempt] = useState(0);
+  // The role decides what every button does, so a failed lookup is retried and then shown, never quietly treated as "no role".
+  useEffect(() => {
+    let live = true; setRoleStatus('loading');
+    (async () => {
+      for (let i = 0; i < 3; i++) {
+        try { const r = await rpc<Role | null>('ui_my_role'); if (!live) return; setRole(r ?? null); setRoleStatus(r ? 'ok' : 'none'); return; }
+        catch { if (!live) return; await new Promise((res) => setTimeout(res, 600 * (i + 1))); }
+      }
+      if (live) { setRole(null); setRoleStatus('error'); }
+    })();
+    return () => { live = false; };
+  }, [attempt]);
+  const retryRole = useCallback(() => setAttempt((a) => a + 1), []);
+  return <ToastProvider><ContextProvider role={role} email={session.user.email ?? null} roleStatus={roleStatus} retryRole={retryRole}><Frame /></ContextProvider></ToastProvider>;
 }
 
 function Frame() {
@@ -78,6 +90,7 @@ function Frame() {
       <div className="main">
         <TopBar onMenu={() => setMobileOpen((o) => !o)} onCollapse={() => setCollapsed((c) => !c)} onSearch={() => setPalette(true)} onCreatePo={() => { setPoPreset([]); setPoOpen(true); }} onGenerateLabels={() => setLabelDlg({})} onNewMovement={() => setMoveDlg({})} onRun={(d) => void runner.run(d)} running={runner.running} canRun={runner.can} email={email} />
         <main className="content" id="main">
+          <RoleBanner />
           <CutOffBanner />
           {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'pen' && <PenPage route={route} />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
           {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'dispatch' && <DispatchPage route={route} />}{page === 'stocktake' && <StockTakesPage route={route} />}{page === 'goods-in' && <GoodsInPage />}{page === 'quality' && <QualityPage route={route} />}
@@ -100,4 +113,11 @@ function Frame() {
       </Modal>
     </div>
   );
+}
+
+function RoleBanner() {
+  const { roleStatus, retryRole, email } = useCtx();
+  if (roleStatus === 'error') return <div className="callout" role="alert" style={{ marginBottom: 12 }}><b>We could not confirm your role.</b> Until we can, buttons that change things are switched off. <button className="btn sm" type="button" onClick={retryRole}>Try again</button> If it keeps happening, reload the page or sign out and back in.</div>;
+  if (roleStatus === 'none') return <div className="callout" role="alert" style={{ marginBottom: 12 }}><b>This login has no ATAM_FLOW role{email ? ` (${email})` : ''}.</b> You can look but not change anything. Sign out and sign in with your work email, or ask an admin to give you a role.</div>;
+  return null;
 }
