@@ -18,7 +18,7 @@ An internal command centre for an apparel decoration business. It **launches for
 - `cd apps/dashboard && npm test && npm run build && npm run e2e && npm run e2e:portal` (rebuild before e2e; run one e2e at a time; the main e2e takes about two minutes, so run it in the background and write its output to a file)
 - e2e runs against a fully mocked Supabase and n8n. **A mock cannot catch a permission problem**; query views as the real role.
 
-## Live state (migrations 1-62 applied, repo and live match up to there; the API guard from 61 is on, see `docs/security-audit-2026-11.md`)
+## Live state (migrations 1-62 and 66 applied, repo and live match up to there; the API guard from 61 is on, see `docs/security-audit-2026-11.md`)
 **Written, tested locally, NOT applied to the live database (need the owner's go-ahead, see the next section): migrations 63, 64 and 65.** (62, direct to customer jobs, is applied.) Everything else added in the open pull request is dashboard code and docs, which goes live when the pull request is merged to `main` (the Pages deploy).
 Merged to `main` this phase: holding pen, third-party focus view, decorator spoilage reporting, job packs and artwork downloads, scanning (staff and portal), dispatch queue and courier labels, artwork storage and customer proofs, stock-takes, real QC checklists (mechanism only), exception digest and due-soon warnings, purchasing controls (approval rules, invoice matching, draft-only scheduled chasing; database and n8n actions; **the approval and invoice screens and a read-only rules panel are built in the open pull request, not merged yet**), floor set-up (machines and operator skills), decorator sign-in page redesign, portal hardening (inactivity sign-out enforced in the database, sign-in log, company addresses only).
 
@@ -33,13 +33,13 @@ Built in the open pull request, tested locally, and safe to merge: merging chang
 2. **Migration 63: audit trail for direct writes** (`20261110000063_flow_config_audit.sql`). Triggers on 16 set-up tables record who changed what in `flow.audit_log` when a logged-in person writes directly. After applying: change a setting or a role as a test admin and look for the `direct_update` row.
 3. **Migration 64: QC photos from a device** (`20261110000064_flow_qc_evidence_storage.sql`). Lets admin, manager, production and warehouse add files under `qc/` in the `producer-evidence` bucket. Until it is applied, the upload in the QC form says it is not allowed and pasted links still work. After applying: record a check with a photo and open it from the Checks tab.
 4. ~~Publish the Purchasing actions workflow~~ Done on 11 Nov 2026 with the owner's go-ahead: Purchasing actions, Goods-in processor and the Communications sender are published (see above).
-Apply order does not matter. Migrations sent through the Supabase tool: none of these three contains the words "drop" or "delete from". The next migration is **66** (file prefix `20261110000066_`).
+Apply order does not matter. Migrations sent through the Supabase tool: none of these three contains the words "drop" or "delete from". The next migration is **67** (file prefix `20261110000067_`; 66, the artwork preview column, is applied).
 
 ## Standing rules from the owner
 - Plain-English explanations. Never expose secrets. Ask before anything destructive. Overrides need a reason and an audit record. Unbuilt things must be visibly disabled with a reason, never faked. Report honestly what is and is not done.
 - **No emails yet**: no email sending or notification to decorators or staff. Drafts that wait for review are existing behaviour.
 - Merge a PR **only when asked**; mark drafts ready first. Open a draft PR after pushing and subscribe to it.
-- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **66**, file prefix `20261110000066_`: 63 to 65 are in the repo but not live).
+- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **67**, file prefix `20261110000067_`: 63 to 65 are in the repo but not live; 66 is live).
 - No model names in repo artifacts (commits, code, docs).
 - Do not guess the things the owner still has to supply: producers list and rates, who gets which role, supplier emails and offers, machine shift hours, press speeds, QC checklist items, risk weights, the DecoNetwork artwork credential. Supabase settings only the owner can change: portal redirect URL (done), email sender, turning off new sign-ups, link expiry.
 

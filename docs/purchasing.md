@@ -23,7 +23,7 @@ Built 4 Nov 2026 (migrations 16-17, tested by `supabase/tests/purchasing_test.sq
 
 **Deliver straight to a decorator (11 Nov 2026):** the Create PO dialog now asks where the stock goes: our warehouse (default) or straight to a chosen decorator. Stock delivered to a decorator is booked in against the decorator and never enters warehouse stock. The supplier should be marked as able to deliver to a producer (the dialog warns if not).
 
-## Streamlined purchasing (14 Nov 2026, migration `supabase/pending/20261114000066`, not yet applied to the live project)
+## Streamlined purchasing (14 Nov 2026, migration `supabase/pending/20261114000067`, not yet applied to the live project)
 
 - **Product catalogue** (Purchasing → Product catalogue): supplier, item code (the DecoNetwork SKU) and cost, with one **preferred** supplier per item. It reuses `flow.supplier_offers` (new column `is_preferred`). Managers and admins load it from a spreadsheet saved as CSV (`Supplier, Item code, Cost, Preferred`), or change the preferred supplier on screen. A file with any bad row imports nothing and lists the problems. Reloading updates costs and never deletes. An item with no preferred supplier gets its cheapest.
 - **Raise purchase orders** (the Create PO screen): lists the orders that still need stock (`ui_order_buy_lines`: after reservations and stock already on a PO), groups every line by its catalogue supplier and delivery place, shows each PO's lines (item, product, colour, size, qty, cost, orders), and raises one PO per group. An order that needs stock from Ralawise and Portwest becomes two POs. Items not in the catalogue are offered a supplier choice, or left out.
