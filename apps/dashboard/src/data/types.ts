@@ -43,3 +43,8 @@ export interface NotificationRow { id: number; created_at: string; kind: string;
 export interface ActivityRow { at: string; kind: string; title: string; detail: string | null; actor: string | null; route: string | null }
 export interface SettingRow { key: string; value: unknown; description: string | null; updated_at: string }
 export interface SupplierDiscRow { id: string; disc_ref: string; disc_type: string; po_ref: string; supplier: string | null; sku: string; qty: number; required_by: string | null; is_overdue: boolean }
+
+// Streamlined purchasing (migration 66)
+export interface BuyLineRow { order_id: string; order_ref: string; order_line_id: string; sku: string; product_name: string | null; colour: string | null; size: string | null; qty_needed: number; supplier_id: string | null; supplier: string | null; unit_cost: number | null }
+export interface OrderDecoratorRow { order_id: string; scope: string; chosen_producer_id: string | null; producer_id: string | null; is_default: boolean; producer_name: string | null; can_direct_dispatch: boolean | null }
+export interface CatalogueRow { id: string; supplier_id: string; supplier: string; item_code: string; cost: number | null; is_preferred: boolean; updated_at: string; product_name: string | null }

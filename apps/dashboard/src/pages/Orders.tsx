@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Panel, Status } from '../ui/primitives';
+import { Button, Panel, Status } from '../ui/primitives';
 import { DataTable, type BulkAction, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
 import type { OrderScopeRow } from '../lib/scope';
 import { useView } from '../data/store';
@@ -16,13 +16,18 @@ import { relativeTime } from '../lib/format';
 import { useFocus } from '../data/focus';
 import { FocusBar } from '../components/FocusBar';
 import type { ExceptionRow } from '../types';
-import type { AllocationRow, ArtworkStatusRow, BinRow, OrderRow, SelectionRow, TpOrderRow } from '../data/types';
+import type { AllocationRow, ArtworkStatusRow, BinRow, BuyLineRow, OrderDecoratorRow, OrderRow, SelectionRow, TpOrderRow } from '../data/types';
 
-export interface OrderVM extends OrderRow { route: 'Producer' | 'Third-party' | 'Internal'; producer: string | null; tp_status: string | null; stock: ReturnType<typeof stockStatus>; art: string; artOk: boolean | null; bin: string; margin: number | null; exCount: number; sev: '' | 'critical' | 'high' | 'medium' | 'low'; atRisk: boolean; score: number | null; stage: string }
+export interface OrderVM extends OrderRow { route: 'Producer' | 'Third-party' | 'Internal'; producer: string | null; tp_status: string | null; stock: ReturnType<typeof stockStatus>; art: string; artOk: boolean | null; bin: string; margin: number | null; exCount: number; sev: '' | 'critical' | 'high' | 'medium' | 'low'; atRisk: boolean; score: number | null; stage: string; toBuy: number; decorator: string | null }
 const RANK = { critical: 1, high: 2, medium: 3, low: 4, '': 9 } as const;
 const AWAIT_RETURN = ['awaiting_return', 'in_transit_back', 'partially_returned', 'production_complete', 'in_production', 'received_by_producer', 'dispatched'];
 
-export function OrdersPage({ route }: { route: Route }) {
+// mode 'all' = every open order; 'ih' = in-house orders and 'tp' = third-party orders that still need stock bought (no purchase order covers them yet).
+export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all' | 'ih' | 'tp' }) {
+  const base = mode === 'ih' ? 'ih-orders' : mode === 'tp' ? 'tp-orders' : 'orders';
+  const buy = useView<BuyLineRow>('ui_order_buy_lines'), dec = useView<OrderDecoratorRow>('ui_order_decorator_named');
+  const toBuyOf = useMemo(() => { const m = new Map<string, number>(); buy.rows.forEach((l) => m.set(l.order_id, (m.get(l.order_id) ?? 0) + l.qty_needed)); return m; }, [buy.rows]);
+  const decOf = useMemo(() => new Map(dec.rows.map((d) => [d.order_id, d.producer_name])), [dec.rows]);
   const orders = useView<OrderRow>('ui_orders'), tpo = useView<TpOrderRow>('ui_tp_orders'), art = useView<ArtworkStatusRow>('ui_artwork_status'), sel = useView<SelectionRow>('ui_selection');
   const chg = useView<{ order_id: string; status: string }>('ui_order_changes'); const changedIds = useMemo(() => new Set(chg.rows.filter((c) => c.status === 'new').map((c) => c.order_id)), [chg.rows]);
   const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
@@ -35,9 +40,10 @@ export function OrdersPage({ route }: { route: Route }) {
     const myEx = ex.rows.filter((e) => e.order_refs.includes(o.order_ref)); const sev = myEx.reduce<OrderVM['sev']>((m, e) => (RANK[e.severity] < RANK[m] ? e.severity : m), '');
     const myBins = bins.rows.filter((b) => (b.order_refs ?? []).includes(o.order_ref)).map((b) => b.bin_code);
     return { ...o, route: tp ? 'Producer' : scopeOf.get(o.id) === 'third_party' ? 'Third-party' : 'Internal', producer: tp?.producer_name ?? null, tp_status: tp?.tp_status ?? null, stock: stockStatus(o), art: !a ? 'No decoration' : a.blocking_issues === 0 ? 'Ready' : `${a.blocking_issues} issue${a.blocking_issues > 1 ? 's' : ''}`, artOk: a ? a.blocking_issues === 0 : null,
-      bin: myBins.join(', '), margin: s?.margin_pct ?? null, exCount: myEx.length, sev, atRisk: myEx.some((e) => e.type_code === 'order_at_risk'), score: al?.score ?? null, stage: o.production_stage ?? statusLabel(o.order_status) };
-  }), [orders.rows, tpo.rows, art.rows, sel.rows, bins.rows, ex.rows, alloc.rows, scopeOf]);
-  const rows = useMemo(() => allRows.filter((o) => !focus.hideOrder(o.id)), [allRows, focus]);
+      bin: myBins.join(', '), margin: s?.margin_pct ?? null, exCount: myEx.length, sev, atRisk: myEx.some((e) => e.type_code === 'order_at_risk'), score: al?.score ?? null, stage: o.production_stage ?? statusLabel(o.order_status), toBuy: toBuyOf.get(o.id) ?? 0, decorator: decOf.get(o.id) ?? null };
+  }), [orders.rows, tpo.rows, art.rows, sel.rows, bins.rows, ex.rows, alloc.rows, scopeOf, toBuyOf, decOf]);
+  const scoped = useMemo(() => mode === 'all' ? allRows : allRows.filter((o) => o.toBuy > 0 && (mode === 'tp' ? scopeOf.get(o.id) === 'third_party' : !['third_party', 'out_of_scope'].includes(scopeOf.get(o.id) ?? ''))), [allRows, mode, scopeOf]);
+  const rows = useMemo(() => (mode === 'all' ? scoped.filter((o) => !focus.hideOrder(o.id)) : scoped), [scoped, focus, mode]);
   const hiddenCount = allRows.length - rows.length;
 
   const views: ViewDef<OrderVM>[] = [
@@ -76,6 +82,8 @@ export function OrdersPage({ route }: { route: Route }) {
     { id: 'value', header: 'Value', width: '96px', align: 'r', render: (o) => <span className="num">{money(o.order_value)}</span>, sort: (o) => o.order_value, csv: (o) => o.order_value },
     { id: 'margin', header: 'Margin', width: '76px', align: 'r', render: (o) => <span className="num">{pct(o.margin)}</span>, sort: (o) => o.margin, csv: (o) => o.margin },
     { id: 'bin', header: 'Bin', width: '100px', render: (o) => <span className="mono dim">{o.bin || '—'}</span>, csv: (o) => o.bin },
+    { id: 'tobuy', header: 'To buy', width: '80px', align: 'r', render: (o) => o.toBuy > 0 ? <b className="num">{o.toBuy}</b> : <span className="dim">—</span>, sort: (o) => o.toBuy, csv: (o) => o.toBuy },
+    { id: 'decorator', header: 'Decorator', width: '120px', render: (o) => o.decorator ? <span>{o.decorator}</span> : <span className="dim">—</span>, sort: (o) => o.decorator, csv: (o) => o.decorator },
     { id: 'stage', header: 'Stage', width: '150px', render: (o) => <span className="muted">{o.tp_status ? TP_STATUS_LABEL[o.tp_status] ?? o.tp_status : o.stage}</span>, csv: (o) => o.stage },
     { id: 'risk', header: 'Risk', width: '120px', render: (o) => o.sev ? <Status tone={o.sev}>{o.atRisk ? 'At risk' : o.sev}{o.exCount > 1 ? ` ·${o.exCount}` : ''}</Status> : <span className="dim">—</span>, sort: (o) => RANK[o.sev], csv: (o) => o.sev },
     { id: 'updated', header: 'Updated', width: '100px', render: (o) => <span className="dim">{relativeTime(o.updated_at)}</span>, sort: (o) => o.updated_at, csv: (o) => o.updated_at }
@@ -100,15 +108,16 @@ export function OrdersPage({ route }: { route: Route }) {
   const open = route.path[1];
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <div className="page-head"><div><h1>Orders</h1><p>Every open order, with why it is where it is.</p></div></div>
-      <FocusBar focus={focus} hidden={[{ n: hiddenCount, noun: 'order' }]} />
+      <div className="page-head"><div><h1>{mode === 'ih' ? 'IH Orders' : mode === 'tp' ? '3PD Orders' : 'All Orders'}</h1><p>{mode === 'ih' ? 'In-house orders that have come in and still need stock bought: no purchase order covers them yet.' : mode === 'tp' ? 'Third-party orders that have come in and still need stock bought: no purchase order covers them yet.' : 'Every open order, with why it is where it is.'}</p></div>
+        {mode !== 'all' && canAct && <Button variant="primary" icon="plus" disabled={rows.length === 0} onClick={() => window.dispatchEvent(new CustomEvent('atamflow:create-po', { detail: rows.map((o) => o.id) }))}>Raise POs for these ({rows.length})</Button>}</div>
+      {mode === 'all' && <FocusBar focus={focus} hidden={[{ n: hiddenCount, noun: 'order' }]} />}
       <Panel flush>
-        <DataTable<OrderVM> rows={rows} columns={columns} rowKey={(o) => o.id} loading={orders.loading} error={orders.error} onRetry={() => void orders.refresh()} views={views} filters={filters} storageKey="orders" exportName="orders"
+        <DataTable<OrderVM> rows={rows} columns={columns} rowKey={(o) => o.id} loading={orders.loading || (mode !== 'all' && buy.loading)} error={orders.error} onRetry={() => void orders.refresh()} views={mode === 'all' ? views : [{ id: 'all', label: mode === 'ih' ? 'Need buying' : 'Need buying', test: () => true }, ...views.filter((v) => ['today', 'overdue', 'risk'].includes(v.id))]} filters={filters} storageKey={base} exportName={base}
           searchText={(o) => [o.order_ref, o.customer_name, o.customer_po, o.producer, o.bin, o.order_status, o.decoration_methods.join(' ')].join(' ')} searchPlaceholder="Search order, customer, PO, producer, bin…"
-          onRowClick={(o) => navigate('orders/' + o.order_ref.replace('#', ''))} activeKey={open ? rows.find((o) => o.order_ref.replace('#', '') === open)?.id : null}
+          onRowClick={(o) => navigate(base + '/' + o.order_ref.replace('#', ''))} activeKey={open ? rows.find((o) => o.order_ref.replace('#', '') === open)?.id : null}
           rowTone={(o) => (o.sev === 'critical' || o.sev === 'high' || o.sev === 'medium' ? o.sev : o.is_overdue ? 'critical' : '')} bulk={bulk} defaultSort={{ col: 'due', dir: 1 }} initial={tableStateFromQuery(route)} />
       </Panel>
-      {open && <OrderDrawer orderRef={open} onClose={() => navigate('orders')} />}
+      {open && <OrderDrawer orderRef={open} onClose={() => navigate(base)} />}
     </div>
   );
 }

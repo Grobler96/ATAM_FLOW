@@ -14,6 +14,7 @@ import { exceptionActionTo } from '../lib/api';
 import { gbp, deadlineText, dateTime } from '../lib/format';
 import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockStatus, TP_STATUS_LABEL, PRIORITY } from '../lib/domain';
 import { DueCell, StatusCell, OrderLink, Num } from '../components/common';
+import { OrderDecorator } from '../components/OrderDecorator';
 import { SelectionCompare } from '../components/SelectionCompare';
 import type { ExceptionRow } from '../types';
 import type { AllocationDecision, ArtworkStatusRow, ArtworkVersionRow, BinRow, CustodyRow, JobPackRow, MovementRow, OrderLineRow, OrderRow, PoRow, QueueRow, SelectionRow, TpOrderRow } from '../data/types';
@@ -76,6 +77,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
         {orderActions}
         <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
+        <OrderDecorator orderId={o.id} />
         {penCase && <div className="callout" role="status"><b>In the holding pen.</b> This order is left out of planning and cannot be dispatched or completed until it is put right: {sortedDefects(penCase).map((x) => defectLabel(x.code)).join(', ')}. <a href={href('pen/' + penCase.case_key)}>See why and how to fix it</a></div>}
         {d.acc && <div className="callout soft"><b>Owner · location · next action</b><div className="row wrap" style={{ gap: 18 }}><span><span className="fact-l">Owner</span><br />{d.acc.owner}</span><span><span className="fact-l">Where it is</span><br />{d.acc.location ?? <span className="warn">Unknown</span>}</span><span><span className="fact-l">Next action</span><br />{d.acc.next_action ?? <span className="warn">Unknown: needs a decision</span>}</span></div></div>}
         <Panel title="Why the system says this" icon="info">
