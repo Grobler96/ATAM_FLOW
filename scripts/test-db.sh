@@ -52,6 +52,7 @@ run "$PSQL -d flowtest -f $ROOT/supabase/tests/purchasing_controls_test.sql"
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/portal_security_test.sql"
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/portal_guard_test.sql"
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/portal_direct_test.sql"
+run "$PSQL -d flowtest -f $ROOT/supabase/tests/artwork_preview_test.sql"
 run "env ROOT='$ROOT' $PSQL -d flowtest -f $ROOT/supabase/tests/portal_upload_cap_test.sql"   # reads the migration file itself, to run its storage rule against a stand-in table
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/config_audit_test.sql"
 run "env ROOT='$ROOT' $PSQL -d flowtest -f $ROOT/supabase/tests/qc_evidence_storage_test.sql"

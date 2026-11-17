@@ -57,7 +57,12 @@ A **proof** is a picture or PDF the customer approves, tied to the exact artwork
 - Proofs for decorators' portal; a mock-up generator; automatic text/line-count checks of embroidery files.
 - A checksum of uploaded files, and automatic virus scanning (files are limited by type and size, not scanned).
 
-The DecoNetwork artwork fetch. The existing `public.decoration_records` table gives area names and process codes per order but no file links. To pull links, stitch counts, sizes and
+**Artwork sync from DecoNetwork (13 Nov 2026, migration 66, workflow `SAiGtlWqyeTLRxzd` "ATAM_FLOW · Sync artwork from DecoNetwork", hourly at :40, read-only on DecoNetwork).**
+For every Priority Order it records each decorated area per product line (area name, process from DecoNetwork's process code, stitch count and DecoNetwork's public preview picture) through `flow_artwork_upsert`. The preview picture shows on the area card in the artwork drawer (`ui_artwork_files.thumbnail_url`, added by migration 66).
+What it does **not** do: it does not download the real files. DecoNetwork returns links for the production, editable and source files and for the area proofs, but they carry an account key and DecoNetwork answers every request for them from this system with 401 (tried with and without the stored DecoNetwork login). The links are therefore not stored at all (the staff view would have shown them), so a synced area has no stored file (status "No file") and approval "unknown". A person uploads the real file by hand (Upload a new version) and approves it; a hand upload is never overwritten by the sync. A job pack stays blocked until that is done. Getting automatic file download needs DecoNetwork access that serves those links to a server (not yet found out how).
+The sync does not look at orders that are not Priority Orders. Several lines on one order can each have an area with the same name; they are kept separately by line.
+
+The earlier plan, kept for the record: The DecoNetwork artwork fetch. The existing `public.decoration_records` table gives area names and process codes per order but no file links. To pull links, stitch counts, sizes and
 approval from DecoNetwork we need the API credential and one real sample response for an order with artwork; then a small workflow maps it into `flow_artwork_upsert`
 (or posts to the `import` action). Until then artwork can be loaded with `import` or `manual_replace`.
 Currently all 102 live orders with decoration show as blocked (no artwork rows), which is expected.
