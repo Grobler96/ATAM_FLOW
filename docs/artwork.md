@@ -52,6 +52,8 @@ A **proof** is a picture or PDF the customer approves, tied to the exact artwork
 - **Customer proofs** tab: every proof; opens on what needs attention (waiting 3+ days, artwork changed since, or changes requested).
 - Actions run through the (unpublished) Operations actions workflow (`proof_create`, `proof_send`, `proof_respond`, `proof_withdraw`: manager, admin or production planner). Files use the Artwork actions workflow (`manual_replace`, `set_approval`). Tests: `supabase/tests/proofs_test.sql`, `lib/artworkFiles.test.ts`, the artwork section of the dashboard e2e.
 
+Production files from Google Drive: see [artwork-drive-sync.md](artwork-drive-sync.md).
+
 ## Not built yet
 - Sending proofs to the customer (email) and customer approval links: recorded by hand for now.
 - Proofs for decorators' portal; a mock-up generator; automatic text/line-count checks of embroidery files.
