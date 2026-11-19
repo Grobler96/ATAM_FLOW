@@ -1,4 +1,4 @@
--- 19 Nov 2026: artwork files from Google Drive (written and tested locally, NOT yet applied to the live project).
+-- 19 Nov 2026: artwork files from Google Drive (applied to the live project 19 Nov 2026 as "flow_drive_artwork").
 -- DecoNetwork writes each order's production files into a Google Drive folder:
 --   DecoNetwork Files / order-<order number> / <item number> / order-<order>-<item>-<location>-<area>-<PROCESS>.dst
 -- An n8n workflow lists the folder and asks flow.drive_plan which files to fetch, uploads them to the private artwork bucket, then calls
