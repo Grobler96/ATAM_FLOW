@@ -1,4 +1,4 @@
--- 14 Nov 2026: purchasing streamlined (written and tested locally, NOT yet applied to the live project).
+-- 14 Nov 2026: purchasing streamlined (applied to the live project 19 Nov 2026 as "flow_purchasing_streamline").
 --  1. Product catalogue: supplier + item code + cost, one preferred supplier per item (reuses flow.supplier_offers).
 --  2. What each order still needs to buy, by line, with its preferred supplier and cost (for the IH / 3PD order lists and the Create PO screen).
 --  3. A PO can go live straight away (option live = true): approved, and the supplier email queued (still waits for a click like every email).
