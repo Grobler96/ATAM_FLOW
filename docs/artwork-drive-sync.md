@@ -1,4 +1,4 @@
-# Artwork from Google Drive (built and tested live 19 Nov 2026; workflow still unpublished)
+# Artwork from Google Drive (built, tested and published 19 Nov 2026: live)
 
 Resumed 19 Nov 2026. Since this was written, `main` gained the DecoNetwork artwork sync (see [artwork.md](artwork.md)): it already creates a row per order, line and area with the preview picture and stitch count, but no real file (status "No file"). **Drive files therefore attach to those existing rows** (matched by order number and area name); a file that matches no row goes on an Unmatched list. A hand upload is never overwritten by a sync, and a Drive file becomes a new version (unapproved) like any other.
 
@@ -11,7 +11,7 @@ Idea (14 Nov 2026): artwork and job packs from DecoNetwork are put in a Google D
 - **Source:** to be confirmed (does DecoNetwork export to Drive by itself, or does someone drop files in?). Flow only reads Drive, so this does not change the design.
 
 ## How it would work
-1. A new n8n workflow (left unpublished until tested) runs every 15 minutes with a Google Drive credential limited to **read-only on one folder**.
+1. A new n8n workflow runs every 15 minutes with a Google Drive credential limited to **read-only on one folder**.
 2. It lists new or changed files since the last run (Drive file id + modified time + size recorded, so nothing is imported twice).
 3. For each file it works out order number and area, downloads it, rejects empty files and login pages (same checks as the existing artwork download job), uploads it to the private `artwork` bucket, and calls the existing `manual_replace`-style import so it becomes the next version with source "Google Drive".
 4. Changed file in Drive = new version; the old one is kept. Existing rules apply: any change makes job packs stale and approvals must be redone.
@@ -44,7 +44,7 @@ n8n has a Google Sheets login but none for Drive. Add a **Google Drive OAuth2 AP
 - The artwork `source` can now be `google_drive`. **Neither the DecoNetwork sync nor a later Drive run overwrites a hand upload**, and the DecoNetwork sync no longer replaces a Drive version.
 - Only the service role can run the sync functions; staff can read `ui_drive_files`.
 
-**n8n**: workflow `ATAM_FLOW · Artwork from Google Drive` (`9NPEGMStynVloDac`, **unpublished**), every 15 minutes or **Run now**. It lists files created in the last 7 days, asks `flow_drive_plan` what to fetch (25 at a time), downloads each from Drive, stores it in the private `artwork` bucket at `drive/<order>/<line>/<drive id>-<name>`, then calls `flow_drive_import`. It uses the n8n credentials `Google Drive account` and `Supabase account 2`.
+**n8n**: workflow `ATAM_FLOW · Artwork from Google Drive` (`9NPEGMStynVloDac`, **published and active since 19 Nov 2026**), every 15 minutes or **Run now**. It lists files created in the last 7 days, asks `flow_drive_plan` what to fetch (25 at a time), downloads each from Drive, stores it in the private `artwork` bucket at `drive/<order>/<line>/<drive id>-<name>`, then calls `flow_drive_import`. It uses the n8n credentials `Google Drive account` and `Supabase account 2`.
 
 **Screen**: Artwork & Job Packs → **Google Drive** tab lists files that are waiting, failed or not applied, with the reason and a link to the file in Drive.
 
@@ -56,3 +56,5 @@ n8n has a Google Sheets login but none for Drive. Add a **Google Drive OAuth2 AP
 - Drive files older than 7 days are not looked at.
 
 **First live test (19 Nov 2026, run by hand):** order 636894's two embroidery files were fetched from Drive, stored in the `artwork` bucket (sizes match) and attached as v1 of "Left Chest" and "Right Sleeve (Long)", source Google Drive, waiting for approval. They became new areas, not new versions, because 636894 is not a Priority Order and so had no DecoNetwork area rows; matching onto an existing DecoNetwork row has only been tested locally so far. Order 636900's files were *waiting* because that order had not reached Flow yet.
+
+**Published 19 Nov 2026** with the owner's go-ahead: the workflow now runs every 15 minutes by itself. To switch it off, deactivate it in n8n. Things to watch at first: files marked *waiting* should clear once their order reaches Flow; the first Priority Order should show a Drive file filling an existing DecoNetwork area row (only tested locally so far); anything *failed* shows on the Artwork screen's Google Drive tab with the reason.
