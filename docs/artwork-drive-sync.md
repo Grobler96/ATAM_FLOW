@@ -1,4 +1,4 @@
-# Artwork from Google Drive (design, not built yet)
+# Artwork from Google Drive (built and tested live 19 Nov 2026; workflow still unpublished)
 
 Resumed 19 Nov 2026. Since this was written, `main` gained the DecoNetwork artwork sync (see [artwork.md](artwork.md)): it already creates a row per order, line and area with the preview picture and stitch count, but no real file (status "No file"). **Drive files therefore attach to those existing rows** (matched by order number and area name); a file that matches no row goes on an Unmatched list. A hand upload is never overwritten by a sync, and a Drive file becomes a new version (unapproved) like any other.
 
@@ -31,3 +31,28 @@ n8n has a Google Sheets login but none for Drive. Add a **Google Drive OAuth2 AP
 2. n8n workflow `ATAM_FLOW · Artwork from Drive` (export copy in `n8n/workflows/`).
 3. Unmatched list on the Artwork screen.
 4. Tests: SQL suite for the import function, parsing tests for the file-name rules.
+
+
+## What was built (19 Nov 2026)
+
+**What DecoNetwork puts in Drive** (seen on real orders): `DecoNetwork Files / order-<order number> / worksheet-<order>.pdf` and `.../<item number>/order-<order>-<item>-<location>-<area>-<PROCESS>.dst`, for example `order-636894-3730138646-Front-Left_Chest-EMB.dst`. The item number is the order line's `deco_line_id` in Flow; the area (underscores read as spaces) matches Flow's area names ("Left Chest", "Right Sleeve (Long)"); `EMB` is embroidery. Only the production file is sent (the alternate-format and source-file options in DecoNetwork are off).
+
+**Database** (migration 68 `20261119000068_flow_drive_artwork`, applied 19 Nov 2026; tests `supabase/tests/drive_artwork_test.sql`):
+- `flow.drive_files` remembers every Drive file seen: status *ready*, *waiting*, *imported*, *ignored* or *failed*.
+- `flow.drive_plan` reads the file names and says which files to fetch. A file whose order or order line is not in Flow yet is *waiting* and costs nothing (looked at again every run). Each file is tried at most 5 times, then shows as *failed*. Worksheets and unrecognised names are *ignored*.
+- `flow.drive_import` attaches a fetched file: a new **version** of the matching order + line + area (or a new area if DecoNetwork's sync had none), **unapproved** (`pending`), keeping the stitch count, size, placement and preview picture already recorded. The same content again makes no new version; a changed file makes the next version. If an approved area changes, a notification is raised and the job pack goes stale as usual.
+- The artwork `source` can now be `google_drive`. **Neither the DecoNetwork sync nor a later Drive run overwrites a hand upload**, and the DecoNetwork sync no longer replaces a Drive version.
+- Only the service role can run the sync functions; staff can read `ui_drive_files`.
+
+**n8n**: workflow `ATAM_FLOW · Artwork from Google Drive` (`9NPEGMStynVloDac`, **unpublished**), every 15 minutes or **Run now**. It lists files created in the last 7 days, asks `flow_drive_plan` what to fetch (25 at a time), downloads each from Drive, stores it in the private `artwork` bucket at `drive/<order>/<line>/<drive id>-<name>`, then calls `flow_drive_import`. It uses the n8n credentials `Google Drive account` and `Supabase account 2`.
+
+**Screen**: Artwork & Job Packs → **Google Drive** tab lists files that are waiting, failed or not applied, with the reason and a link to the file in Drive.
+
+**Not built / known limits**
+- Worksheet PDFs are recorded but not attached to the order.
+- There is no button to retry a *failed* file or to place a file by hand: fix the cause, or upload by hand from the order.
+- An area name that DecoNetwork spells differently from its file name will not match an existing row; the file then makes a new area row instead of filling the old one. Check the first live orders.
+- Order numbers and item numbers in file names must be digits.
+- Drive files older than 7 days are not looked at.
+
+**First live test (19 Nov 2026, run by hand):** order 636894's two embroidery files were fetched from Drive, stored in the `artwork` bucket (sizes match) and attached as v1 of "Left Chest" and "Right Sleeve (Long)", source Google Drive, waiting for approval. They became new areas, not new versions, because 636894 is not a Priority Order and so had no DecoNetwork area rows; matching onto an existing DecoNetwork row has only been tested locally so far. Order 636900's files were *waiting* because that order had not reached Flow yet.

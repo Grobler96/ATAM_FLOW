@@ -7,13 +7,15 @@ import { shortDate, plural } from '../lib/domain';
 import { dateTime } from '../lib/format';
 import { OrderLink } from '../components/common';
 import { EmptyState } from '../ui/primitives';
-import type { ArtworkStatusRow, ArtworkVersionRow, JobPackRow } from '../data/types';
+import type { ArtworkStatusRow, ArtworkVersionRow, DriveFileRow, JobPackRow } from '../data/types';
 import { ArtworkDrawer } from '../components/ArtworkDrawer';
 import { PROOF_LABEL, PROOF_TONE, VIA_LABEL, type ProofRow } from '../lib/proofs';
 
-type Mode = 'orders' | 'proofs' | 'versions' | 'packs';
+type Mode = 'orders' | 'proofs' | 'versions' | 'packs' | 'drive';
+export const SOURCE_LABEL: Record<string, string> = { deconetwork: 'DecoNetwork', manual: 'By hand', google_drive: 'Google Drive' };
+const DRIVE_STATUS: Record<DriveFileRow['status'], { label: string; tone: 'medium' | 'critical' | 'low' }> = { waiting: { label: 'Waiting', tone: 'medium' }, failed: { label: 'Failed', tone: 'critical' }, ignored: { label: 'Not applied', tone: 'low' } };
 export function ArtworkPage({ route }: { route: Route }) {
-  const st = useView<ArtworkStatusRow>('ui_artwork_status'), ver = useView<ArtworkVersionRow>('ui_artwork_versions'), packs = useView<JobPackRow>('ui_job_packs'); const prf = useView<ProofRow>('ui_artwork_proofs'); const [mode, setMode] = useState<Mode>('orders'); const open = route.path[1];
+  const st = useView<ArtworkStatusRow>('ui_artwork_status'), ver = useView<ArtworkVersionRow>('ui_artwork_versions'), packs = useView<JobPackRow>('ui_job_packs'); const prf = useView<ProofRow>('ui_artwork_proofs'); const drv = useView<DriveFileRow>('ui_drive_files'); const [mode, setMode] = useState<Mode>('orders'); const open = route.path[1];
   const views: ViewDef<ArtworkStatusRow>[] = [{ id: 'all', label: 'All decorated orders', test: () => true }, { id: 'missing', label: 'Missing artwork', test: (a) => a.areas === 0 }, { id: 'unapproved', label: 'Unapproved', test: (a) => a.areas > 0 && a.approved < a.areas }, { id: 'issues', label: 'Has file issues', test: (a) => a.blocking_issues > 0 && a.areas > 0 }, { id: 'ready', label: 'Ready', test: (a) => a.blocking_issues === 0 }, { id: 'nopack', label: 'Ready, no job pack', test: (a) => a.blocking_issues === 0 && !a.pack_status }];
   const cols: Column<ArtworkStatusRow>[] = [
     { id: 'o', header: 'Order', width: '110px', render: (a) => <OrderLink r={a.order_ref} />, sort: (a) => a.order_ref, csv: (a) => a.order_ref }, { id: 'c', header: 'Customer', width: '210px', render: (a) => a.customer_name, csv: (a) => a.customer_name },
@@ -26,7 +28,15 @@ export function ArtworkPage({ route }: { route: Route }) {
     { id: 'o', header: 'Order', width: '110px', render: (v) => <OrderLink r={v.order_ref} />, sort: (v) => v.order_ref, csv: (v) => v.order_ref }, { id: 'a', header: 'Area', width: '150px', render: (v) => v.area, csv: (v) => v.area }, { id: 'p', header: 'Process', width: '100px', render: (v) => v.process ?? '—', csv: (v) => v.process },
     { id: 'v', header: 'Version', width: '90px', render: (v) => <span className="num">v{v.version}{v.is_current ? '' : ' (old)'}</span>, sort: (v) => v.version, csv: (v) => v.version }, { id: 'f', header: 'Format', width: '90px', render: (v) => v.file_format ?? '—', csv: (v) => v.file_format },
     { id: 's', header: 'Stitches', width: '90px', align: 'r', render: (v) => <span className="num">{v.stitch_count?.toLocaleString('en-GB') ?? '—'}</span>, sort: (v) => v.stitch_count, csv: (v) => v.stitch_count }, { id: 'ap', header: 'Approval', width: '110px', render: (v) => <Status tone={v.approval_status === 'approved' ? 'good' : 'medium'} plain>{v.approval_status}</Status>, csv: (v) => v.approval_status },
-    { id: 'st', header: 'File', width: '130px', render: (v) => v.storage_status.replace('_', ' '), csv: (v) => v.storage_status }, { id: 'src', header: 'Source', width: '110px', render: (v) => v.source, csv: (v) => v.source }, { id: 'at', header: 'Created', width: '130px', render: (v) => <span className="dim">{dateTime(v.created_at)}</span>, sort: (v) => v.created_at, csv: (v) => v.created_at }
+    { id: 'st', header: 'File', width: '130px', render: (v) => v.storage_status.replace('_', ' '), csv: (v) => v.storage_status }, { id: 'src', header: 'Source', width: '110px', render: (v) => SOURCE_LABEL[v.source] ?? v.source, csv: (v) => v.source }, { id: 'at', header: 'Created', width: '130px', render: (v) => <span className="dim">{dateTime(v.created_at)}</span>, sort: (v) => v.created_at, csv: (v) => v.created_at }
+  ];
+  const dcols: Column<DriveFileRow>[] = [
+    { id: 'n', header: 'File', width: '420px', render: (d) => d.web_link ? <a href={d.web_link} target="_blank" rel="noreferrer" className="mono">{d.name}</a> : <span className="mono">{d.name}</span>, sort: (d) => d.name, csv: (d) => d.name },
+    { id: 'o', header: 'Order', width: '110px', render: (d) => d.deco_order_id ? <OrderLink r={'#' + d.deco_order_id} /> : <span className="dim">—</span>, csv: (d) => d.deco_order_id },
+    { id: 'a', header: 'Area', width: '170px', render: (d) => d.area ?? '—', csv: (d) => d.area },
+    { id: 's', header: 'Status', width: '120px', render: (d) => <Status tone={DRIVE_STATUS[d.status].tone}>{DRIVE_STATUS[d.status].label}</Status>, sort: (d) => d.status, csv: (d) => d.status },
+    { id: 'r', header: 'Why', width: '380px', render: (d) => <span className="muted">{d.reason ?? '—'}{d.status === 'failed' ? ` (${d.attempts} tries)` : ''}</span>, csv: (d) => d.reason },
+    { id: 'f', header: 'First seen', width: '130px', render: (d) => <span className="dim">{dateTime(d.first_seen)}</span>, sort: (d) => d.first_seen, csv: (d) => d.first_seen }
   ];
   const pcols: Column<JobPackRow>[] = [
     { id: 'r', header: 'Pack', width: '130px', render: (p) => <b className="mono">{p.pack_ref}</b>, sort: (p) => p.pack_ref, csv: (p) => p.pack_ref }, { id: 'o', header: 'Order', width: '110px', render: (p) => <OrderLink r={p.order_ref} />, csv: (p) => p.order_ref }, { id: 'p', header: 'Producer', width: '190px', render: (p) => p.producer_name, csv: (p) => p.producer_name },
@@ -48,7 +58,7 @@ export function ArtworkPage({ route }: { route: Route }) {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Artwork & Job Packs</h1><p>Is every decorated order ready to produce, and has the producer got the right files? {plural(st.rows.filter((a) => a.blocking_issues > 0).length, 'order')} need artwork attention.</p></div>
-        <Segmented label="Artwork section" value={mode} options={[{ id: 'orders', label: 'Orders' }, { id: 'proofs', label: 'Customer proofs' }, { id: 'versions', label: 'File versions' }, { id: 'packs', label: 'Job packs' }]} onChange={setMode} /></div>
+        <Segmented label="Artwork section" value={mode} options={[{ id: 'orders', label: 'Orders' }, { id: 'proofs', label: 'Customer proofs' }, { id: 'versions', label: 'File versions' }, { id: 'packs', label: 'Job packs' }, { id: 'drive', label: `Google Drive${drv.rows.length ? ` (${drv.rows.length})` : ''}` }]} onChange={setMode} /></div>
       {mode === 'orders' && <Panel flush><DataTable<ArtworkStatusRow> rows={st.rows} columns={cols} rowKey={(a) => a.order_id} loading={st.loading} error={st.error} onRetry={() => void st.refresh()} views={views} storageKey="artwork" exportName="artwork-status" searchText={(a) => [a.order_ref, a.customer_name, a.issue_types].join(' ')}
         onRowClick={(a) => navigate('artwork/' + a.order_ref.replace('#', ''))} activeKey={open ? st.rows.find((a) => a.order_ref.replace('#', '') === open)?.order_id : null} defaultSort={{ col: 'd', dir: 1 }} initial={tableStateFromQuery(route)} rowTone={(a) => (a.blocking_issues > 0 ? 'high' : '')} /></Panel>}
       {mode === 'proofs' && <Panel flush><DataTable<ProofRow> rows={prf.rows} columns={prfCols} rowKey={(p) => p.id} loading={prf.loading} error={prf.error} onRetry={() => void prf.refresh()} views={prfViews} storageKey="artwork-proofs" exportName="artwork-proofs" searchText={(p) => [p.proof_ref, p.order_ref, p.customer_name, p.sent_to, p.areas.join(' ')].join(' ')}
@@ -58,7 +68,9 @@ export function ArtworkPage({ route }: { route: Route }) {
         empty={<EmptyState icon="artwork" title="No artwork files yet">Files appear here as they are pulled from DecoNetwork or uploaded. Every change creates a new version and the history is kept.</EmptyState>} /></Panel>}
       {mode === 'packs' && <Panel flush><DataTable<JobPackRow> rows={packs.rows} columns={pcols} rowKey={(p) => p.id} loading={packs.loading} error={packs.error} storageKey="job-packs" exportName="job-packs" searchText={(p) => [p.pack_ref, p.order_ref, p.producer_name].join(' ')}
         empty={<EmptyState icon="artwork" title="No job packs yet">A job pack is built for a producer once an order's artwork is approved and stored.</EmptyState>} /></Panel>}
-      <p className="dim">Open an order to upload artwork, preview or download it, and record customer proofs. DecoNetwork's own artwork fetch is still waiting for its credential, so files are added by hand for now.</p>
+      {mode === 'drive' && <Panel flush title="Files from Google Drive that are not attached yet"><DataTable<DriveFileRow> rows={drv.rows} columns={dcols} rowKey={(d) => d.drive_file_id} loading={drv.loading} error={drv.error} onRetry={() => void drv.refresh()} storageKey="artwork-drive" exportName="drive-files" searchText={(d) => [d.name, d.deco_order_id, d.area, d.reason].join(' ')} defaultSort={{ col: 'f', dir: -1 }}
+        empty={<EmptyState icon="artwork" title="Nothing is waiting">Files DecoNetwork puts in Google Drive are attached to their order automatically, every 15 minutes. Any that cannot be attached yet, or failed, appear here. A file whose order has not reached Flow yet is tried again each time.</EmptyState>} /></Panel>}
+      <p className="dim">Open an order to upload artwork, preview or download it, and record customer proofs. Production files DecoNetwork puts in Google Drive are attached automatically as new versions that wait for approval; anything else is added by hand.</p>
       {open && <ArtworkDrawer orderRef={open} onClose={() => navigate('artwork')} />}
     </div>
   );
