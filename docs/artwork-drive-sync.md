@@ -1,5 +1,7 @@
 # Artwork from Google Drive (design, not built yet)
 
+Resumed 19 Nov 2026. Since this was written, `main` gained the DecoNetwork artwork sync (see [artwork.md](artwork.md)): it already creates a row per order, line and area with the preview picture and stitch count, but no real file (status "No file"). **Drive files therefore attach to those existing rows** (matched by order number and area name); a file that matches no row goes on an Unmatched list. A hand upload is never overwritten by a sync, and a Drive file becomes a new version (unapproved) like any other.
+
 Idea (14 Nov 2026): artwork and job packs from DecoNetwork are put in a Google Drive account; Flow pulls them from there and attaches them to the matching jobs. This replaces the blocked "DecoNetwork artwork fetch" step in [artwork.md](artwork.md).
 
 ## Decisions so far
@@ -15,10 +17,13 @@ Idea (14 Nov 2026): artwork and job packs from DecoNetwork are put in a Google D
 4. Changed file in Drive = new version; the old one is kept. Existing rules apply: any change makes job packs stale and approvals must be redone.
 5. Problems (no order match, unknown area, bad file) appear as an exception, not silently dropped.
 
+## Google login (owner will do this in n8n)
+n8n has a Google Sheets login but none for Drive. Add a **Google Drive OAuth2 API** credential in n8n, signing in with the Google account that owns the artwork folder, and give it the **read-only** Drive scope (`drive.readonly`). Share the artwork folder with that account if it is a different one. Nothing secret goes in this repo; the workflow only names the credential.
+
 ## Open items for the owner
-- How files are saved in Drive (folder per order, names, or zips), and one real example.
-- Whether DecoNetwork exports there itself.
-- A Google account / service account for n8n with read access to the folder (the credential is created in n8n; nothing secret goes in this repo).
+- **Still unknown:** how files are saved in Drive (folder per order, names, or zips) and one real example. Check what DecoNetwork produces for one order.
+- **Still unknown:** whether DecoNetwork exports to Drive itself or someone drops the files in.
+- The Google Drive login in n8n (steps above).
 - The list of area words used in file names.
 
 ## Build steps once those are known
