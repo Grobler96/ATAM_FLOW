@@ -17,6 +17,7 @@ data your existing syncs already land in Supabase.
 | ATAM_FLOW · Communications sender | `jtKw9WQmjPY8G3Vw` | every 2 h at :25 (unpublished) | n/a | n/a |
 | ATAM_FLOW · Supplier discrepancy escalation | `A8r66X2xwPBfpRGF` | weekdays 08:10 (unpublished) | n/a | n/a |
 | ATAM_FLOW · Artwork download and store | `kvgqKRD7dVWOJkoa` | every 15 min (unpublished) | n/a | n/a |
+| ATAM_FLOW · Artwork from Google Drive | `9NPEGMStynVloDac` | every 15 min (**live**) | n/a | n/a |
 | ATAM_FLOW · Artwork actions | `nkOanz4G48WKPv1k` | n/a (unpublished) | `/webhook/atam-flow/artwork` | admin, manager, production |
 | ATAM_FLOW · Supplier and producer selection | `9omdNalZkjKEYAy1` | n/a (unpublished) | `/webhook/atam-flow/selection` | admin, manager |
 | ATAM_FLOW · Exception detector and escalation | `ZPEjWqfNDOqpDPCo` | every 30 min (unpublished) | `/webhook/atam-flow/run-exceptions` | admin, manager, warehouse, production |
