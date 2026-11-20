@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, Panel, Status } from '../ui/primitives';
 import { DataTable, type BulkAction, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
 import type { OrderScopeRow } from '../lib/scope';
@@ -15,6 +15,7 @@ import { WORKFLOWS } from '../lib/workflows';
 import { relativeTime } from '../lib/format';
 import { useFocus } from '../data/focus';
 import { FocusBar } from '../components/FocusBar';
+import { MakeThirdPartyDialog } from '../components/MakeThirdPartyDialog';
 import type { ExceptionRow } from '../types';
 import type { AllocationRow, ArtworkStatusRow, BinRow, BuyLineRow, OrderDecoratorRow, OrderRow, SelectionRow, TpOrderRow } from '../data/types';
 
@@ -32,7 +33,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
   const chg = useView<{ order_id: string; status: string }>('ui_order_changes'); const changedIds = useMemo(() => new Set(chg.rows.filter((c) => c.status === 'new').map((c) => c.order_id)), [chg.rows]);
   const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), alloc = useView<AllocationRow>('ui_allocation');
-  const { canAct } = useCtx(); const toast = useToast(); const runner = useRunner();
+  const { canAct, senior } = useCtx(); const [tpRows, setTpRows] = useState<OrderVM[] | null>(null); const toast = useToast(); const runner = useRunner();
 
   const focus = useFocus();
   const allRows = useMemo<OrderVM[]>(() => orders.rows.filter((o) => o.order_status !== 'dispatched').map((o) => {
@@ -94,6 +95,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
     { id: 'alloc', label: 'Allocate stock', icon: 'box', run: canAct && runner.can(allocateWf) ? () => void runner.run(allocateWf) : undefined, disabledReason: 'Your role cannot run allocation' },
     { id: 'po', label: 'Create PO', icon: 'purchasing', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:create-po', { detail: r.filter((o) => o.order_status === 'awaiting_stock').map((o) => o.id) })) : undefined, disabledReason: 'Your role cannot create POs' },
     { id: 'esc', label: 'Escalate (raise issue)', icon: 'exceptions', run: canAct ? (r) => void raise(r) : undefined, disabledReason: 'Your role cannot raise issues' },
+    ...(mode === 'tp' ? [] : [{ id: 'mktp', label: 'Make third-party', icon: 'truck', run: senior ? (r: OrderVM[]) => setTpRows(r) : undefined, disabledReason: 'Only a manager or admin can change an order’s scope' }]),
     { id: 'send', label: 'Send to producer', icon: 'truck', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:send-to-producer', { detail: { orders: r.map((o) => o.order_ref) } })) : undefined, disabledReason: 'Your role cannot create producer movements' },
     { id: 'labels', label: 'Generate labels', icon: 'labels', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:generate-labels', { detail: { type: 'order', refs: r.map((o) => o.order_ref) } })) : undefined, disabledReason: 'Your role cannot generate labels' },
     { id: 'qc', label: 'Record quality check', icon: 'check', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:record-qc', { detail: { orderId: r[0]?.id } })) : undefined, disabledReason: 'Your role cannot record quality checks' },
@@ -117,6 +119,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
           onRowClick={(o) => navigate(base + '/' + o.order_ref.replace('#', ''))} activeKey={open ? rows.find((o) => o.order_ref.replace('#', '') === open)?.id : null}
           rowTone={(o) => (o.sev === 'critical' || o.sev === 'high' || o.sev === 'medium' ? o.sev : o.is_overdue ? 'critical' : '')} bulk={bulk} defaultSort={{ col: 'due', dir: 1 }} initial={tableStateFromQuery(route)} />
       </Panel>
+      {tpRows && <MakeThirdPartyDialog rows={tpRows.map((o) => ({ id: o.id, ref: o.order_ref, scope: scopeOf.get(o.id) }))} onClose={() => setTpRows(null)} />}
       {open && <OrderDrawer orderRef={open} onClose={() => navigate(base)} />}
     </div>
   );

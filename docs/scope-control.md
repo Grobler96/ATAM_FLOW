@@ -18,7 +18,7 @@ Every order has a scope: **third_party**, **in_house**, **out_of_scope**, or **u
 - An order cannot be moved to in-house or out of scope while it has an open producer consignment.
 
 ## Where
-Control page (`#/control`): switches, order counts by scope, hand-set overrides, recent changes. Order drawer, Changes & control tab: change one order's scope. Orders list: Third-party / In-house / Unclassified / Out of scope filters. Production and Machines show a banner when in-house is off.
+Control page (`#/control`): switches, order counts by scope, hand-set overrides, recent changes. Order drawer, Changes & control tab: change one order's scope. Orders list: Third-party / In-house / Unclassified / Out of scope filters. **Make third-party** (20 Nov 2026): tick orders on All Orders or IH Orders, press **Make third-party**, give one reason (at least 5 characters) and every ticked in-house or unclassified order is switched with the same audited per-order `set_scope` action (manager or admin; orders already third-party are skipped; out-of-scope ones are left for you to change one at a time). Code: `components/MakeThirdPartyDialog.tsx`, `lib/makeThirdParty.ts`. Production and Machines show a banner when in-house is off.
 
 Writes use the unpublished Operations actions workflow (`set_switch` admin only, `set_scope` manager/admin).
 
