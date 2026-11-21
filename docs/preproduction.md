@@ -57,5 +57,6 @@ What the live data showed (read-only): of 118 active orders with embroidery, 93 
 - **n8n:** the DTF actions workflow (`4sk2X0uSf6szUB8H`) has a new action `embroidery_check` (admin, manager, production), published 21 Nov 2026; an anonymous call is refused.
 
 ## Still to build
+- **Embroidery:** see `docs/embroidery.md` (step 1 built and applied 21 Nov 2026).
 - DecoNetwork-side fix so DTF and embroidery files are actually stored (see earlier notes).
 - Optional later: live mode for routing rules.

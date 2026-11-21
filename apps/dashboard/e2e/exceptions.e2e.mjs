@@ -156,7 +156,7 @@ try {
 
   const { page, ctx, st } = await newPage(browser, { dsf: 1 }); await signIn(page);
   console.log('shell');
-  ok((await page.locator('.nav a').count()) === 25, 'sidebar lists the 25 sections'); { const labels = await page.locator('.nav a, .nav .nav-label').allInnerTexts(); const i3 = labels.findIndex((t) => /3PD Producers/.test(t)), iSet = labels.findIndex((t) => /^\s*Settings/.test(t)), iTp = labels.findIndex((t) => /THIRD PARTIES/i.test(t)), iNext = labels.findIndex((t) => /STOCK & BUYING/i.test(t)); ok(i3 === iSet + 1 && (i3 < iTp || i3 > iNext), 'the producers page is now called 3PD Producers and sits under Settings, not under Third parties & floor'); } ok((await page.locator('.nav a[aria-current=page]').innerText()).includes('Command Centre'), 'Command Centre is current');
+  ok((await page.locator('.nav a').count()) === 26, 'sidebar lists the 26 sections'); { const labels = await page.locator('.nav a, .nav .nav-label').allInnerTexts(); const i3 = labels.findIndex((t) => /3PD Producers/.test(t)), iSet = labels.findIndex((t) => /^\s*Settings/.test(t)), iTp = labels.findIndex((t) => /THIRD PARTIES/i.test(t)), iNext = labels.findIndex((t) => /STOCK & BUYING/i.test(t)); ok(i3 === iSet + 1 && (i3 < iTp || i3 > iNext), 'the producers page is now called 3PD Producers and sits under Settings, not under Third parties & floor'); } ok((await page.locator('.nav a[aria-current=page]').innerText()).includes('Command Centre'), 'Command Centre is current');
   ok((await page.locator('.nav a', { hasText: 'Exceptions' }).locator('.badge').innerText()) === '3', 'sidebar shows the critical exception count');
   await page.keyboard.press('/'); await page.getByRole('dialog', { name: 'Command palette' }).waitFor(); ok(true, 'press / opens the command palette');
   await page.getByLabel('Search or run a command').fill('700101'); await page.waitForSelector('.palette .res >> text=#700101'); ok(true, 'palette finds an order from the live search');
@@ -657,6 +657,38 @@ try {
         ok(!(await pv.getByRole('toolbar', { name: 'Bulk actions' }).getByRole('button', { name: 'Build DTF order' }).isEnabled()) && !(await pv.getByRole('button', { name: 'DTF received…' }).isEnabled()), 'a view-only login can look but neither build nor book in'); await cv.close(); } }
     { const { page: pe, ctx: ce } = await newPage(browser, { role: 'viewer', views: { ui_preproduction: [], ui_dtf_items: [] } }); await signIn(pe); await goto(pe, '#/preprod'); await pe.getByRole('heading', { name: 'Pre-production', exact: true }).waitFor();
       await pe.getByRole('tab', { name: /^DTF prints/ }).click(); await pe.getByText('No DTF prints are needed.').waitFor(); ok(true, 'with nothing to show the pages say so, for a view-only login too'); await ce.close(); } }
+
+  console.log('embroidery designs');
+  { const ea = (n, o) => ({ artwork_id: 'ea-' + n, order_id: o.oid, order_ref: '#' + n, customer_id: o.cid ?? 'C1', customer_name: o.c, due_date: '2026-11-30T00:00:00Z', scope: o.scope ?? 'in_house', order_status: 'awaiting_stock', deco_line_id: 'L' + n, area: o.area ?? 'Left Chest', thumbnail_url: null, stitch_count: 5200, width_mm: 80, height_mm: 60, file_format: 'dst', storage_status: 'failed', approval_status: 'unknown', version: 1,
+      design_id: o.did ?? null, design_name: o.dn ?? null, design_status: o.ds ?? null, design_round: o.dr ?? null, status_by: null, status_at: o.ds ? '2026-11-20T10:00:00Z' : null, area_status: o.ds ?? 'to_review', suggested_design_id: o.sid ?? null, suggested_design_name: o.sn ?? null, suggested_status: o.ss ?? null, suggested_why: o.sw ?? null });
+    const embViews = {
+      ui_emb_areas: [ea(710001, { oid: 'e-1', c: 'Northside FC', sid: 'd-1', sn: 'Northside crest', ss: 'swatch_approved', sw: 'Same artwork' }), ea(710002, { oid: 'e-2', c: 'Bay Rovers', cid: 'C2' }), ea(710003, { oid: 'e-3', c: 'Northside FC', did: 'd-1', dn: 'Northside crest', ds: 'swatch_sent', dr: 2 }), ea(710004, { oid: 'e-4', c: 'Third Party Co', scope: 'third_party', did: 'd-9', dn: 'TP logo', ds: 'known' }), ea(710005, { oid: 'e-5', c: 'Northside FC', did: 'd-1', dn: 'Northside crest', ds: 'swatch_approved', area: 'Back' })],
+      ui_emb_designs: [{ id: 'd-1', customer_id: 'C1', customer_name: 'Northside FC', name: 'Northside crest', status: 'swatch_sent', round: 2, status_by: 'x', status_at: '2026-11-20T10:00:00Z', note: null, created_at: '2026-11-01T00:00:00Z', orders_using: 3 }, { id: 'd-2', customer_id: 'C1', customer_name: 'Northside FC', name: 'Northside back print', status: 'known', round: 1, status_by: 'x', status_at: '2026-11-01T00:00:00Z', note: null, created_at: '2026-11-01T00:00:00Z', orders_using: 1 }],
+      ui_emb_events: [{ id: 1, design_id: 'd-1', event: 'created', from_status: null, to_status: 'swatch_required', round: 1, actor: 'x', note: null, order_ref: '#710003', at: '2026-11-01T10:00:00Z' }, { id: 2, design_id: 'd-1', event: 'status', from_status: 'swatch_sent', to_status: 'changes_needed', round: 1, actor: 'x', note: 'Thread too dark', order_ref: null, at: '2026-11-10T10:00:00Z' }]
+    };
+    { const { page: pm, ctx: cm, st: sm } = await newPage(browser, { role: 'manager', views: embViews }); await signIn(pm); await goto(pm, '#/embroidery'); await pm.getByRole('heading', { name: 'Embroidery', exact: true }).waitFor(); await pm.waitForSelector('.dt-row');
+      ok((await pm.locator('.nav a', { hasText: 'Embroidery' }).count()) === 1, 'the sidebar has an Embroidery page');
+      ok(await pm.getByRole('tab', { name: /^In house/ }).isVisible() && await pm.getByRole('tab', { name: /^Third party/ }).isVisible(), 'there is a tab for in-house and one for third-party orders');
+      ok((await pm.getByRole('tab', { name: /^Not decided/ }).count()) === 0, 'the not-decided tab only appears when there is something in it');
+      ok((await pm.locator('.dt-row', { hasText: '#710004' }).count()) === 0, 'a third-party area is not on the in-house tab');
+      ok((await pm.locator('.dt-row', { hasText: '#710001' }).innerText()).includes('Same artwork: Northside crest'), 'a suggestion shows what it matched and how');
+      await pm.locator('.dt-row', { hasText: '#710001' }).click(); await pm.getByTestId('emb-suggestion').waitFor();
+      await pm.getByRole('button', { name: 'Yes, same logo' }).click(); await pm.getByText('Linked to the same logo').waitFor();
+      const lk = sm.n8n.filter((c) => c.path === 'dtf' && c.body?.action === 'emb_link').pop(); ok(!!lk && lk.body.params.design_id === 'd-1' && lk.body.params.order_id === 'e-1' && lk.body.params.area === 'Left Chest', 'confirming a suggestion links the area to that design');
+      await pm.locator('.dt-row', { hasText: '#710002' }).click(); await pm.getByRole('dialog').waitFor();
+      ok((await pm.getByRole('dialog').getByText('Looks like a logo we already hold').count()) === 0 && (await pm.getByRole('dialog').getByLabel("Customer's logos").count()) === 0, 'another customer is offered none of this customer\'s logos');
+      await pm.getByRole('dialog').getByLabel('Logo name').fill('Bay crest'); await pm.getByRole('button', { name: 'New logo: swatch required' }).click(); await pm.getByRole('dialog').waitFor({ state: 'hidden' });
+      const nw = sm.n8n.filter((c) => c.path === 'dtf' && c.body?.action === 'emb_new').pop(); ok(!!nw && nw.body.params.name === 'Bay crest' && nw.body.params.order_id === 'e-2', 'a new logo is sent with its name');
+      await pm.getByRole('tab', { name: /^Third party/ }).click(); await pm.waitForFunction(() => location.hash.includes('third_party')); await pm.waitForTimeout(600); await pm.getByRole('button', { name: /^All/ }).click(); await pm.locator('.dt-row', { hasText: '#710004' }).waitFor(); ok((await pm.locator('.dt-row', { hasText: '#710001' }).count()) === 0, 'the third-party tab shows only third-party orders');
+      await pm.getByRole('tab', { name: /^In house/ }).click(); await pm.waitForTimeout(600); await pm.getByRole('button', { name: /^All/ }).click(); await pm.locator('.dt-row', { hasText: '#710003' }).click(); await pm.getByRole('dialog').waitFor();
+      ok(await pm.getByRole('dialog').getByText('Round 2').isVisible() && await pm.getByRole('dialog').getByText(/Thread too dark/).isVisible(), 'a linked area shows its round and its history');
+      ok(await pm.getByRole('button', { name: 'Changes needed' }).isDisabled(), 'asking for changes needs a note first');
+      await pm.getByLabel('Note').fill('Colour too dark'); await pm.getByRole('button', { name: 'Changes needed' }).click(); await pm.getByRole('dialog').waitFor({ state: 'hidden' });
+      const st2 = sm.n8n.filter((c) => c.path === 'dtf' && c.body?.action === 'emb_status').pop(); ok(!!st2 && st2.body.params.to === 'changes_needed' && st2.body.params.note === 'Colour too dark' && st2.body.params.design_id === 'd-1', 'the status change is sent with its note'); await cm.close(); }
+    { const { page: pv, ctx: cv } = await newPage(browser, { role: 'viewer', views: embViews }); await signIn(pv); await goto(pv, '#/embroidery'); await pv.waitForSelector('.dt-row');
+      await pv.locator('.dt-row', { hasText: '#710002' }).click(); await pv.getByRole('dialog').waitFor();
+      ok(await pv.getByRole('button', { name: 'New logo: swatch required' }).isDisabled() && await pv.getByText('Your role can look but not change this.').isVisible(), 'a view-only login can look but not change'); await cv.close(); }
+  }
 
   console.log('cut-off lists');
   { const many = (n) => Array.from({ length: n }, (_, i) => ({ ...F.stockMoves[0], id: 1000 + i }));
