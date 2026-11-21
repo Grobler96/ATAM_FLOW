@@ -1,4 +1,4 @@
--- 21 Nov 2026: pre-production, phase A: DTF prints and the traffic lights (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: pre-production, phase A: DTF prints and the traffic lights (applied to the live project 21 Nov 2026 as "flow_preproduction_dtf").
 -- Before an order can go into production three things happen at the same time: the DTF prints are made or ordered, the embroidery is checked, and the
 -- stock is bought. This change adds what Flow needs to SHOW that, read-only. It sends nothing, changes no order and creates no purchase order.
 --   1. A new tag condition, "the order uses a process" (method_includes), usable in tag rules and routing rules. It starts one tag: Needs DTF prints.
