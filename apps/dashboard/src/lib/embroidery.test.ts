@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { areasFor, canChangeEmbroidery, designsFor, embCounts, embDone, embLight, embMoves, embScore, embWords, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from './embroidery';
+import { hasStitchFile, areasFor, canChangeEmbroidery, designsFor, embCounts, embDone, embLight, embMoves, embScore, embWords, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from './embroidery';
 
 const area = (o: Partial<EmbAreaRow> = {}): EmbAreaRow => ({ artwork_id: 'a', order_id: 'o1', order_ref: '#1', customer_id: 'C1', customer_name: 'Club', due_date: null, scope: 'in_house', order_status: 'awaiting_stock', deco_line_id: 'L1', area: 'Left Chest', thumbnail_url: null, stitch_count: 5200, width_mm: 80, height_mm: 60, file_format: 'dst', storage_status: 'failed', approval_status: 'unknown', version: 1, design_id: null, design_name: null, design_status: null, design_round: null, status_by: null, status_at: null, area_status: 'to_review', suggested_design_id: null, suggested_design_name: null, suggested_status: null, suggested_why: null, ...o });
 
@@ -47,4 +47,8 @@ describe('embroidery lists', () => {
     expect(eventWords({ id: 3, design_id: 'd', event: 'status', from_status: 'changes_needed', to_status: 'swatch_in_progress', round: 2, actor: null, note: null, order_ref: null, at: '' })).toBe('Changes needed → Swatch in progress (round 2)');
     expect(eventWords({ id: 4, design_id: 'd', event: 'linked', from_status: null, to_status: null, round: 1, actor: null, note: 'Left Chest', order_ref: '#7', at: '' })).toBe('Used on #7 (Left Chest)');
   });
+});
+
+describe('stitch file download', () => {
+  it('is offered only when Flow holds the file', () => { expect(hasStitchFile(area({ storage_path: 'orders/1/a.dst', storage_status: 'stored' }))).toBe(true); expect(hasStitchFile(area({ storage_path: 'orders/1/a.dst', storage_status: 'manual' }))).toBe(true); expect(hasStitchFile(area({ storage_path: null, storage_status: 'stored' }))).toBe(false); expect(hasStitchFile(area({ storage_path: 'orders/1/a.dst', storage_status: 'failed' }))).toBe(false); });
 });

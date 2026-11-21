@@ -97,6 +97,11 @@ select pg_temp.assert(not (select (j->>'ok')::bool from r where k = 'u2'), 'unli
 insert into r select 'l4', flow.emb_link(:'o2', 'L2', 'Left Chest', :'d1', 'dashboard:tester');
 select pg_temp.assert((select (j->>'ok')::bool from r where k = 'l4'), 'it can be linked again');
 
+-- 7b. the proof sheet can download the stored stitch file: the view carries its path
+update flow.artwork_files set storage_status = 'stored', storage_path = 'orders/EM1/left-chest/v1.dst' where order_id = :'o1' and area = 'Left Chest';
+select pg_temp.assert((select storage_path = 'orders/EM1/left-chest/v1.dst' and storage_status = 'stored' from public.ui_emb_areas where order_ref = '#EM1' and area = 'Left Chest'), 'a stored stitch file shows its path');
+select pg_temp.assert((select storage_path is null from public.ui_emb_areas where order_ref = '#EM1' and area = 'Back'), 'an area with no stored file has no path');
+
 -- 8. privileges
 select pg_temp.assert(not has_function_privilege('authenticated', 'public.flow_emb_set_status(uuid,text,text,text)', 'execute') and not has_function_privilege('anon', 'public.flow_emb_set_status(uuid,text,text,text)', 'execute') and has_function_privilege('service_role', 'public.flow_emb_set_status(uuid,text,text,text)', 'execute'), 'only the service role can change a design');
 select pg_temp.assert(not has_table_privilege('authenticated', 'flow.emb_designs', 'insert') and has_table_privilege('authenticated', 'flow.emb_designs', 'select'), 'staff can read designs but not write them directly');

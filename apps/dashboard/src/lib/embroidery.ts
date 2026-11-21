@@ -7,7 +7,7 @@ export type EmbStatus = 'to_review' | 'known' | 'swatch_required' | 'swatch_in_p
 export interface EmbAreaRow {
   artwork_id: string; order_id: string; order_ref: string; customer_id: string | null; customer_name: string | null; due_date: string | null; scope: string; order_status: string;
   deco_line_id: string; area: string; thumbnail_url: string | null; stitch_count: number | null; width_mm: number | null; height_mm: number | null; file_format: string | null;
-  storage_status: string | null; approval_status: string | null; version: number;
+  storage_status: string | null; approval_status: string | null; version: number; storage_path?: string | null;
   design_id: string | null; design_name: string | null; design_status: string | null; design_round: number | null; status_by: string | null; status_at: string | null; area_status: EmbStatus | string;
   suggested_design_id: string | null; suggested_design_name: string | null; suggested_status: string | null; suggested_why: string | null
 }
@@ -39,6 +39,8 @@ export function embMoves(status: string): EmbMove[] {
 // Only planners may change a design; anyone can look.
 export const canChangeEmbroidery = (role: string | null | undefined): boolean => role === 'admin' || role === 'manager' || role === 'production';
 
+// A stitch file can be downloaded only when Flow holds it.
+export const hasStitchFile = (r: Pick<EmbAreaRow, 'storage_path' | 'storage_status'>): boolean => !!r.storage_path && (r.storage_status === 'stored' || r.storage_status === 'manual');
 export const SCOPE_TABS: { id: 'in_house' | 'third_party' | 'unclassified'; label: string }[] = [{ id: 'in_house', label: 'In house' }, { id: 'third_party', label: 'Third party' }, { id: 'unclassified', label: 'Not decided' }];
 export const areasFor = (rows: EmbAreaRow[], scope: string): EmbAreaRow[] => rows.filter((r) => r.scope === scope);
 export function embCounts(rows: EmbAreaRow[]) {
