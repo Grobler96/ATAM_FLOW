@@ -11,14 +11,15 @@ describe('rule settings', () => {
     expect(paramsFor('units_over', { ...empty, n: '0' })).toEqual({ n: 0 });
     expect(paramsFor('custom_field_filled', { ...empty, field: ' Uniform For ' })).toEqual({ field: 'Uniform For' });
     expect(paramsFor('tag_present', { ...empty, tag: 'person_packing' })).toEqual({ tag: 'person_packing' });
+    expect(paramsFor('method_includes', { ...empty, method: ' DTF ' })).toEqual({ method: 'dtf' });
   });
   it('refuses values that cannot be used', () => {
     expect(paramsFor('decorations_over', { ...empty, n: 'lots' })).toBeNull(); expect(paramsFor('decorations_over', { ...empty, n: '-3' })).toBeNull(); expect(paramsFor('decorations_over', { ...empty, n: '1.5' })).toBeNull();
-    expect(paramsFor('custom_field_filled', empty)).toBeNull(); expect(paramsFor('tag_present', empty)).toBeNull(); expect(paramsFor('nope', { ...empty, n: '1' })).toBeNull();
+    expect(paramsFor('method_includes', empty)).toBeNull(); expect(paramsFor('custom_field_filled', empty)).toBeNull(); expect(paramsFor('tag_present', empty)).toBeNull(); expect(paramsFor('nope', { ...empty, n: '1' })).toBeNull();
   });
   it('fills the form from an existing rule', () => {
-    expect(valueFromParams('decorations_over', { n: 20 })).toEqual({ n: '20', field: '', tag: '' });
-    expect(valueFromParams('custom_field_filled', { field: 'Uniform For' }).field).toBe('Uniform For'); expect(valueFromParams('x', null)).toEqual(empty);
+    expect(valueFromParams('decorations_over', { n: 20 })).toEqual({ n: '20', field: '', tag: '', method: '' });
+    expect(valueFromParams('custom_field_filled', { field: 'Uniform For' }).field).toBe('Uniform For'); expect(valueFromParams('x', null)).toEqual({ ...empty, method: '' }); expect(valueFromParams('method_includes', { method: 'dtf' }).method).toBe('dtf');
   });
   it('makes a tag code from its label', () => {
     expect(slugCode('Needs folding')).toBe('needs_folding'); expect(slugCode('  Gift wrap!! ')).toBe('gift_wrap'); expect(slugCode('3 boxes')).toBe('t_3_boxes'); expect(slugCode('???')).toBe('');
@@ -47,6 +48,11 @@ describe('tag rule form', () => {
   it('a new tag needs a label and gets a code from it', () => {
     expect(validateTag(tag({ isNew: true, tagLabel: '' }))).toMatch(/label/); expect(validateTag(tag({ isNew: true, tagLabel: '???' }))).toMatch(/letters/);
     expect(tagParams(tag({ isNew: true, tagLabel: 'Needs folding', kind: 'units_over', value: { ...empty, n: '10' } }), null)).toMatchObject({ tag_code: 'needs_folding', tag_label: 'Needs folding', kind: 'units_over', params: { n: 10 } });
+  });
+  it('can tag orders that use a process', () => {
+    const f = tag({ isNew: true, tagLabel: 'Needs DTF prints', kind: 'method_includes', value: { ...empty, method: 'DTF' } });
+    expect(validateTag(f)).toBeNull(); expect(tagParams(f, null)).toMatchObject({ tag_code: 'needs_dtf_prints', kind: 'method_includes', params: { method: 'dtf' } });
+    expect(validateTag(tag({ kind: 'method_includes', value: empty }))).toMatch(/name of the process/);
   });
   it('needs a reason, a name and usable settings', () => { expect(validateTag(tag({ reason: '' }))).toMatch(/reason/); expect(validateTag(tag({ name: '' }))).toMatch(/name/); expect(validateTag(tag({ value: empty }))).toMatch(/custom field/); expect(validateTag(tag({ tagCode: '' }))).toMatch(/Choose a tag/); });
 });

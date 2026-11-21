@@ -36,6 +36,7 @@ export function conditionText(kind: string, params: Record<string, unknown> | nu
   if (kind === 'units_over') return `More than ${String(p.n ?? '?')} units on the whole order`;
   if (kind === 'custom_field_filled') return `A name is filled in on "${String(p.field ?? '?')}"`;
   if (kind === 'tag_present') return `The order has the tag "${String(p.tag ?? '?')}"`;
+  if (kind === 'method_includes') return `Garments on the order are decorated with ${String(p.method ?? '?')}`;
   return kind.replace(/_/g, ' ');
 }
 export function resultText(scope: string, producerName: string | null): string {

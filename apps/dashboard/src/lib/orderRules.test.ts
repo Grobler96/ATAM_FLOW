@@ -10,6 +10,7 @@ describe('order rules wording', () => {
     expect(conditionText('units_over', { n: 10 })).toBe('More than 10 units on the whole order');
     expect(conditionText('custom_field_filled', { field: 'Uniform For' })).toBe('A name is filled in on "Uniform For"');
     expect(conditionText('tag_present', { tag: 'person_packing' })).toBe('The order has the tag "person_packing"');
+    expect(conditionText('method_includes', { method: 'dtf' })).toBe('Garments on the order are decorated with dtf');
     expect(conditionText('something_new', null)).toBe('something new');
   });
   it('says where a rule sends the order', () => {
