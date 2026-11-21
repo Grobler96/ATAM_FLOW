@@ -9,9 +9,12 @@ export interface EmbAreaRow {
   deco_line_id: string; area: string; thumbnail_url: string | null; stitch_count: number | null; width_mm: number | null; height_mm: number | null; file_format: string | null;
   storage_status: string | null; approval_status: string | null; version: number; storage_path?: string | null;
   design_id: string | null; design_name: string | null; design_status: string | null; design_round: number | null; status_by: string | null; status_at: string | null; area_status: EmbStatus | string;
-  suggested_design_id: string | null; suggested_design_name: string | null; suggested_status: string | null; suggested_why: string | null
+  suggested_design_id: string | null; suggested_design_name: string | null; suggested_status: string | null; suggested_why: string | null;
+  deco_status?: string | null; deco_stale?: boolean | null; approved_file_path?: string | null
 }
-export interface EmbDesignRow { id: string; customer_id: string; customer_name: string | null; name: string; status: EmbStatus | string; round: number; status_by: string | null; status_at: string | null; note: string | null; created_at: string; orders_using: number }
+export interface EmbDesignRow { id: string; customer_id: string; customer_name: string | null; name: string; status: EmbStatus | string; round: number; status_by: string | null; status_at: string | null; note: string | null; created_at: string; orders_using: number;
+  approved_artwork_id?: string | null; approved_by?: string | null; approved_at?: string | null; deco_status?: string | null; deco_updated_by?: string | null; deco_updated_at?: string | null; deco_note?: string | null;
+  approved_file_path?: string | null; approved_file_format?: string | null; approved_thumbnail_url?: string | null; approved_version?: number | null }
 export interface EmbEventRow { id: number; design_id: string; event: string; from_status: string | null; to_status: string | null; round: number | null; actor: string | null; note: string | null; order_ref: string | null; at: string }
 
 export const EMB_WORDS: Record<EmbStatus, string> = { to_review: 'To review', known: 'Done before', swatch_required: 'Swatch required', swatch_in_progress: 'Swatch in progress', swatch_sent: 'Swatch sent to customer', swatch_approved: 'Swatch approved', changes_needed: 'Changes needed' };
@@ -65,4 +68,29 @@ export function eventWords(e: EmbEventRow): string {
     case 'status': return `${embWords(e.from_status ?? '')} → ${embWords(e.to_status ?? '')}${e.round && e.round > 1 ? ` (round ${e.round})` : ''}${e.note ? ': ' + e.note : ''}`;
     default: return e.event.replace(/_/g, ' ');
   }
+}
+
+// The old-file problem. When a reworked file is uploaded into Flow and approved, DecoNetwork still holds the OLD one until someone replaces it. That design
+// sits on the "Files to update in DecoNetwork" list, and any order that arrives carrying the old file is warned until it is ticked off.
+export const DECO_WORDS: Record<string, string> = { in_sync: 'In sync with DecoNetwork', update_needed: 'Update needed in DecoNetwork', updated: 'Updated in DecoNetwork' };
+export const decoWords = (s: string | null | undefined): string => (s ? DECO_WORDS[s] ?? s.replace(/_/g, ' ') : '');
+export const needsDecoUpdate = (d: Pick<EmbDesignRow, 'deco_status'>): boolean => d.deco_status === 'update_needed';
+export const decoList = (designs: EmbDesignRow[]): EmbDesignRow[] => designs.filter(needsDecoUpdate).sort((a, b) => (a.approved_at ?? '').localeCompare(b.approved_at ?? '') || a.name.localeCompare(b.name));
+export const decoLog = (designs: EmbDesignRow[]): EmbDesignRow[] => designs.filter((d) => d.deco_status === 'updated' && !!d.deco_updated_at).sort((a, b) => (b.deco_updated_at ?? '').localeCompare(a.deco_updated_at ?? ''));
+// The areas still carrying the old file for a design: its own linked areas and any new area the register recognises as the same logo.
+export const decoAffected = (areas: EmbAreaRow[], designId: string): EmbAreaRow[] => areas.filter((a) => !!a.deco_stale && (a.design_id === designId || (!a.design_id && a.suggested_design_id === designId))).sort((a, b) => a.order_ref.localeCompare(b.order_ref) || a.area.localeCompare(b.area));
+export const isStale = (r: Pick<EmbAreaRow, 'deco_stale'>): boolean => !!r.deco_stale;
+export const staleWarning = (r: Pick<EmbAreaRow, 'deco_stale' | 'approved_file_path'>): string => (r.deco_stale ? `DecoNetwork still holds the old file for this logo.${r.approved_file_path ? ' Use the approved file instead (download it below).' : ''}` : '');
+export const decoCounts = (designs: EmbDesignRow[], areas: EmbAreaRow[]) => ({ toUpdate: decoList(designs).length, orders: new Set(areas.filter(isStale).map((a) => a.order_id)).size });
+// The approval of a swatch records the file it was approved with, so it has to be done from an area.
+export const approvesFromArea = (to: string): boolean => to === 'swatch_approved';
+// Areas that can be marked "done before" in bulk: not yet linked to a design, and the order has a customer.
+export const bulkKnownCandidates = (rows: EmbAreaRow[]): EmbAreaRow[] => rows.filter((r) => !r.design_id && !!r.customer_id);
+export const bulkKnownPayload = (rows: EmbAreaRow[]) => rows.map((r) => ({ order_id: r.order_id, deco_line_id: r.deco_line_id, area: r.area }));
+export function bulkKnownSummary(r: Record<string, unknown>): string {
+  const n = (v: unknown) => Number(v ?? 0); const parts = [`${n(r.created)} logo${n(r.created) === 1 ? '' : 's'} marked as done before`];
+  if (n(r.linked)) parts.push(`${n(r.linked)} more area${n(r.linked) === 1 ? '' : 's'} joined an existing logo`);
+  if (n(r.in_progress)) parts.push(`${n(r.in_progress)} left alone because their logo has a swatch under way`);
+  if (n(r.skipped)) parts.push(`${n(r.skipped)} skipped (already linked, or no longer on an active order)`);
+  return parts.join(' · ') + '.';
 }
