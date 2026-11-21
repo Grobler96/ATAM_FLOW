@@ -1,6 +1,6 @@
 # Order tags and routing rules (shadow mode)
 
-Added 21 Nov 2026 as migration 69 (`supabase/pending/20261121000069_flow_order_rules.sql`, **written and tested locally, not applied to the live project**).
+Added 21 Nov 2026 as migration 69 (`supabase/migrations/20261121000069_flow_order_rules.sql`, **applied to the live project 21 Nov 2026**; no order has facts yet, so nothing is tagged or decided).
 
 ## The idea
 After an order reaches Flow it passes two steps, then lands in **IH Orders** or **3PD Orders** as it does today.
@@ -21,14 +21,14 @@ Precedence recorded: manual scope, then a matching rule, then DecoNetwork's Prio
 - On the 657 orders in the 60-days-back to 30-days-ahead window (checked 21 Nov 2026, read-only): 21 had more than 20 decorations by the reader's count (25 if placements with no process set are also counted; **open question for the owner: which is right?**); "Uniform For" exists on 598 orders but is filled on only 958 of 2,112 lines, so the tag must fire on a filled value, not on the field existing.
 
 ## Where the facts come from
-The n8n workflow **ATAM_FLOW · Order facts from DecoNetwork** (`IbZJlAMiEMSRL3ry`, **created but not published**; hourly at :55 plus a Run by hand trigger). It is read-only on DecoNetwork (same `manage_orders/find` call, with workflow data, as the Priority flag sync, same 60-days-back to 30-days-ahead window, 12 pages of 100). For each order it totals the decorations and collects the filled-in custom fields, then calls `public.flow_order_facts_ingest` (service role only). It stops with an error if it read fewer orders than DecoNetwork reports, or if Flow answers "not ok". It does not edit the existing capture workflow. **It will fail until migration 69 is applied, because the function does not exist yet**, and it should not be published before that.
+The n8n workflow **ATAM_FLOW · Order facts from DecoNetwork** (`IbZJlAMiEMSRL3ry`, **created but not published**; hourly at :55 plus a Run by hand trigger). It is read-only on DecoNetwork (same `manage_orders/find` call, with workflow data, as the Priority flag sync, same 60-days-back to 30-days-ahead window, 12 pages of 100). For each order it totals the decorations and collects the filled-in custom fields, then calls `public.flow_order_facts_ingest` (service role only). It stops with an error if it read fewer orders than DecoNetwork reports, or if Flow answers "not ok". It does not edit the existing capture workflow. Migration 69 is now applied, so the function exists. The workflow is still unpublished: run it by hand once and check the results before publishing.
 
 A decoration is counted as one **process on one placement on one garment line**, added up over the whole order. A placement with no process set yet counts as one (owner's decision).
 
 **Tested 21 Nov 2026 by running only the reading half (no save, nothing written):** 657 orders, payload about 61 KB. Order 636890: 42 decorations, 14 distinct names across its 28 lines. 25 orders had more than 20 decorations; 31 had 0; the biggest had 106; 239 placements had no process set. 207 orders had at least one filled "Uniform For" value (largest: 27 distinct names on one order).
 
 ## Not built yet
-- Publishing the reader and applying migration 69 (until both are done no order has facts, so nothing is tagged or decided).
+- Running and publishing the reader (until then no order has facts, so nothing is tagged or decided).
 - Screens: tags on the order drawer, a Routing rules / Tags settings page, a "what would move" review list.
 - Live mode (rules actually setting scope and producer), mixed orders (some lines each way), extra charges on third-party POs, timing in-house packing, folding sections.
 

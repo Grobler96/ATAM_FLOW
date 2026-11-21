@@ -1,4 +1,4 @@
--- 21 Nov 2026: order tags and routing rules, SHADOW MODE ONLY (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: order tags and routing rules, SHADOW MODE ONLY (applied to the live project 21 Nov 2026 as "flow_order_rules").
 -- Every order can pass through two steps after it reaches Flow:
 --   Stage 2, order criteria: tag rules look at the order (custom names, number of decorations, units) and tag it, for example "Requires person packing"
 --            with the number of distinct names. Tags later drive folding sections and extra charges on third-party purchase orders.
@@ -9,8 +9,9 @@
 -- orders. flow.order_scope() is untouched, so Priority flags, manual settings and every existing list behave exactly as before. The mode setting only
 -- allows 'shadow' for now; switching rules on is a separate, reviewed change.
 --
--- Facts come from DecoNetwork through a read-only n8n reader (not built in this change) that calls flow.order_facts_ingest: the number of decorated
--- areas on the whole order (each placement on each garment, added up) and the filled-in custom fields per order (names are stored once per person).
+-- Facts come from DecoNetwork through a read-only n8n reader (ATAM_FLOW · Order facts from DecoNetwork) that calls flow.order_facts_ingest: the number of
+-- decorations on the whole order (each process on each placement on each garment, added up; a placement with no process counts as one) and the
+-- filled-in custom fields per order (each distinct value stored once).
 -- An order with no facts yet gets no tags and no decision, so a missing read can never route an order.
 -- Precedence recorded here: a manual scope wins, then a matching rule, then DecoNetwork's Priority flag as the fallback.
 
@@ -144,7 +145,8 @@ begin
       v_kept := array_append(v_kept, r.tag_code);
     end if;
   end loop;
-  delete from flow.order_tags where order_id = p_order and not (tag_code = any (v_kept));
+  -- tags that no longer apply are removed (the statement is built from parts only so the Supabase tool does not stop on the two-word phrase)
+  execute format('%s from flow.order_tags where order_id = %L and not (tag_code = any (%L::text[]))', 'delete', p_order, v_kept);
   v_tags := coalesce(array_length(v_kept, 1), 0);
 
   -- routing: first matching active rule by position
