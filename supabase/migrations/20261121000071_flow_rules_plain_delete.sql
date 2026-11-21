@@ -1,4 +1,4 @@
--- 21 Nov 2026: replace a workaround in migration 69 with a plain statement (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: replace a workaround in migration 69 with a plain statement (applied to the live project 21 Nov 2026 as "flow_rules_plain_delete").
 -- Migration 69 removed tags that no longer apply with a statement assembled from parts, so the Supabase tool's confirmation would not fire on the
 -- two-word phrase. That avoided a safeguard, so this puts the ordinary statement back. Behaviour is identical. Applying this file will, correctly,
 -- ask for confirmation. The function is patched in place from its current definition and fails loudly if the line it patches is not found.
