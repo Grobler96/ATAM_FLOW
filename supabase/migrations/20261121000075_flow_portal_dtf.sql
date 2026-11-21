@@ -1,4 +1,4 @@
--- 21 Nov 2026: pre-production, phase C: DTF prints in the decorator portal (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: pre-production, phase C: DTF prints in the decorator portal (APPLIED to the live project on 21 Nov 2026).
 -- For a THIRD-PARTY order the decorator orders their own DTFs (from Super Print). They need to see what to order BEFORE the goods are sent, so these
 -- functions work from the decorator assigned to the order (the order's decorator, or the default third-party decorator), not from a sent consignment.
 --   * public.portal_dtf():        the DTF placements on the orders assigned to the signed-in decorator: order number, customer, due date, placement, product,

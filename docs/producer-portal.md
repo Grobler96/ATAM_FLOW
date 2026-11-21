@@ -13,7 +13,7 @@ A separate, phone-friendly web page where each third-party decorator signs in se
 8. **Scan a parcel label** on the job list (camera, a hardware scanner or typing the TP number) to open that job. A parcel that is not theirs is refused with a plain message.
 9. **Photos per item at check-in:** each line has its own photo box, as well as photos of the whole delivery; each photo is saved against its line.
 10. **Report spoiled units** once the goods are checked in and until they are sent back: choose the line, how many, what happened (stained, misprint, machine fault, damaged, wrong item, other), a few words, and an optional photo. It becomes a *suggested* waste record that a person confirms or dismisses on the Waste page (so it counts for nothing until then), is logged on the job and is posted in the message thread. A decorator cannot report more units on a line than were sent (dismissed reports free their units again) and sees only their own reports and where each stands, never costs or internal notes. Damage found on arrival still goes in the check-in. Functions: `portal_report_spoilage`, `portal_spoilage`; tests in `portal_spoilage_test.sql`.
-11. **DTF prints** (migration 75, not yet applied): a separate `DTF prints` page for orders assigned to them, with file downloads, an order sheet and marking prints in production or produced. See `docs/preproduction.md` (Phase C).
+11. **DTF prints** (migration 75, applied): a separate `DTF prints` page for orders assigned to them, with file downloads, an order sheet and marking prints in production or produced. See `docs/preproduction.md` (Phase C).
 
 Everything feeds the existing consignment lifecycle, events, audit trail and exceptions, with the actor shown as `producer:<name>`.
 
