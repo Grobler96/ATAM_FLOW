@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasStitchFile, areasFor, canChangeEmbroidery, designsFor, embCounts, embDone, embLight, embMoves, embScore, embWords, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from './embroidery';
+import { approvesFromArea, bulkKnownCandidates, bulkKnownPayload, bulkKnownSummary, decoAffected, decoCounts, decoList, decoLog, decoWords, isStale, needsDecoUpdate, staleWarning, hasStitchFile, areasFor, canChangeEmbroidery, designsFor, embCounts, embDone, embLight, embMoves, embScore, embWords, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from './embroidery';
 
 const area = (o: Partial<EmbAreaRow> = {}): EmbAreaRow => ({ artwork_id: 'a', order_id: 'o1', order_ref: '#1', customer_id: 'C1', customer_name: 'Club', due_date: null, scope: 'in_house', order_status: 'awaiting_stock', deco_line_id: 'L1', area: 'Left Chest', thumbnail_url: null, stitch_count: 5200, width_mm: 80, height_mm: 60, file_format: 'dst', storage_status: 'failed', approval_status: 'unknown', version: 1, design_id: null, design_name: null, design_status: null, design_round: null, status_by: null, status_at: null, area_status: 'to_review', suggested_design_id: null, suggested_design_name: null, suggested_status: null, suggested_why: null, ...o });
 
@@ -51,4 +51,29 @@ describe('embroidery lists', () => {
 
 describe('stitch file download', () => {
   it('is offered only when Flow holds the file', () => { expect(hasStitchFile(area({ storage_path: 'orders/1/a.dst', storage_status: 'stored' }))).toBe(true); expect(hasStitchFile(area({ storage_path: 'orders/1/a.dst', storage_status: 'manual' }))).toBe(true); expect(hasStitchFile(area({ storage_path: null, storage_status: 'stored' }))).toBe(false); expect(hasStitchFile(area({ storage_path: 'orders/1/a.dst', storage_status: 'failed' }))).toBe(false); });
+});
+
+describe('the old file in DecoNetwork', () => {
+  const des = (o: Partial<EmbDesignRow>): EmbDesignRow => ({ id: 'd', customer_id: 'C1', customer_name: 'Club', name: 'A', status: 'swatch_approved', round: 1, status_by: null, status_at: null, note: null, created_at: '', orders_using: 1, deco_status: 'update_needed', approved_at: '2026-11-20T10:00:00Z', ...o });
+  it('says where a file stands in plain words', () => { expect(decoWords('update_needed')).toBe('Update needed in DecoNetwork'); expect(decoWords('updated')).toBe('Updated in DecoNetwork'); expect(decoWords('in_sync')).toBe('In sync with DecoNetwork'); expect(decoWords(null)).toBe(''); expect(decoWords('odd_one')).toBe('odd one'); });
+  it('lists designs waiting for an update, oldest first, and the log of those done, newest first', () => {
+    const l = [des({ id: '1', approved_at: '2026-11-21T10:00:00Z' }), des({ id: '2', approved_at: '2026-11-19T10:00:00Z' }), des({ id: '3', deco_status: 'in_sync' }), des({ id: '4', deco_status: 'updated', deco_updated_at: '2026-11-20T09:00:00Z' }), des({ id: '5', deco_status: 'updated', deco_updated_at: '2026-11-21T09:00:00Z' }), des({ id: '6', deco_status: 'updated', deco_updated_at: null })];
+    expect(decoList(l).map((d) => d.id)).toEqual(['2', '1']); expect(decoLog(l).map((d) => d.id)).toEqual(['5', '4']); expect(needsDecoUpdate(l[0])).toBe(true); expect(needsDecoUpdate(l[2])).toBe(false);
+  });
+  it('finds the areas that still carry the old file, linked or recognised', () => {
+    const a = [area({ artwork_id: '1', order_ref: '#2', design_id: 'd', deco_stale: true }), area({ artwork_id: '2', order_ref: '#1', design_id: null, suggested_design_id: 'd', deco_stale: true }), area({ artwork_id: '3', design_id: 'd', deco_stale: false }), area({ artwork_id: '4', design_id: 'x', deco_stale: true }), area({ artwork_id: '5', design_id: 'e', suggested_design_id: 'd', deco_stale: true })];
+    expect(decoAffected(a, 'd').map((x) => x.artwork_id)).toEqual(['2', '1']); expect(isStale(a[0])).toBe(true); expect(isStale(a[2])).toBe(false);
+  });
+  it('warns, and points at the approved file when there is one', () => { expect(staleWarning(area({ deco_stale: true, approved_file_path: 'x/y.dst' }))).toBe('DecoNetwork still holds the old file for this logo. Use the approved file instead (download it below).'); expect(staleWarning(area({ deco_stale: true }))).toBe('DecoNetwork still holds the old file for this logo.'); expect(staleWarning(area())).toBe(''); });
+  it('counts designs to update and orders affected', () => { expect(decoCounts([des({ id: '1' }), des({ id: '2', deco_status: 'updated' })], [area({ order_id: 'o1', deco_stale: true }), area({ artwork_id: 'b', order_id: 'o1', deco_stale: true }), area({ artwork_id: 'c', order_id: 'o2', deco_stale: true }), area({ artwork_id: 'd', order_id: 'o3' })])).toEqual({ toUpdate: 1, orders: 2 }); });
+  it('approval is the move that records the file', () => { expect(approvesFromArea('swatch_approved')).toBe(true); expect(approvesFromArea('swatch_sent')).toBe(false); expect(approvesFromArea('known')).toBe(false); });
+});
+
+describe('bulk done before', () => {
+  it('offers only areas with no design and a customer', () => { expect(bulkKnownCandidates([area({ artwork_id: '1' }), area({ artwork_id: '2', design_id: 'd' }), area({ artwork_id: '3', customer_id: null })]).map((r) => r.artwork_id)).toEqual(['1']); });
+  it('sends only the order, line and area', () => { expect(bulkKnownPayload([area({ order_id: 'o1', deco_line_id: 'L1', area: 'Back' })])).toEqual([{ order_id: 'o1', deco_line_id: 'L1', area: 'Back' }]); });
+  it('sums up what happened in plain words', () => {
+    expect(bulkKnownSummary({ created: 2, linked: 1, skipped: 3, in_progress: 1 })).toBe('2 logos marked as done before · 1 more area joined an existing logo · 1 left alone because their logo has a swatch under way · 3 skipped (already linked, or no longer on an active order).');
+    expect(bulkKnownSummary({ created: 1 })).toBe('1 logo marked as done before.');
+  });
 });
