@@ -15,7 +15,7 @@ const session = { access_token: 'tok', refresh_token: 'ref', expires_in: 3600, e
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 420, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200)));
-  const st = { state: o.state || 'to_accept', direct: !!o.direct, calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [], uploadRefused: false };
+  const st = { state: o.state || 'to_accept', direct: !!o.direct, calls: [], uploads: [], noAccess: !!o.noAccess, idle: o.idle || 0, messages: [], evidence: [], spoil: [], signs: [], uploadRefused: false, dtfRefused: false, dtf: [{ id: 'd1', order_ref: '#7001', customer: 'Northside FC', due_date: '2026-12-01', area: 'Front', product: 'Tee', qty: 10, status: 'required', file: 'dtf/a.png', file_name: 'crest.png', file_format: 'png', thumbnail_url: null, design_key: 'k1' }, { id: 'd2', order_ref: '#7002', customer: 'Bay Rovers', due_date: '2026-12-03', area: 'Front', product: 'Tee', qty: 6, status: 'required', file: 'dtf/a.png', file_name: 'crest.png', file_format: 'png', thumbnail_url: null, design_key: 'k1' }, { id: 'd3', order_ref: '#7002', customer: 'Bay Rovers', due_date: '2026-12-03', area: 'Back', product: 'Tee', qty: 6, status: 'required', file: null, file_name: null, file_format: null, thumbnail_url: null, design_key: null }] };
   if (!o.signedOut) await page.addInitScript((s) => localStorage.setItem('atam-portal-auth', JSON.stringify(s)), session);
   const job = () => ({ ok: true, code: 'TP-2026-00007', state: st.state, status: 'dispatched', direct_to_customer: st.direct, ship_to: st.direct && st.state !== 'to_accept' ? [{ order_ref: '#6001', customer: 'Northside FC', address: '1 Practice Street\nTestville\nTE1 1ST', shipping_method: 'Courier' }] : null, dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', carrier_in: 'DPD', tracking_in: 'DPD123', accepted_at: null, declined_reason: null, instructions: 'Left chest only', items: ITEMS, messages: st.messages, evidence: st.evidence, history: [{ event: 'dispatched', at: '2026-11-05T09:00:00Z', note: null }] });
   await page.route(`${SB}/**`, async (route) => {
@@ -36,6 +36,8 @@ async function newPage(browser, o = {}) {
       if (fn === 'portal_jobs') return json([{ code: 'TP-2026-00007', state: st.state, status: 'dispatched', dispatch_date: '2026-11-05', expected_return_date: '2026-11-12', direct_to_customer: false, units: 34, orders: [{ order_ref: '#636584', customer: 'HH Associates Ltd' }, { order_ref: '#636020', customer: 'Alloy Bodies Ltd' }], unread: 0 }]);
       if (fn === 'portal_job') return json(job());
       if (fn === 'portal_job_pack') return json({ ok: true, packs: [{ pack_ref: 'JP-2026-00001', version: 2, order_ref: '#636584', due_date: '2026-11-12', instructions: 'Left chest only', lines: [{ product: 'Polo shirt', sku_base: 'POLO', colour: 'Navy', methods: ['embroidery'], placement: 'Left chest', sizes: [{ size: 'M', qty: 24 }], total_qty: 24 }], artwork: [{ area: 'Left chest', process: 'embroidery', version: 2, file_format: 'dst', file: 'pa/left-chest-v2.dst', file_name: 'left-chest-v2.dst', stitch_count: 5200, width_mm: 90, height_mm: 40, placement: 'Left chest', approval: 'approved' }, { area: 'Back', process: 'embroidery', version: 1, file_format: null, file: null, file_name: null, stitch_count: null, width_mm: null, height_mm: null, placement: null, approval: 'pending' }] }] });
+      if (fn === 'portal_dtf') return json({ ok: true, items: st.dtf });
+      if (fn === 'portal_dtf_start' || fn === 'portal_dtf_done') { if (st.dtfRefused) return json({ ok: false, error: 'Nothing was changed: those prints are already further on.' }); const to = fn === 'portal_dtf_start' ? 'in_progress' : 'done'; st.dtf.forEach((d) => { if (body.p_item_ids.includes(d.id)) d.status = to; }); return json({ ok: true, changed: body.p_item_ids.length }); }
       if (fn === 'portal_spoilage') return json({ ok: true, reports: st.spoil });
       if (fn === 'portal_report_spoilage') { st.spoil.push({ waste_ref: 'WST-1', sku: 'POLO-NVY-M', qty: body.p_qty, reported_at: '2026-11-06T11:00:00Z', state: 'With ATAM to review', note: body.p_note }); return json({ ok: true, waste_ref: 'WST-1' }); }
       if (fn === 'portal_accept') { st.state = 'accepted'; return json({ ok: true }); }
@@ -133,5 +135,24 @@ try {
   await page.screenshot({ path: new URL('./shots/portal-job.png', import.meta.url).pathname }).catch(() => {});
   ok(!(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2)), 'no sideways scrolling on a phone');
   await ctx.close();
+  console.log('DTF prints');
+  { const { page, ctx, st } = await newPage(browser); await page.goto(APP + '#/dtf'); await page.getByRole('heading', { name: 'DTF prints' }).waitFor();
+    ok(await page.getByText(/You order the DTF transfers from Super Print yourselves/).isVisible(), 'the page says the decorator orders the transfers themselves');
+    ok((await page.getByText('Prints required').count()) >= 3, 'each placement shows its status in words');
+    const sheet = page.getByTestId('dtf-sheet'); ok((await sheet.getByText('crest.png').count()) >= 1 && (await sheet.locator('tbody tr').count()) === 2, 'the order sheet totals the shared design on one line and keeps the no-file placement separate');
+    ok((await sheet.locator('tbody tr').first().innerText()).includes('16'), 'the shared design shows 16 garments across both orders');
+    ok(await page.getByText(/No file ready yet/).first().isVisible(), 'a placement with no file says so');
+    ok(await page.getByRole('button', { name: /Download files/ }).isDisabled(), 'download needs an order ticked');
+    await page.getByLabel('Select #7001').check(); await page.getByRole('button', { name: /Download files/ }).click();
+    await page.getByTestId('dtf-ask').waitFor(); ok(st.signs.length >= 1, 'the file is fetched through a signed link');
+    await page.getByRole('button', { name: 'Not yet' }).click(); ok(st.calls.every((c) => c.fn !== 'portal_dtf_start'), 'declining the prompt changes nothing');
+    await page.getByRole('button', { name: /Download files/ }).click(); await page.getByTestId('dtf-ask').waitFor(); await page.getByRole('button', { name: 'Mark as in production' }).click();
+    await page.getByText('Marked as in production.').waitFor(); ok(st.calls.some((c) => c.fn === 'portal_dtf_start' && c.body.p_item_ids.join() === 'd1'), 'only the ticked order is marked in production');
+    await page.getByLabel('Select #7002').check(); await page.getByRole('button', { name: /Download files/ }).click(); await page.getByText(/1 placement has no file ready yet/).waitFor(); ok(true, 'a placement with no file is skipped and explained');
+    await page.getByRole('button', { name: 'Not yet' }).click();
+    await page.getByRole('button', { name: 'Mark produced' }).first().click(); await page.getByText(/^Marked .* as produced\.$/).waitFor(); ok(st.calls.some((c) => c.fn === 'portal_dtf_done' && c.body.p_item_ids.length === 1), 'one placement can be marked produced');
+    st.dtfRefused = true; await page.getByRole('button', { name: 'Mark produced' }).first().click(); await page.getByText(/Nothing was changed/).waitFor(); ok(true, 'a refused change is shown in plain words'); st.dtfRefused = false;
+    ok(!(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2)), 'no sideways scrolling on a phone');
+    await ctx.close(); }
 } finally { await browser.close(); server.kill(); }
 console.log(failures === 0 ? 'ALL PORTAL CHECKS PASSED' : failures + ' check(s) FAILED'); process.exit(failures ? 1 : 0);

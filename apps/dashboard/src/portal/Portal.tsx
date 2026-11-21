@@ -1,3 +1,4 @@
+import { PortalDtf } from './PortalDtf';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { ScanPanel } from '../scan/ScanPanel';
@@ -82,7 +83,7 @@ function Signed() {
   if (err) return <Shell onOut={out}><div className="panel stack" style={{ padding: 24 }}><h1 style={{ margin: 0 }}>No access</h1><p>{err}</p></div></Shell>;
   if (!me) return <Shell onOut={out}><p className="dim">Loading…</p></Shell>;
   const job = hash.match(/^#\/job\/([\w-]+)/);
-  return <Shell who={`${me.user} · ${me.producer}`} onOut={out}>{job ? <JobCard code={job[1]} me={me} /> : <Jobs />}</Shell>;
+  return <Shell who={`${me.user} · ${me.producer}`} onOut={out}>{job ? <JobCard code={job[1]} me={me} /> : hash === '#/dtf' ? <PortalDtf /> : <Jobs />}</Shell>;
 }
 
 function Jobs() {
@@ -100,7 +101,7 @@ function Jobs() {
   const groups: [string, (r: PortalJobRow) => boolean][] = [['Needs your attention', (r) => ['to_accept', 'accepted'].includes(r.state)], ['In progress', (r) => ['checked_in', 'in_production', 'ready_to_ship'].includes(r.state)], ['Sent back', (r) => r.state === 'sent_back'], ['Complete', (r) => ['done', 'declined'].includes(r.state)]];
   return (
     <div className="stack" style={{ gap: 18 }}>
-      <div className="row wrap" style={{ justifyContent: 'space-between', gap: 8 }}><h1 style={{ margin: 0 }}>Your work</h1>{!scanning && <button className="btn" onClick={() => { setScanning(true); setScanMsg(null); }}>Scan a parcel label</button>}</div>
+      <div className="row wrap" style={{ justifyContent: 'space-between', gap: 8 }}><h1 style={{ margin: 0 }}>Your work</h1><a className="btn" href="#/dtf">DTF prints</a>{!scanning && <button className="btn" onClick={() => { setScanning(true); setScanMsg(null); }}>Scan a parcel label</button>}</div>
       {scanning && <section className="panel stack" style={{ padding: 16, gap: 8 }} aria-label="Scan a parcel label"><ScanPanel hint="Scan the barcode or QR code on the parcel label to open that job." onScan={scanned} onClose={() => { setScanning(false); setScanMsg(null); }} />{scanMsg && <Err m={scanMsg} />}</section>}
       {rows.length === 0 && <div className="callout" role="status">Nothing has been sent to you yet. Jobs appear here as soon as ATAM sends the goods.</div>}
       {groups.map(([title, test]) => { const list = rows.filter(test); if (!list.length) return null; return (
