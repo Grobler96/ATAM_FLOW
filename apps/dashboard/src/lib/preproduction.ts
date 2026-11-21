@@ -12,7 +12,8 @@ export interface PreprodRow {
 export type DtfStatus = 'required' | 'in_progress' | 'done';
 export interface DtfItemRow {
   id: string; order_id: string; order_ref: string; customer_name: string | null; due_date: string | null; scope: string; deco_line_id: string; product_name: string | null; area: string; qty: number; status: DtfStatus;
-  artwork_id: string | null; thumbnail_url: string | null; file_format: string | null; storage_status: string | null; approval_status: string | null; content_hash: string | null; updated_at: string
+  artwork_id: string | null; thumbnail_url: string | null; file_format: string | null; storage_status: string | null; approval_status: string | null; content_hash: string | null; updated_at: string;
+  batch_id?: string | null; batch_ref?: string | null; batch_status?: string | null
 }
 
 export const LIGHT_TONE: Record<Light, Tone> = { red: 'critical', amber: 'medium', green: 'good', none: '' };
