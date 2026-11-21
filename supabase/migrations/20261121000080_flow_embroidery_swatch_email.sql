@@ -1,4 +1,4 @@
--- 21 Nov 2026: embroidery, step 2b: emailing the swatch to the customer from Flow, with an editable template. (written and tested locally; NOT applied)
+-- 21 Nov 2026: embroidery, step 2b: emailing the swatch to the customer from Flow, with an editable template. (APPLIED to the live project on 21 Nov 2026)
 -- A new logo needs a physical swatch, sent to the customer to sign off. This queues that email through the NORMAL approval queue (Purchasing > Emails,
 -- kind "other", review required): nothing is sent until a person approves it, and the live sender (which cannot attach files) sends the swatch PHOTO as
 -- a picture and link inside the email. Replies come back to the shared mailbox; staff then mark the swatch approved or changes needed.
