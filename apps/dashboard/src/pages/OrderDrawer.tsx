@@ -16,7 +16,7 @@ import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockSt
 import { DueCell, StatusCell, OrderLink, Num } from '../components/common';
 import { OrderDecorator } from '../components/OrderDecorator';
 import { LightPill } from '../components/PreproLights';
-import { dtfStatusWords, fileWords, itemsFor, lightDetail, preprodFor, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type PreprodRow } from '../lib/preproduction';
+import { dtfStatusWords, fileWords, hasFile, itemsFor, lightDetail, preprodFor, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type PreprodRow } from '../lib/preproduction';
 import { decisionFor, outcomeLabel, outcomeTone, scopeLabel, tagText, tagsFor, type DecisionRow, type TagRow } from '../lib/orderRules';
 import { SelectionCompare } from '../components/SelectionCompare';
 import type { ExceptionRow } from '../types';
@@ -87,7 +87,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
             {(['prints', 'embroidery', 'stock'] as const).filter((k) => pp[k] !== 'none').map((k) => <span key={k} className="dim">{lightDetail(k, pp)}</span>)}
             {di.length > 0 && <div className="stack" style={{ gap: 4 }}><span className="fact-l">DTF prints for this order</span>{di.map((i) => <div key={i.id} className="row wrap" style={{ gap: 10 }}>
               <span style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>{i.thumbnail_url ? <img src={i.thumbnail_url} alt="" loading="lazy" style={{ maxWidth: 32, maxHeight: 32 }} /> : <span className="dim" aria-hidden>–</span>}</span>
-              <b>{i.area}</b><span className="dim">{i.product_name ?? ''}</span><span className="num">{i.qty} garment{i.qty === 1 ? '' : 's'}</span><Status tone={LIGHT_TONE[STATUS_LIGHT[i.status]]}>{dtfStatusWords(i.status)}</Status><span className="dim">{fileWords(i)}</span></div>)}</div>}
+              <b>{i.area}</b><span className="dim">{i.product_name ?? ''}</span><span className="num">{i.qty} garment{i.qty === 1 ? '' : 's'}</span><Status tone={LIGHT_TONE[STATUS_LIGHT[i.status]]}>{dtfStatusWords(i.status)}</Status><span className="dim">{fileWords(i)}</span>{i.batch_ref && <span className="dim">On {i.batch_ref}</span>}{!hasFile(i) && <a href={href('artwork/' + o.order_ref.replace('#', ''))}>Add the file</a>}</div>)}</div>}
             <span className="dim">Read-only for now. <a href={href('preprod')}>See every order</a></span></div> : null; })()}
         {(() => { const ot = tagsFor(orderTagRows.rows, o.id), rd = decisionFor(ruleRows.rows, o.id); const showRule = !!rd && rd.outcome !== 'no_rule_matched';
           return ot.length > 0 || showRule ? <div className="callout soft stack" style={{ gap: 6 }} aria-label="Tags and rules"><b>Tags and rules</b>
