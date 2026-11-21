@@ -1,4 +1,4 @@
--- 21 Nov 2026: routing rules never move an order that has already been dispatched (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: routing rules never move an order that has already been dispatched (applied to the live project 21 Nov 2026 as "flow_rules_finished_orders").
 -- The first live run of the order facts reader (21 Nov 2026) showed 4 of the 5 orders a rule "would change" were already dispatched. A dispatched order is
 -- now left alone: it gets the existing 'protected' outcome (would be left alone and flagged) with a detail that says it has been dispatched. Still shadow
 -- mode only. No table definition changes. The function is patched in place from its current definition and fails loudly if the line it patches is not found.
