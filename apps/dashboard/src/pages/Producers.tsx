@@ -48,7 +48,7 @@ export function ProducersPage({ route }: { route: Route }) {
   const heldRows = useMemo(() => held.rows, [held.rows]);
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <div className="page-head"><div><h1>Producers</h1><p>Third-party decorators: who has what, what is due back, and how reliable they are.</p></div>
+      <div className="page-head"><div><h1>3PD Producers</h1><p>Third-party decorators: who has what, what is due back, and how reliable they are.</p></div>
         <div className="row wrap"><Button variant="primary" icon="plus" disabled={!canAct} title={canAct ? '' : 'Your role cannot create movements'} onClick={() => setDlg('movement')}>New movement</Button><Button icon="producers" disabled={!senior} title={senior ? '' : 'Only a manager or admin can add producers'} onClick={() => setDlg('producer')}>Add producer</Button><Segmented label="Producer section" value={mode} options={[{ id: 'producers', label: 'Producers' }, { id: 'movements', label: 'Movements' }, { id: 'held', label: 'Stock held' }, { id: 'discrepancies', label: `Discrepancies (${disc.rows.length})` }]} onChange={setMode} /></div></div>
       {mode === 'producers' && <Panel flush><DataTable<ProducerRow> rows={prod.rows} columns={pcols} rowKey={(p) => p.id} loading={prod.loading} error={prod.error} onRetry={() => void prod.refresh()} storageKey="producers" exportName="producers" searchText={(p) => [p.name, p.code, p.capable_methods.join(' ')].join(' ')}
         onRowClick={(p) => navigate('producers/' + p.id)} empty={emptyProducers} defaultSort={{ col: 'name', dir: 1 }} /></Panel>}

@@ -135,7 +135,7 @@ export function Home() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-        <Panel title="Third-party pulse" icon="producers" actions={<Button size="sm" onClick={go('producers')}>Open Producers</Button>}>
+        <Panel title="Third-party pulse" icon="producers" actions={<Button size="sm" onClick={go('producers')}>Open 3PD Producers</Button>}>
           {producers.loading ? <div className="stack">{sk(3)}</div> : producers.rows.length === 0 && moves.rows.length === 0 ? <EmptyState icon="producers" title="No producers set up yet">Add producers and their rate cards, then outbound movements will be tracked here.</EmptyState> :
             <div className="stack">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
