@@ -8,6 +8,7 @@ import { href, navigate, tableStateFromQuery, type Route } from '../router';
 import { shortDate } from '../lib/domain';
 import { EmbroideryDialog, EmbStatus } from '../components/EmbroideryDialog';
 import { BulkKnownDialog, DecoUpdateDialog } from '../components/EmbroideryDeco';
+import { TemplatesPanel } from '../components/SwatchEmail';
 import { bulkKnownCandidates, canChangeEmbroidery, decoAffected, decoCounts, decoWords, isStale, areasFor, embCounts, embLight, embScore, embWords, SCOPE_TABS, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow } from '../lib/embroidery';
 import { dateTime } from '../lib/format';
 
@@ -16,14 +17,14 @@ import { dateTime } from '../lib/format';
 export function EmbroideryPage({ route }: { route: Route }) {
   const areas = useView<EmbAreaRow>('ui_emb_areas'), designs = useView<EmbDesignRow>('ui_emb_designs'); const { role } = useCtx(); const dc = decoCounts(designs.rows, areas.rows);
   const undecided = areasFor(areas.rows, 'unclassified');
-  const tabs = [...SCOPE_TABS.filter((t) => t.id !== 'unclassified' || undecided.length > 0).map((t) => ({ id: t.id as string, label: t.label, count: areasFor(areas.rows, t.id).length })), { id: 'deco', label: 'Files to update in DecoNetwork', count: dc.toUpdate }];
+  const tabs = [...SCOPE_TABS.filter((t) => t.id !== 'unclassified' || undecided.length > 0).map((t) => ({ id: t.id as string, label: t.label, count: areasFor(areas.rows, t.id).length })), { id: 'deco', label: 'Files to update in DecoNetwork', count: dc.toUpdate }, { id: 'templates', label: 'Swatch email templates', count: 0 }];
   const want = route.path[1]; const tab = tabs.some((t) => t.id === want) ? (want as string) : 'in_house'; const c = embCounts(areas.rows);
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Embroidery</h1>
         <p>{c.total === 0 ? 'No embroidery on any active order.' : `${dc.toUpdate ? dc.toUpdate + ' file' + (dc.toUpdate === 1 ? '' : 's') + ' to update in DecoNetwork (' + dc.orders + ' order' + (dc.orders === 1 ? '' : 's') + ' carrying the old file) · ' : ''}${c.total} embroidery areas · ${c.todo} to do · ${c.busy} swatches under way · ${c.done} done${c.suggested ? ` · ${c.suggested} look like a logo we already hold` : ''}`}</p></div></div>
       <Tabs label="Embroidery sections" value={tab} tabs={tabs} onChange={(id) => navigate('embroidery/' + id)} />
-      {tab === 'deco' ? <DecoTab designs={designs.rows} areas={areas.rows} loading={designs.loading} error={designs.error} onRetry={() => void designs.refresh()} role={role} route={route} /> : <AreasTab key={tab} rows={areasFor(areas.rows, tab)} loading={areas.loading} error={areas.error} onRetry={() => void areas.refresh()} role={role} route={route} />}
+      {tab === 'templates' ? <TemplatesPanel role={role} /> : tab === 'deco' ? <DecoTab designs={designs.rows} areas={areas.rows} loading={designs.loading} error={designs.error} onRetry={() => void designs.refresh()} role={role} route={route} /> : <AreasTab key={tab} rows={areasFor(areas.rows, tab)} loading={areas.loading} error={areas.error} onRetry={() => void areas.refresh()} role={role} route={route} />}
     </div>
   );
 }
