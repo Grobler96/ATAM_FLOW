@@ -1,5 +1,5 @@
 -- 21 Nov 2026: embroidery, step 2a: the proof sheet. The Embroidery list now also carries the stored file's path, so staff can download the stitch file
--- from the same place they print its proof sheet (written and tested locally; NOT applied to the live project).
+-- from the same place they print its proof sheet (APPLIED to the live project on 21 Nov 2026).
 -- Only one column is added, at the end of public.ui_emb_areas. Staff already read the artwork files with their login (the same access the Artwork
 -- screen uses); the proof sheet itself is made in the browser, so nothing else in the database changes.
 
