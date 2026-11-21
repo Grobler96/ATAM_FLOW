@@ -34,6 +34,9 @@ end $$;
 select id as rule20 from flow.routing_rules where name = 'More than 20 decorations' \gset
 insert into r select 'edit', flow.rr_save_routing_rule(:'rule20', 10, 'More than 20 decorations', 'decorations_over', '{"n":20}', 'third_party', :'dps', true, 'tester', 'Send big orders to DPS');
 select pg_temp.assert((select (j->>'ok')::bool from r where k = 'edit'), 'rule edit accepted: ' || (select j::text from r where k = 'edit'));
+insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, order_status, stock_secured, deco_status, total_units, created_at, third_party_flag)
+ values ('RR7', '#RR7', 'Gone', now() - interval '3 days', 'dispatched', true, 9, 30, now() - interval '9 days', false);
+select id as o7 from flow.orders where deco_order_id = 'RR7' \gset
 
 -- facts: 7 garments x 3 decorations = 21 is over 20; exactly 20 is not ----------------------------------------------------------
 insert into r select 'ingest', flow.order_facts_ingest(jsonb_build_array(
@@ -60,6 +63,10 @@ select pg_temp.assert((select outcome = 'manual_wins' from flow.routing_decision
 select pg_temp.assert((select scope = 'in_house' and source = 'override' from public.ui_order_scope where order_ref = '#RR4'), 'RR4: manual scope still in force');
 -- work already started: left alone, flagged
 select pg_temp.assert((select outcome = 'protected' from flow.routing_decisions where order_id = :'o5'), 'RR5: an order with work started is protected');
+-- a dispatched order is never moved, even with far more than 20 decorations
+insert into r select 'rr7', flow.order_facts_ingest('[{"order_id":"RR7","decoration_count":60}]'::jsonb, 'test');
+select pg_temp.assert((select outcome = 'protected' and rule_scope = 'third_party' and detail like '%already been dispatched%' from flow.routing_decisions where order_id = :'o7'), 'RR7: a dispatched order is left alone, with the reason');
+select pg_temp.assert((select scope = 'unclassified' from public.ui_order_scope where order_ref = '#RR7'), 'RR7: its real scope is untouched');
 -- no facts, no decision
 select pg_temp.assert(not exists (select 1 from flow.routing_decisions where order_id = :'o6'), 'RR6: no facts means no decision');
 select pg_temp.assert((flow.rules_evaluate_order(:'o6')->>'skipped') = 'no facts yet', 'RR6: evaluating without facts is skipped');

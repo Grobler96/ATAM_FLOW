@@ -12,7 +12,7 @@ Both are rows in tables, so a new tag or rule is data, not code. They are added 
 ## Shadow mode: what it does and does not do
 It **only records** what would happen, in `flow.routing_decisions` (`public.ui_routing_decisions`). It does not change an order's scope, producer, status or any purchase order. `flow.order_scope()` is untouched. The mode setting only allows `shadow`; there is no live mode yet.
 
-Per order the outcome is one of: `no_rule_matched`, `would_change`, `already_matches` (e.g. already third party by the Priority flag), `manual_wins` (a manual scope always wins), or `protected` (work has started, using the existing `flow.oc_is_protected`; it would be left alone and flagged).
+Per order the outcome is one of: `no_rule_matched`, `would_change`, `already_matches` (e.g. already third party by the Priority flag), `manual_wins` (a manual scope always wins), or `protected` (work has started, using the existing `flow.oc_is_protected`, or the order is already dispatched; it would be left alone and flagged, and the detail says which).
 Precedence recorded: manual scope, then a matching rule, then DecoNetwork's Priority flag as the fallback. An order with no facts yet gets no tags and no decision.
 
 ## What counts
@@ -34,3 +34,6 @@ A decoration is counted as one **process on one placement on one garment line**,
 
 ## Tests
 `supabase/tests/order_rules_test.sql` (run by `scripts/test-db.sh`): seeds, boundary at 20, manual scope wins, protected orders, no facts means no decision, distinct-name counting, idempotent re-reads, adding tags and rules (with reason and bad settings refused), first match by position, rule switched off, no order column changed, closed-to-browser permissions. `permissions_test.sql` also passes with the new tables and functions.
+
+## First live run (21 Nov 2026, reader run by hand)
+256 orders saved (401 of the 657 DecoNetwork orders are not in Flow). 92 tagged Requires person packing (most names on one order: 27). Routing, shadow only: 241 no rule, 9 already third party and agreeing, 5 would change to third party (DPS), 1 protected. Four of the five "would change" orders were already dispatched, so **migration 70** (`supabase/pending/20261121000070_flow_rules_finished_orders.sql`, **written and tested locally, not applied**) makes a dispatched order `protected` with a detail saying so. A separate `finished` outcome would need a change to the table's outcome list; not done.
