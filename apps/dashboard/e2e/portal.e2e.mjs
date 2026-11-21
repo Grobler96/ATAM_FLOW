@@ -150,7 +150,7 @@ try {
     await page.getByText('Marked as in production.').waitFor(); ok(st.calls.some((c) => c.fn === 'portal_dtf_start' && c.body.p_item_ids.join() === 'd1'), 'only the ticked order is marked in production');
     await page.getByLabel('Select #7002').check(); await page.getByRole('button', { name: /Download files/ }).click(); await page.getByText(/1 placement has no file ready yet/).waitFor(); ok(true, 'a placement with no file is skipped and explained');
     await page.getByRole('button', { name: 'Not yet' }).click();
-    await page.getByRole('button', { name: 'Mark produced' }).first().click(); await page.getByText(/as produced/).first().waitFor(); ok(st.calls.some((c) => c.fn === 'portal_dtf_done' && c.body.p_item_ids.length === 1), 'one placement can be marked produced');
+    await page.getByRole('button', { name: 'Mark produced' }).first().click(); await page.getByText(/^Marked .* as produced\.$/).waitFor(); ok(st.calls.some((c) => c.fn === 'portal_dtf_done' && c.body.p_item_ids.length === 1), 'one placement can be marked produced');
     st.dtfRefused = true; await page.getByRole('button', { name: 'Mark produced' }).first().click(); await page.getByText(/Nothing was changed/).waitFor(); ok(true, 'a refused change is shown in plain words'); st.dtfRefused = false;
     ok(!(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2)), 'no sideways scrolling on a phone');
     await ctx.close(); }
