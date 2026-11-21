@@ -4,11 +4,13 @@ import { useCtx } from '../data/context';
 import { BuildDtfDialog, ReceiveDtfDialog } from '../components/DtfDialogs';
 import { batchTone, batchWords, canBuildRole, canReceiveRole, type DtfBatchRow } from '../lib/dtfOrders';
 import { DataTable, type BulkAction, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
-import { useView } from '../data/store';
+import { refreshAll, useView } from '../data/store';
+import { useToast } from '../ui/overlay';
+import { exceptionActionTo } from '../lib/api';
 import { href, navigate, tableStateFromQuery, type Route } from '../router';
 import { shortDate } from '../lib/domain';
 import { LightPill } from '../components/PreproLights';
-import { artworkTotals, dtfStatusWords, fileWords, isReady, lightScore, lightsText, ordersWithDtf, preprodCounts, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type DtfOrderRow, type PreprodRow } from '../lib/preproduction';
+import { canCheckEmbroidery, isEmbroideryChecked, artworkTotals, dtfStatusWords, fileWords, isReady, lightScore, lightsText, ordersWithDtf, preprodCounts, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type DtfOrderRow, type PreprodRow } from '../lib/preproduction';
 import { scopeLabel } from '../lib/orderRules';
 
 // Pre-production: the three things that happen at the same time before an order can go into production (the DTF prints, the embroidery check and the
@@ -29,6 +31,14 @@ export function PreproductionPage({ route }: { route: Route }) {
 }
 
 function OrdersTab({ prep, route }: { prep: ReturnType<typeof useView<PreprodRow>>; route: Route }) {
+  const { role } = useCtx(); const toast = useToast(); const canCheck = role === 'admin' || role === 'manager' || role === 'production';
+  // Mark embroidery checked on every ticked order that uses embroidery and is not checked yet (one at a time; each is audited).
+  async function checkMany(rows: PreprodRow[]) {
+    const todo = rows.filter((r) => canCheckEmbroidery(r, role) && !isEmbroideryChecked(r)); let done = 0, failed = 0;
+    for (const r of todo) { const a = await exceptionActionTo('dtf', 'embroidery_check', { order_id: r.order_id, checked: true }); if (a.ok === false) failed++; else done++; }
+    toast.push({ tone: failed ? 'bad' : 'good', title: `${done} order${done === 1 ? '' : 's'} marked embroidery checked`, body: failed ? `${failed} could not be saved. Try those again.` : todo.length < rows.length ? `${rows.length - todo.length} were skipped (no embroidery, or already checked).` : 'Nothing was sent.' }); void refreshAll();
+  }
+  const bulk: BulkAction<PreprodRow>[] = [{ id: 'emb', label: 'Mark embroidery checked', icon: 'check', run: canCheck ? (rows) => void checkMany(rows) : undefined, disabledReason: canCheck ? undefined : 'Managers, admins and production planners only' }];
   const views: ViewDef<PreprodRow>[] = [
     { id: 'notready', label: 'Not ready', test: (r) => !isReady(r) }, { id: 'ready', label: 'Ready for production', test: isReady }, { id: 'prints', label: 'Prints needed', test: (r) => r.prints === 'red' || r.prints === 'amber' },
     { id: 'emb', label: 'Embroidery to check', test: (r) => r.embroidery === 'red' || r.embroidery === 'amber' }, { id: 'stock', label: 'Stock to buy', test: (r) => r.stock === 'red' || r.stock === 'amber' }, { id: 'all', label: 'All', test: () => true }
@@ -48,7 +58,7 @@ function OrdersTab({ prep, route }: { prep: ReturnType<typeof useView<PreprodRow
     <>
       <div className="callout soft">Before an order can go into production three things happen at the same time, and none waits for another: the <b>DTF prints</b> are made or ordered, the <b>embroidery</b> is checked, and the <b>stock</b> is bought. Each has a light: <b>✕ red</b> not started, <b>! amber</b> under way, <b>✓ green</b> done, <b>–</b> not needed for this order. This page only shows where every order stands. It changes nothing.</div>
       <Panel flush>
-        <DataTable<PreprodRow> rows={prep.rows} columns={cols} rowKey={(r) => r.order_id} loading={prep.loading} error={prep.error} onRetry={() => void prep.refresh()} views={views} filters={filters} storageKey="preprod" exportName="pre-production" defaultTab="notready"
+        <DataTable<PreprodRow> rows={prep.rows} columns={cols} rowKey={(r) => r.order_id} loading={prep.loading} error={prep.error} onRetry={() => void prep.refresh()} views={views} filters={filters} bulk={bulk} storageKey="preprod" exportName="pre-production" defaultTab="notready"
           searchText={(r) => [r.order_ref, r.customer_name, lightsText(r)].join(' ')} searchPlaceholder="Search order or customer…" onRowClick={(r) => navigate(orderPath(r.order_ref))} defaultSort={{ col: 'ready', dir: -1 }} initial={tableStateFromQuery(route)}
           empty={<EmptyState icon="check" title="Nothing here">No order matches this view.</EmptyState>} />
       </Panel>
