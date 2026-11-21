@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { EmptyState, Panel, Tabs } from '../ui/primitives';
-import { DataTable, type Column, type ViewDef } from '../ui/DataTable';
+import { DataTable, type BulkAction, type Column, type ViewDef } from '../ui/DataTable';
+import { printProofSheets } from '../lib/proofSheet';
 import { useView } from '../data/store';
 import { useCtx } from '../data/context';
 import { href, navigate, tableStateFromQuery, type Route } from '../router';
@@ -26,7 +27,10 @@ export function EmbroideryPage({ route }: { route: Route }) {
 }
 
 function AreasTab({ rows, loading, error, onRetry, role, route }: { rows: EmbAreaRow[]; loading: boolean; error: string | null; onRetry: () => void; role: string | null | undefined; route: Route }) {
-  const [open, setOpen] = useState<string | null>(null); const current = rows.find((r) => r.artwork_id === open) ?? null;
+  const [open, setOpen] = useState<string | null>(null); const [blocked, setBlocked] = useState(false);
+  // Anyone can print proof sheets; one page for each ticked area.
+  const bulk: BulkAction<EmbAreaRow>[] = [{ id: 'proof', label: 'Print proof sheets', icon: 'labels', run: (picked) => setBlocked(!printProofSheets(picked)) }];
+  const current = rows.find((r) => r.artwork_id === open) ?? null;
   const views: ViewDef<EmbAreaRow>[] = [
     { id: 'todo', label: 'To do', test: (r) => embLight(r.area_status) === 'red' }, { id: 'busy', label: 'Swatch under way', test: (r) => embLight(r.area_status) === 'amber' },
     { id: 'done', label: 'Done', test: (r) => embLight(r.area_status) === 'green' }, { id: 'all', label: 'All', test: () => true }
@@ -44,8 +48,9 @@ function AreasTab({ rows, loading, error, onRetry, role, route }: { rows: EmbAre
   return (
     <>
       <div className="callout soft">A <b>new logo</b> needs a physical swatch, sent to the customer to sign off. A logo we have <b>done before</b> does not. Open an area to say which it is: <b>✕ red</b> not started, <b>! amber</b> swatch under way, <b>✓ green</b> done. Flow suggests a match when the same customer has the same artwork or stitch count and size, but a person always confirms. Orders before September 2026 are not in Flow, so those logos look new until marked as done before.</div>
+      {blocked && <div className="callout" role="alert">The proof sheets could not open. Allow pop-ups for this site and try again.</div>}
       <Panel flush>
-        <DataTable<EmbAreaRow> rows={rows} columns={cols} rowKey={(r) => r.artwork_id} loading={loading} error={error} onRetry={onRetry} views={views} storageKey="embroidery" exportName="embroidery" defaultTab="todo"
+        <DataTable<EmbAreaRow> rows={rows} columns={cols} rowKey={(r) => r.artwork_id} loading={loading} error={error} onRetry={onRetry} views={views} bulk={bulk} storageKey="embroidery" exportName="embroidery" defaultTab="todo"
           searchText={(r) => [r.order_ref, r.customer_name, r.area, r.design_name, embWords(r.area_status)].join(' ')} searchPlaceholder="Search order, customer or logo…" onRowClick={(r) => setOpen(r.artwork_id)} defaultSort={{ col: 'status', dir: -1 }} initial={tableStateFromQuery(route)}
           empty={<EmptyState icon="check" title="Nothing here">No embroidery matches this view.</EmptyState>} />
       </Panel>

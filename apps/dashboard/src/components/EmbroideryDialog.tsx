@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Modal, useToast } from '../ui/overlay';
 import { Button, Field, Status } from '../ui/primitives';
 import { refreshAll, useView } from '../data/store';
+import { href } from '../router';
 import { exceptionActionTo } from '../lib/api';
-import { canChangeEmbroidery, designsFor, embLight, embMoves, embWords, EMB_MARK, EMB_TONE, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from '../lib/embroidery';
+import { canChangeEmbroidery, hasStitchFile, designsFor, embLight, embMoves, embWords, EMB_MARK, EMB_TONE, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from '../lib/embroidery';
 import { dateTime as fmtDateTime } from '../lib/format';
+import { downloadFile, fileNameOf } from '../lib/artworkFiles';
+import { printProofSheets } from '../lib/proofSheet';
 
 // One embroidery area on one order. A logo we have not seen is a NEW design (swatch required); one we have done before is linked to its design. Every
 // change is one audited database call through the action workflow; nothing is sent to the customer from here yet.
@@ -35,6 +38,11 @@ export function EmbroideryDialog({ row, role, onClose }: { row: EmbAreaRow; role
         <div className="row wrap" style={{ gap: 12 }}>
           {row.thumbnail_url ? <img src={row.thumbnail_url} alt="" style={{ maxWidth: 120, maxHeight: 120, background: '#eee', borderRadius: 4 }} /> : <span className="dim">No picture</span>}
           <div className="stack" style={{ gap: 2 }}><b>{row.customer_name ?? 'Customer'}</b><span className="dim">{sizeText(row)}{row.file_format ? ` · ${row.file_format.toUpperCase()}` : ''}</span><span className="dim">{row.scope === 'third_party' ? 'Third-party order' : row.scope === 'in_house' ? 'In-house order' : 'Not decided where it is made'}</span></div>
+        </div>
+        <div className="row wrap" data-testid="emb-files">
+          <Button onClick={() => { if (!printProofSheets([row])) setErr('The proof sheet could not open. Allow pop-ups for this site and try again.'); }}>Print proof sheet</Button>
+          {hasStitchFile(row) ? <Button onClick={async () => { setErr(null); if (!(await downloadFile(row.storage_path as string, fileNameOf(row.storage_path as string)))) setErr('Could not get the stitch file. Try again, or ask for it to be re-uploaded on the Artwork screen.'); }}>Download stitch file</Button>
+            : <span className="dim">No stitch file is stored in Flow yet. <a href={href('artwork/' + row.order_ref.replace('#', ''))}>Add it on the Artwork screen</a>.</span>}
         </div>
         {!row.customer_id && <Err m="This order has no customer number, so a design cannot be kept for the customer." />}
         {!linked ? <div className="stack">
