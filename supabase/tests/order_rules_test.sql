@@ -67,6 +67,15 @@ select pg_temp.assert((select outcome = 'protected' from flow.routing_decisions 
 insert into r select 'rr7', flow.order_facts_ingest('[{"order_id":"RR7","decoration_count":60}]'::jsonb, 'test');
 select pg_temp.assert((select outcome = 'protected' and rule_scope = 'third_party' and detail like '%already been dispatched%' from flow.routing_decisions where order_id = :'o7'), 'RR7: a dispatched order is left alone, with the reason');
 select pg_temp.assert((select scope = 'unclassified' from public.ui_order_scope where order_ref = '#RR7'), 'RR7: its real scope is untouched');
+-- an inactive order is re-checked too when a rule changes (a dispatched order is inactive in real data)
+insert into flow.orders (deco_order_id, order_ref, customer_name, due_date, order_status, stock_secured, deco_status, total_units, created_at, third_party_flag, is_active)
+ values ('RR8', '#RR8', 'Inactive', now() + interval '9 days', 'awaiting_stock', false, 1, 30, now() - interval '9 days', false, false);
+select id as o8 from flow.orders where deco_order_id = 'RR8' \gset
+insert into r select 'rr8', flow.order_facts_ingest('[{"order_id":"RR8","decoration_count":60}]'::jsonb, 'test');
+select pg_temp.assert((select outcome = 'would_change' from flow.routing_decisions where order_id = :'o8'), 'RR8: starts as would change');
+update flow.orders set order_status = 'dispatched' where id = :'o8';
+insert into r select 'all', flow.rules_evaluate_all('test');
+select pg_temp.assert((select outcome = 'protected' from flow.routing_decisions where order_id = :'o8'), 'RR8: an inactive order is refreshed by a re-check of everything');
 -- no facts, no decision
 select pg_temp.assert(not exists (select 1 from flow.routing_decisions where order_id = :'o6'), 'RR6: no facts means no decision');
 select pg_temp.assert((flow.rules_evaluate_order(:'o6')->>'skipped') = 'no facts yet', 'RR6: evaluating without facts is skipped');

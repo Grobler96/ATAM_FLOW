@@ -15,6 +15,7 @@ import { gbp, deadlineText, dateTime } from '../lib/format';
 import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockStatus, TP_STATUS_LABEL, PRIORITY } from '../lib/domain';
 import { DueCell, StatusCell, OrderLink, Num } from '../components/common';
 import { OrderDecorator } from '../components/OrderDecorator';
+import { decisionFor, outcomeLabel, outcomeTone, scopeLabel, tagText, tagsFor, type DecisionRow, type TagRow } from '../lib/orderRules';
 import { SelectionCompare } from '../components/SelectionCompare';
 import type { ExceptionRow } from '../types';
 import type { AllocationDecision, ArtworkStatusRow, ArtworkVersionRow, BinRow, CustodyRow, JobPackRow, MovementRow, OrderLineRow, OrderRow, PoRow, QueueRow, SelectionRow, TpOrderRow } from '../data/types';
@@ -38,7 +39,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tpo = useView<TpOrderRow>('ui_tp_orders'), moves = useView<MovementRow>('ui_tp_movements'), pos = useView<PoRow>('ui_purchase_orders'), sel = useView<SelectionRow>('ui_selection');
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
-  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const [assign, setAssign] = useState<QueueRow | null>(null);
+  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const [assign, setAssign] = useState<QueueRow | null>(null);
   const { canAct } = useCtx(); const toast = useToast();
   const [sendDlg, setSendDlg] = useState(false); const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
@@ -78,6 +79,12 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
         <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
         <OrderDecorator orderId={o.id} />
+        {(() => { const ot = tagsFor(orderTagRows.rows, o.id), rd = decisionFor(ruleRows.rows, o.id); const showRule = !!rd && rd.outcome !== 'no_rule_matched';
+          return ot.length > 0 || showRule ? <div className="callout soft stack" style={{ gap: 6 }} aria-label="Tags and rules"><b>Tags and rules</b>
+            {ot.length > 0 && <div className="row wrap" style={{ gap: 6 }}>{ot.map((t) => <Status key={t.tag_code} tone="info">{tagText(t)}</Status>)}</div>}
+            {showRule && rd && <div className="row wrap" style={{ gap: 8 }}><Status tone={outcomeTone(rd.outcome)}>{outcomeLabel(rd.outcome)}</Status><span>{rd.rule_name}: {scopeLabel(rd.would_scope)}{rd.would_producer_name ? ` · ${rd.would_producer_name}` : ''}</span></div>}
+            {showRule && rd?.detail && <span className="dim">{rd.detail}</span>}
+            <span className="dim">Shadow mode: this only shows what would happen. <a href={href('rules')}>See all order rules</a></span></div> : null; })()}
         {penCase && <div className="callout" role="status"><b>In the holding pen.</b> This order is left out of planning and cannot be dispatched or completed until it is put right: {sortedDefects(penCase).map((x) => defectLabel(x.code)).join(', ')}. <a href={href('pen/' + penCase.case_key)}>See why and how to fix it</a></div>}
         {d.acc && <div className="callout soft"><b>Owner · location · next action</b><div className="row wrap" style={{ gap: 18 }}><span><span className="fact-l">Owner</span><br />{d.acc.owner}</span><span><span className="fact-l">Where it is</span><br />{d.acc.location ?? <span className="warn">Unknown</span>}</span><span><span className="fact-l">Next action</span><br />{d.acc.next_action ?? <span className="warn">Unknown: needs a decision</span>}</span></div></div>}
         <Panel title="Why the system says this" icon="info">
