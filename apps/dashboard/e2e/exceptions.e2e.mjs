@@ -642,6 +642,13 @@ try {
         await rd.getByRole('checkbox').first().uncheck(); ok(await rd.getByRole('button', { name: 'Mark 1 as received' }).isEnabled(), 'prints can be booked in part'); await rd.getByRole('checkbox').first().check();
         await rd.getByRole('button', { name: 'Mark 2 as received' }).click(); await pb.getByText('DTF-2026-00001 fully received').waitFor();
         const recvd = sb.n8n.filter((c) => c.path === 'dtf' && c.body?.action === 'receive').pop(); ok(!!recvd && recvd.body.params.batch_id === 'b-1' && recvd.body.params.item_ids.length === 2, 'the prints that arrived are sent with their DTF order'); await cb.close(); }
+      { const { page: pq, ctx: cq, st: sq } = await newPage(browser, { role: 'manager', views: prepViews }); await signIn(pq); await goto(pq, '#/preprod'); await pq.waitForSelector('.dt-row');
+        await pq.getByRole('tab', { name: /All/ }).click().catch(() => {}); await pq.locator('.dt-row', { hasText: '#700103' }).getByLabel('Select row').check();
+        await pq.getByRole('toolbar', { name: 'Bulk actions' }).getByRole('button', { name: 'Mark embroidery checked' }).click(); await pq.getByText('1 order marked embroidery checked').waitFor();
+        const chk = sq.n8n.filter((c) => c.path === 'dtf' && c.body?.action === 'embroidery_check').pop(); ok(!!chk && chk.body.params.order_id === 'o-3' && chk.body.params.checked === true, 'a planner can mark embroidery checked for ticked orders, and only the order and the check are sent'); await cq.close(); }
+      { const { page: pn, ctx: cn } = await newPage(browser, { role: 'viewer', views: prepViews }); await signIn(pn); await goto(pn, '#/preprod'); await pn.waitForSelector('.dt-row');
+        await pn.getByRole('tab', { name: /All/ }).click().catch(() => {}); await pn.locator('.dt-row', { hasText: '#700103' }).getByLabel('Select row').check();
+        ok(!(await pn.getByRole('toolbar', { name: 'Bulk actions' }).getByRole('button', { name: 'Mark embroidery checked' }).isEnabled()), 'a view-only login cannot mark embroidery checked'); await cn.close(); }
       { const { page: pw, ctx: cw } = await newPage(browser, { role: 'warehouse', views: buildViews }); await signIn(pw); await goto(pw, '#/preprod/dtf'); await pw.getByText('DTF orders to Super Print').waitFor(); await pw.waitForSelector('.dt-row');
         await pw.locator('.dt-row', { hasText: '#700101' }).getByLabel('Select row').check();
         ok(!(await pw.getByRole('toolbar', { name: 'Bulk actions' }).getByRole('button', { name: 'Build DTF order' }).isEnabled()) && (await pw.getByRole('button', { name: 'DTF received…' }).isEnabled()), 'a warehouse login cannot build a DTF order but can book prints in'); await cw.close(); }

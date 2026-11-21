@@ -15,7 +15,7 @@ import { gbp, deadlineText, dateTime } from '../lib/format';
 import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockStatus, TP_STATUS_LABEL, PRIORITY } from '../lib/domain';
 import { DueCell, StatusCell, OrderLink, Num } from '../components/common';
 import { OrderDecorator } from '../components/OrderDecorator';
-import { LightPill } from '../components/PreproLights';
+import { EmbroideryCheck, LightPill } from '../components/PreproLights';
 import { dtfStatusWords, fileWords, hasFile, itemsFor, lightDetail, preprodFor, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type PreprodRow } from '../lib/preproduction';
 import { decisionFor, outcomeLabel, outcomeTone, scopeLabel, tagText, tagsFor, type DecisionRow, type TagRow } from '../lib/orderRules';
 import { SelectionCompare } from '../components/SelectionCompare';
@@ -42,7 +42,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
   const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const prepRows = useView<PreprodRow>('ui_preproduction'), dtfRows = useView<DtfItemRow>('ui_dtf_items'); const [assign, setAssign] = useState<QueueRow | null>(null);
-  const { canAct } = useCtx(); const toast = useToast();
+  const { canAct, role } = useCtx(); const toast = useToast();
   const [sendDlg, setSendDlg] = useState(false); const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
   const d = useMemo(() => {
@@ -85,6 +85,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
           return pp ? <div className="callout soft stack" style={{ gap: 8 }} aria-label="Pre-production"><b>Pre-production</b>
             <div className="row wrap" style={{ gap: 6 }}><LightPill kind="prints" light={pp.prints} /><LightPill kind="embroidery" light={pp.embroidery} /><LightPill kind="stock" light={pp.stock} /></div>
             {(['prints', 'embroidery', 'stock'] as const).filter((k) => pp[k] !== 'none').map((k) => <span key={k} className="dim">{lightDetail(k, pp)}</span>)}
+            <div className="row wrap"><EmbroideryCheck row={pp} role={role} /></div>
             {di.length > 0 && <div className="stack" style={{ gap: 4 }}><span className="fact-l">DTF prints for this order</span>{di.map((i) => <div key={i.id} className="row wrap" style={{ gap: 10 }}>
               <span style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>{i.thumbnail_url ? <img src={i.thumbnail_url} alt="" loading="lazy" style={{ maxWidth: 32, maxHeight: 32 }} /> : <span className="dim" aria-hidden>–</span>}</span>
               <b>{i.area}</b><span className="dim">{i.product_name ?? ''}</span><span className="num">{i.qty} garment{i.qty === 1 ? '' : 's'}</span><Status tone={LIGHT_TONE[STATUS_LIGHT[i.status]]}>{dtfStatusWords(i.status)}</Status><span className="dim">{fileWords(i)}</span>{i.batch_ref && <span className="dim">On {i.batch_ref}</span>}{!hasFile(i) && <a href={href('artwork/' + o.order_ref.replace('#', ''))}>Add the file</a>}</div>)}</div>}

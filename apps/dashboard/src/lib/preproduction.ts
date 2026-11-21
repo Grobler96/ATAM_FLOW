@@ -7,7 +7,7 @@ export type Light = 'red' | 'amber' | 'green' | 'none';
 export type LightKind = 'prints' | 'embroidery' | 'stock';
 export interface PreprodRow {
   order_id: string; order_ref: string; customer_name: string | null; due_date: string | null; order_status: string; scope: string; total_units: number; decoration_methods: string[];
-  prints: Light; prints_items: number; prints_units: number; prints_done: number; embroidery: Light; embroidery_areas: number; embroidery_approved: number; embroidery_stored: number; stock: Light
+  prints: Light; prints_items: number; prints_units: number; prints_done: number; embroidery: Light; embroidery_areas: number; embroidery_approved: number; embroidery_stored: number; stock: Light; embroidery_checked_by?: string | null; embroidery_checked_at?: string | null
 }
 export type DtfStatus = 'required' | 'in_progress' | 'done';
 export interface DtfItemRow {
@@ -37,12 +37,17 @@ export function lightDetail(kind: LightKind, r: PreprodRow): string {
   }
   if (kind === 'embroidery') {
     if (r.embroidery === 'none') return 'This order has no embroidery.';
-    if (r.embroidery_areas === 0) return 'No embroidery artwork is recorded for this order yet.';
-    return `${r.embroidery_approved} of ${r.embroidery_areas} embroidery area${r.embroidery_areas === 1 ? '' : 's'} approved · ${r.embroidery_stored} stored and readable.`;
+    const files = r.embroidery_areas === 0 ? 'No embroidery artwork is recorded for this order yet.' : `${r.embroidery_approved} of ${r.embroidery_areas} embroidery area${r.embroidery_areas === 1 ? '' : 's'} approved · ${r.embroidery_stored} stored and readable.`;
+    return isEmbroideryChecked(r) ? `${embroideryCheckedWords(r)} ${files}` : files;
   }
-  return r.stock === 'green' ? 'All the stock for this order is secured.' : r.stock === 'amber' ? 'Some of the stock is allocated; the rest still has to be bought or arrive.' : 'The stock for this order is not secured yet.';
+  return r.stock === 'green' ? 'All the stock for this order is secured or fully allocated.' : r.stock === 'amber' ? 'Some of the stock is allocated; the rest still has to be bought or arrive.' : 'The stock for this order is not secured yet.';
 }
 
+// A person can say "embroidery checked" for an order. The light is green when they have, or when every area is approved and stored.
+export const isEmbroideryChecked = (r: Pick<PreprodRow, 'embroidery_checked_at'>): boolean => !!r.embroidery_checked_at;
+export const embroideryCheckedWords = (r: Pick<PreprodRow, 'embroidery_checked_at'>): string => (r.embroidery_checked_at ? `Checked by a person on ${new Date(r.embroidery_checked_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}.` : '');
+// Only an order that uses embroidery can be checked, and only the roles that plan production may do it.
+export const canCheckEmbroidery = (r: Pick<PreprodRow, 'embroidery'>, role: string | null | undefined): boolean => r.embroidery !== 'none' && (role === 'admin' || role === 'manager' || role === 'production');
 export const lights = (r: PreprodRow): Light[] => [r.prints, r.embroidery, r.stock];
 // Ready for production when nothing that applies is still red or amber.
 export const isReady = (r: PreprodRow): boolean => lights(r).every((l) => l === 'green' || l === 'none');
