@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Panel, Facts, Skeleton } from '../ui/primitives';
+import { Button, Panel, Facts, Skeleton } from '../ui/primitives';
+import { navigate } from '../router';
 import { useView } from '../data/store';
 import { useCtx } from '../data/context';
 import { dateTime } from '../lib/format';
@@ -35,6 +36,7 @@ export function SettingsPage() {
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Settings</h1><p>Every weight, threshold, deadline and assumption the engines use. They are read-only here; they are changed in the database for now, and each is explained so nothing is a black box.</p></div></div>
       <Panel title="Your account" icon="user"><Facts items={[['Signed in as', email], ['Role', role ?? 'none'], ['What your role can do', role === 'admin' || role === 'manager' ? 'Everything, including write-offs, overrides and supplier choices' : role === 'viewer' ? 'View only' : 'Work exceptions, run workflows for your area, create POs']]} /></Panel>
+      <Panel title="3PD Producers" icon="producers" actions={<Button size="sm" variant="primary" onClick={() => navigate('producers')}>Open 3PD Producers</Button>}><p className="dim" style={{ margin: 0 }}>The third-party decorators we send work to: who they are, what they can do, their rates and contacts, plus what each has, what is due back and how reliable they are.</p></Panel>
       <PurchasingRulesPanel rows={s.rows} loading={s.loading} />
       <Panel title="Engine and automation settings" icon="settings" count={s.rows.length} flush>
         {s.loading ? <div style={{ padding: 16 }}><Skeleton h={90} /></div> : s.rows.map((r) => (

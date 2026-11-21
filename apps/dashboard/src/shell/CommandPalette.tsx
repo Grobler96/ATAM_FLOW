@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 interface Hit { kind: string; id: string; label: string; sub: string; route: string }
 type Item = { key: string; group: string; icon: string; label: ReactNode; hint?: string; run: () => void; disabled?: boolean };
 const KIND_ICON: Record<string, string> = { order: 'orders', stock: 'stock', po: 'purchasing', producer: 'producers', bin: 'warehouse', movement: 'truck', exception: 'exceptions', label: 'labels' };
-const KIND_LABEL: Record<string, string> = { order: 'Orders', stock: 'Stock', po: 'Purchase orders', producer: 'Producers', bin: 'Bins', movement: 'Producer movements', exception: 'Exceptions', label: 'Labels' };
+const KIND_LABEL: Record<string, string> = { order: 'Orders', stock: 'Stock', po: 'Purchase orders', producer: '3PD Producers', bin: 'Bins', movement: 'Producer movements', exception: 'Exceptions', label: 'Labels' };
 
 export function CommandPalette({ onClose, onRun, canRun, onCreatePo }: { onClose: () => void; onRun: (d: WorkflowDef) => void; canRun: (d: WorkflowDef) => boolean; onCreatePo: () => void }) {
   const [q, setQ] = useState(''); const [hits, setHits] = useState<Hit[]>([]); const [busy, setBusy] = useState(false); const [idx, setIdx] = useState(0);

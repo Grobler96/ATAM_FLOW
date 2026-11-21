@@ -40,7 +40,7 @@ export function CreateMovementDialog({ onClose, presetOrders, presetProducer }: 
       <div className="stack">
         <Field label="Type"><select className="select" value={type} onChange={(e) => setType(e.target.value)}><option value="outbound_to_producer">Send blanks to a producer (they come back to us)</option><option value="direct_dispatch_to_customer">Producer ships straight to the customer</option></select></Field>
         <Field label="Producer"><select className="select" value={producer} onChange={(e) => setProducer(e.target.value)}><option value="">Choose a producer…</option>{prods.rows.filter((p) => p.is_active && (type === 'outbound_to_producer' || p.can_direct_dispatch)).map((p) => { const sus = risks.rows.find((x) => x.producer_id === p.id)?.is_suspended; return <option key={p.id} value={p.id} disabled={!!sus}>{p.name} · {p.turnaround_days} day turnaround{sus ? ' (suspended)' : ''}</option>; })}</select></Field>
-        {prods.rows.length === 0 && !prods.loading && <div className="callout" role="status">No producers exist yet. Add one on the Producers page first.</div>}
+        {prods.rows.length === 0 && !prods.loading && <div className="callout" role="status">No producers exist yet. Add one on the 3PD Producers page first.</div>}
         <Field label={`Lines to send (${total} unit(s) chosen)`}>
           <input className="input" placeholder="Filter by order, customer, SKU…" value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="panel" style={{ maxHeight: 260, overflow: 'auto', padding: 6, marginTop: 6 }}>

@@ -24,7 +24,7 @@ Some jobs are posted by the decorator straight to the customer, so the goods nev
 - Tests: `supabase/tests/portal_direct_test.sql`, `e2e/portal.e2e.mjs`.
 
 ## Our side
-- **Producers page, drawer, "Portal sign-in":** invite a person by email (manager/admin), switch them off or on with a reason (locks them out at once).
+- **3PD Producers page, drawer, "Portal sign-in":** invite a person by email (manager/admin), switch them off or on with a reason (locks them out at once).
 - **Consignment drawer, "From the decorator":** counts and conditions, photos, message thread with a reply box, and "Mark the problem as dealt with".
 - Writes go through the unpublished Operations actions workflow (`portal_add_user`, `portal_set_user`, `portal_reply`, `portal_resolve`).
 
@@ -45,7 +45,7 @@ Some jobs are posted by the decorator straight to the customer, so the goods nev
 ## One-off setup in Supabase (needs your project settings, not done by me)
 1. **Authentication, URL configuration:** add the portal address to the allowed redirect URLs, or the emailed link will not bring people back to it.
 2. **Authentication, email:** the default sender is rate limited and branded Supabase. Before real use, set up your own email sender (for example Resend) and a clear subject and wording.
-3. **Invite-only** (done in the code): the portal never creates accounts. Inviting someone (Producers page) creates their sign-in account through the Operations actions workflow, so the emailed link is sent only to people you have invited, and an uninvited address sees the same message as an invited one. For belt and braces, also switch off **Allow new users to sign up** under Authentication in Supabase (it does not affect your team's logins).
+3. **Invite-only** (done in the code): the portal never creates accounts. Inviting someone (3PD Producers page) creates their sign-in account through the Operations actions workflow, so the emailed link is sent only to people you have invited, and an uninvited address sees the same message as an invited one. For belt and braces, also switch off **Allow new users to sign up** under Authentication in Supabase (it does not affect your team's logins).
 
 ## Known limits
 - **Stock ledger:** checking in moves the full quantity sent to "at producer" (the system of record). A short or damaged count raises an exception for a person to reconcile; it does not change stock by itself.
