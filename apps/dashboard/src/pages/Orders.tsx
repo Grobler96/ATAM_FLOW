@@ -1,3 +1,5 @@
+import { LightsCell } from '../components/PreproLights';
+import { lightScore, lightsText, type PreprodRow } from '../lib/preproduction';
 import { useMemo, useState } from 'react';
 import { Button, Panel, Status } from '../ui/primitives';
 import { DataTable, type BulkAction, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
@@ -31,7 +33,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
   const decOf = useMemo(() => new Map(dec.rows.map((d) => [d.order_id, d.producer_name])), [dec.rows]);
   const orders = useView<OrderRow>('ui_orders'), tpo = useView<TpOrderRow>('ui_tp_orders'), art = useView<ArtworkStatusRow>('ui_artwork_status'), sel = useView<SelectionRow>('ui_selection');
   const chg = useView<{ order_id: string; status: string }>('ui_order_changes'); const changedIds = useMemo(() => new Set(chg.rows.filter((c) => c.status === 'new').map((c) => c.order_id)), [chg.rows]);
-  const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
+  const prepV = useView<PreprodRow>('ui_preproduction'); const prepOf = useMemo(() => new Map(prepV.rows.map((r) => [r.order_id, r])), [prepV.rows]); const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), alloc = useView<AllocationRow>('ui_allocation');
   const { canAct, senior } = useCtx(); const [tpRows, setTpRows] = useState<OrderVM[] | null>(null); const toast = useToast(); const runner = useRunner();
 
@@ -78,6 +80,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
     { id: 'status', header: 'Status', width: '176px', render: (o) => <StatusCell s={o.order_status} />, sort: (o) => o.order_status, csv: (o) => statusLabel(o.order_status) },
     { id: 'route', header: 'Route', width: '150px', render: (o) => o.route === 'Producer' ? <span title={o.producer ?? ''}><Status tone="info" plain>Third-party</Status> <span className="dim">{o.producer}</span></span> : o.route === 'Third-party' ? <span title="Marked priority in DecoNetwork, so it is a third-party order. No consignment to a decorator yet."><Status tone="info" plain>Third-party</Status> <span className="dim">not yet sent</span></span> : <span className="dim" title="Not marked as a third-party order">Internal</span>, sort: (o) => o.route, csv: (o) => o.producer ?? o.route },
     { id: 'stock', header: 'Stock', width: '120px', render: (o) => <Status tone={o.stock.tone} plain>{o.stock.label}</Status>, csv: (o) => o.stock.label },
+    { id: 'prep', header: 'Pre-production', width: '120px', render: (o) => { const r = prepOf.get(o.id); return r ? <LightsCell row={r} /> : <span className="dim">—</span>; }, sort: (o) => { const r = prepOf.get(o.id); return r ? lightScore(r) : null; }, csv: (o) => { const r = prepOf.get(o.id); return r ? lightsText(r) : ''; } },
     { id: 'art', header: 'Artwork', width: '120px', render: (o) => <Status tone={o.artOk === false ? 'high' : o.artOk ? 'good' : ''} plain>{o.art}</Status>, csv: (o) => o.art },
     { id: 'units', header: 'Units', width: '72px', align: 'r', render: (o) => <Num v={o.total_units} />, sort: (o) => o.total_units, csv: (o) => o.total_units },
     { id: 'value', header: 'Value', width: '96px', align: 'r', render: (o) => <span className="num">{money(o.order_value)}</span>, sort: (o) => o.order_value, csv: (o) => o.order_value },

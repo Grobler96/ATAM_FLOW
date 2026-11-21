@@ -12,11 +12,12 @@ import { ROUTING_KINDS, TAG_KINDS, kindDef, nextPosition, routingParams, tagPara
 const Err = ({ m }: { m: string }) => <div className="callout" style={{ borderColor: 'rgba(255,107,107,.5)', background: 'var(--critical-soft)' }} role="alert">{m}</div>;
 const REASONS = ['Daniel asked for this rule', 'Trying it in shadow mode first', 'Rule no longer needed'];
 
-function ValueField({ kind, value, onChange, tags }: { kind: string; value: { n: string; field: string; tag: string }; onChange: (v: { n: string; field: string; tag: string }) => void; tags: { code: string; label: string }[] }) {
+function ValueField({ kind, value, onChange, tags }: { kind: string; value: { n: string; field: string; tag: string; method?: string }; onChange: (v: { n: string; field: string; tag: string; method?: string }) => void; tags: { code: string; label: string }[] }) {
   const k = kindDef(kind);
   if (!k) return null;
   if (k.needs === 'n') return <Field label={`How many (${k.unit})`}><input className="input" inputMode="numeric" value={value.n} onChange={(e) => onChange({ ...value, n: e.target.value })} placeholder="For example 20" /></Field>;
   if (k.needs === 'field') return <Field label="Custom field name, exactly as DecoNetwork spells it"><input className="input" value={value.field} onChange={(e) => onChange({ ...value, field: e.target.value })} placeholder="For example Uniform For" /></Field>;
+  if (k.needs === 'method') return <Field label="Process (as in the order list, for example dtf or embroidery)"><input className="input" list="rule-methods" value={value.method ?? ''} onChange={(e) => onChange({ ...value, method: e.target.value })} placeholder="For example dtf" /><datalist id="rule-methods"><option value="dtf" /><option value="embroidery" /><option value="uv" /><option value="dtg" /></datalist></Field>;
   return <Field label="Tag"><select className="input" value={value.tag} onChange={(e) => onChange({ ...value, tag: e.target.value })}><option value="">Choose a tag…</option>{tags.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}</select></Field>;
 }
 
@@ -40,7 +41,7 @@ export function RoutingRuleDialog({ rule, onClose }: { rule: RoutingRuleRow | nu
       <div className="stack">
         <p className="dim">Rules are checked from the lowest position up. The first one that matches decides where the order should be made. This only records what would happen: no order is moved.</p>
         <Field label="Name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="For example Big orders go to DPS" /></Field>
-        <Field label="When"><select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value, value: { n: '', field: '', tag: '' } })}>{ROUTING_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}</select></Field>
+        <Field label="When"><select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value, value: { n: '', field: '', tag: '', method: '' } })}>{ROUTING_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}</select></Field>
         <ValueField kind={f.kind} value={f.value} onChange={(value) => setF({ ...f, value })} tags={tags} />
         <Field label="Then"><select className="input" value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value, producerId: e.target.value === 'in_house' ? '' : f.producerId })}><option value="third_party">Send it to a third party</option><option value="in_house">Make it in house</option></select></Field>
         {f.scope === 'third_party' && <Field label="Which producer"><select className="input" value={f.producerId} onChange={(e) => setF({ ...f, producerId: e.target.value })}><option value="">Not chosen (use the order's decorator)</option>{producers.rows.filter((p) => p.is_active).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
@@ -78,7 +79,7 @@ export function TagRuleDialog({ rule, onClose }: { rule: TagRuleRow | null; onCl
           {f.isNew && <Field label="New tag label"><input className="input" value={f.tagLabel} onChange={(e) => setF({ ...f, tagLabel: e.target.value })} placeholder="For example Needs folding" /></Field>}
         </>}
         <Field label="Rule name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="For example More than 10 units" /></Field>
-        <Field label="Tag the order when"><select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value, value: { n: '', field: '', tag: '' } })}>{TAG_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}</select></Field>
+        <Field label="Tag the order when"><select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value, value: { n: '', field: '', tag: '', method: '' } })}>{TAG_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}</select></Field>
         <ValueField kind={f.kind} value={f.value} onChange={(value) => setF({ ...f, value })} tags={[]} />
         <label className="row" style={{ gap: 8 }}><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} /> This rule is on</label>
         <Field label="Why? (recorded in the audit trail)"><input className="input" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} list="rule-reasons" placeholder="At least 5 characters" /><datalist id="rule-reasons">{REASONS.map((p) => <option key={p} value={p} />)}</datalist></Field>

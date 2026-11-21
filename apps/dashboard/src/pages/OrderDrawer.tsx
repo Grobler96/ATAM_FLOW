@@ -15,6 +15,8 @@ import { gbp, deadlineText, dateTime } from '../lib/format';
 import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockStatus, TP_STATUS_LABEL, PRIORITY } from '../lib/domain';
 import { DueCell, StatusCell, OrderLink, Num } from '../components/common';
 import { OrderDecorator } from '../components/OrderDecorator';
+import { LightPill } from '../components/PreproLights';
+import { dtfStatusWords, fileWords, itemsFor, lightDetail, preprodFor, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type PreprodRow } from '../lib/preproduction';
 import { decisionFor, outcomeLabel, outcomeTone, scopeLabel, tagText, tagsFor, type DecisionRow, type TagRow } from '../lib/orderRules';
 import { SelectionCompare } from '../components/SelectionCompare';
 import type { ExceptionRow } from '../types';
@@ -39,7 +41,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tpo = useView<TpOrderRow>('ui_tp_orders'), moves = useView<MovementRow>('ui_tp_movements'), pos = useView<PoRow>('ui_purchase_orders'), sel = useView<SelectionRow>('ui_selection');
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
-  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const [assign, setAssign] = useState<QueueRow | null>(null);
+  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const prepRows = useView<PreprodRow>('ui_preproduction'), dtfRows = useView<DtfItemRow>('ui_dtf_items'); const [assign, setAssign] = useState<QueueRow | null>(null);
   const { canAct } = useCtx(); const toast = useToast();
   const [sendDlg, setSendDlg] = useState(false); const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
@@ -79,6 +81,14 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
         <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
         <OrderDecorator orderId={o.id} />
+        {(() => { const pp = preprodFor(prepRows.rows, o.id), di = itemsFor(dtfRows.rows, o.id);
+          return pp ? <div className="callout soft stack" style={{ gap: 8 }} aria-label="Pre-production"><b>Pre-production</b>
+            <div className="row wrap" style={{ gap: 6 }}><LightPill kind="prints" light={pp.prints} /><LightPill kind="embroidery" light={pp.embroidery} /><LightPill kind="stock" light={pp.stock} /></div>
+            {(['prints', 'embroidery', 'stock'] as const).filter((k) => pp[k] !== 'none').map((k) => <span key={k} className="dim">{lightDetail(k, pp)}</span>)}
+            {di.length > 0 && <div className="stack" style={{ gap: 4 }}><span className="fact-l">DTF prints for this order</span>{di.map((i) => <div key={i.id} className="row wrap" style={{ gap: 10 }}>
+              <span style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>{i.thumbnail_url ? <img src={i.thumbnail_url} alt="" loading="lazy" style={{ maxWidth: 32, maxHeight: 32 }} /> : <span className="dim" aria-hidden>–</span>}</span>
+              <b>{i.area}</b><span className="dim">{i.product_name ?? ''}</span><span className="num">{i.qty} garment{i.qty === 1 ? '' : 's'}</span><Status tone={LIGHT_TONE[STATUS_LIGHT[i.status]]}>{dtfStatusWords(i.status)}</Status><span className="dim">{fileWords(i)}</span></div>)}</div>}
+            <span className="dim">Read-only for now. <a href={href('preprod')}>See every order</a></span></div> : null; })()}
         {(() => { const ot = tagsFor(orderTagRows.rows, o.id), rd = decisionFor(ruleRows.rows, o.id); const showRule = !!rd && rd.outcome !== 'no_rule_matched';
           return ot.length > 0 || showRule ? <div className="callout soft stack" style={{ gap: 6 }} aria-label="Tags and rules"><b>Tags and rules</b>
             {ot.length > 0 && <div className="row wrap" style={{ gap: 6 }}>{ot.map((t) => <Status key={t.tag_code} tone="info">{tagText(t)}</Status>)}</div>}
