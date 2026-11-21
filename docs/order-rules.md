@@ -21,10 +21,14 @@ Precedence recorded: manual scope, then a matching rule, then DecoNetwork's Prio
 - On the 657 orders in the 60-days-back to 30-days-ahead window (checked 21 Nov 2026, read-only): 25 had more than 20 decorations (largest 100); "Uniform For" exists on 598 orders but is filled on only 958 of 2,112 lines, so the tag must fire on a filled value, not on the field existing.
 
 ## Where the facts come from
-DecoNetwork's `manage_orders/find` call with workflow data returns, per order line, `fields[]` (`field_name`, `string_value`) and `views[].areas[]`. A read-only n8n reader (**not built yet**) will total the areas and collect the filled custom fields, then call `public.flow_order_facts_ingest` (service role only). It must be a new workflow; the existing capture workflow is not edited.
+The n8n workflow **ATAM_FLOW · Order facts from DecoNetwork** (`IbZJlAMiEMSRL3ry`, **created but not published**; hourly at :55 plus a Run by hand trigger). It is read-only on DecoNetwork (same `manage_orders/find` call, with workflow data, as the Priority flag sync, same 60-days-back to 30-days-ahead window, 12 pages of 100). For each order it totals the decorations and collects the filled-in custom fields, then calls `public.flow_order_facts_ingest` (service role only). It stops with an error if it read fewer orders than DecoNetwork reports, or if Flow answers "not ok". It does not edit the existing capture workflow. **It will fail until migration 69 is applied, because the function does not exist yet**, and it should not be published before that.
+
+A decoration is counted as one **process on one placement on one garment line**, added up over the whole order. Placements with no process set yet count as zero.
+
+**Tested 21 Nov 2026 by running only the reading half (no save, nothing written):** 657 orders, payload about 61 KB. Order 636890: 42 decorations, 14 distinct names across its 28 lines. 21 orders had more than 20 decorations (an earlier count of placements, including ones with no process, gave 25); 90 orders had 0; the biggest had 105. 207 orders had at least one filled "Uniform For" value (largest: 27 distinct names on one order).
 
 ## Not built yet
-- The read-only n8n reader that feeds `flow.order_facts` (until then no order has facts, so nothing is tagged or decided).
+- Publishing the reader and applying migration 69 (until both are done no order has facts, so nothing is tagged or decided).
 - Screens: tags on the order drawer, a Routing rules / Tags settings page, a "what would move" review list.
 - Live mode (rules actually setting scope and producer), mixed orders (some lines each way), extra charges on third-party POs, timing in-house packing, folding sections.
 
