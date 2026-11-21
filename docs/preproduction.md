@@ -48,13 +48,13 @@ Nothing here sends an email, creates a purchase order, or changes an order.
 - **Database:** `public.portal_dtf`, `portal_dtf_start`, `portal_dtf_done`; storage rule `flow.portal_can_read_dtf` plus policy `artwork_dtf_decorator_read` (created only where the storage schema exists, so it is **verified locally only through the function**).
 - **Not tested live:** the real download from the `artwork` bucket under the new policy, and the first real decorator marking a print.
 
-## Phase D: sharper Embroidery and Stock lights (built 21 Nov 2026; **migration 76 written and tested locally, NOT applied; the n8n change is a draft, NOT published; nothing tested live**)
+## Phase D: sharper Embroidery and Stock lights (built 21 Nov 2026; **migration 76 applied and the n8n workflow published on 21 Nov 2026; the first real check by a person is not yet tested live**)
 What the live data showed (read-only): of 118 active orders with embroidery, 93 had no embroidery artwork recorded and 543 of 599 embroidery files had failed to store (the same DecoNetwork file problem as DTF), so Embroidery was red because Flow held no file, not because anything was wrong. And two orders Flow had **fully** allocated showed Stock red.
 - **Embroidery** is green when a person has marked the order **checked**, **or** every embroidery area is approved and stored (the owner chose "both"). Marking records who and when, is audited (`embroidery_checked` / `embroidery_unchecked`), and can be undone. It does not send anything or change the order's status. Only an order that uses embroidery can be checked; managers, admins and production planners only.
 - **Stock** is green when DecoNetwork says stock is secured **or** every garment is allocated in Flow; partly allocated is amber; nothing allocated is red.
 - **Screens:** the order drawer's Pre-production box has **Mark embroidery checked / Undo embroidery check**; the Pre-production **Orders** table has a bulk action **Mark embroidery checked** for the ticked orders.
 - **Database:** migration 76 adds `embroidery_checked_by` / `embroidery_checked_at` on orders, `flow.embroidery_check` and `public.flow_embroidery_check` (service role only), and re-creates `ui_preproduction` with the new rules plus the two new columns.
-- **n8n:** the DTF actions workflow (`4sk2X0uSf6szUB8H`) has a new action `embroidery_check` (admin, manager, production), saved as a **draft**. It goes live only when published; until then the buttons will fail with "That action is not available".
+- **n8n:** the DTF actions workflow (`4sk2X0uSf6szUB8H`) has a new action `embroidery_check` (admin, manager, production), published 21 Nov 2026; an anonymous call is refused.
 
 ## Still to build
 - DecoNetwork-side fix so DTF and embroidery files are actually stored (see earlier notes).

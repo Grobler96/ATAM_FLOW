@@ -1,4 +1,4 @@
--- 21 Nov 2026: pre-production, phase D: sharper Embroidery and Stock lights (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: pre-production, phase D: sharper Embroidery and Stock lights (APPLIED to the live project on 21 Nov 2026).
 -- Found by looking at the live data (read-only):
 --   * Embroidery was red on most orders only because Flow holds no readable file for them (543 of 599 embroidery files failed to store; 93 orders have
 --     none recorded), not because the embroidery was not ready. A person can now say "embroidery checked" for an order. Decided by the owner: the light is
