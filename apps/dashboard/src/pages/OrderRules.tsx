@@ -1,4 +1,7 @@
-import { Panel, Skeleton, Status, EmptyState } from '../ui/primitives';
+import { useState } from 'react';
+import { Button, Panel, Skeleton, Status, EmptyState } from '../ui/primitives';
+import { useCtx } from '../data/context';
+import { RoutingRuleDialog, TagRuleDialog } from '../components/RuleDialogs';
 import { DataTable, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
 import { useView } from '../data/store';
 import { navigate, tableStateFromQuery, type Route } from '../router';
@@ -12,6 +15,7 @@ const orderPath = (ref: string) => 'orders/' + ref.replace('#', '');
 
 export function OrderRulesPage({ route }: { route: Route }) {
   const dec = useView<DecisionRow>('ui_routing_decisions'), rules = useView<RoutingRuleRow>('ui_routing_rules'), tagRules = useView<TagRuleRow>('ui_tag_rules'), tags = useView<TagRow>('ui_order_tags');
+  const { senior } = useCtx(); const [dlg, setDlg] = useState<{ kind: 'routing' | 'tag'; rule: RoutingRuleRow | TagRuleRow | null } | null>(null);
   const c = decisionCounts(dec.rows); const mode = rules.rows[0]?.mode ?? 'shadow';
   const tagCounts = [...tags.rows.reduce((m, t) => m.set(t.tag_code, { label: t.label, n: (m.get(t.tag_code)?.n ?? 0) + 1 }), new Map<string, { label: string; n: number }>()).values()];
   const views: ViewDef<DecisionRow>[] = [
@@ -34,7 +38,7 @@ export function OrderRulesPage({ route }: { route: Route }) {
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Order rules</h1>
         <p>{c.total === 0 ? 'No orders have been checked yet.' : `${c.total} orders checked · ${c.would_change} would move · ${c.protected} left alone · ${c.already_matches} already right`}</p></div></div>
-      <div className="callout soft" role="status"><b>{mode === 'shadow' ? 'Shadow mode: nothing is being changed.' : 'Rules are switched on.'}</b> Each order is checked against the rules below and this page shows what would happen. No order is moved, and no purchase order or producer is changed, by anything on this screen. A person's own setting on an order always wins over a rule. To add or change a rule, ask an admin for now: there is no button for it yet.</div>
+      <div className="callout soft" role="status"><b>{mode === 'shadow' ? 'Shadow mode: nothing is being changed.' : 'Rules are switched on.'}</b> Each order is checked against the rules below and this page shows what would happen. No order is moved, and no purchase order or producer is changed, by anything on this screen. A person's own setting on an order always wins over a rule. Managers and admins can add or change a rule below; each change needs a reason, is recorded in the audit trail, and every order is checked again straight after.</div>
 
       <Panel title="Orders: what would happen" icon="orders" flush>
         <DataTable<DecisionRow> rows={dec.rows} columns={cols} rowKey={(r) => r.order_id} loading={dec.loading} error={dec.error} onRetry={() => void dec.refresh()} views={views} filters={filters} storageKey="order-rules" exportName="order-rules" defaultTab="move"
@@ -45,22 +49,24 @@ export function OrderRulesPage({ route }: { route: Route }) {
       </Panel>
       <div className="dim" style={{ fontSize: 12 }}>{Object.keys(OUTCOME_HELP).map((k) => <div key={k}><b>{outcomeLabel(k)}:</b> {OUTCOME_HELP[k]}</div>)}</div>
 
-      <Panel title="Routing rules" icon="settings" flush>
+      <Panel title="Routing rules" icon="settings" flush actions={<Button variant="primary" disabled={!senior} title={senior ? '' : 'Managers and admins only'} onClick={() => setDlg({ kind: 'routing', rule: null })}>Add a routing rule</Button>}>
         {rules.loading ? <div style={{ padding: 16 }}><Skeleton h={60} /></div> : rules.rows.length === 0 ? <p className="dim" style={{ padding: 16, margin: 0 }}>There are no routing rules.</p>
           : <div>{rulesInOrder(rules.rows).map((r, i) => <div key={r.id} className="row wrap" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', gap: 12 }}>
             <span className="dim num" style={{ minWidth: 70 }}>{i === 0 ? 'Checked first' : `Then #${i + 1}`}</span><b style={{ minWidth: 200 }}>{r.name}</b>
-            <span className="grow">{conditionText(r.kind, r.params)}: <b>{resultText(r.outcome_scope, r.producer_name)}</b></span>{r.is_active ? <Status tone="good">On</Status> : <Status>Off</Status>}</div>)}
+            <span className="grow">{conditionText(r.kind, r.params)}: <b>{resultText(r.outcome_scope, r.producer_name)}</b></span>{r.is_active ? <Status tone="good">On</Status> : <Status>Off</Status>}<Button variant="ghost" disabled={!senior} title={senior ? '' : 'Managers and admins only'} onClick={() => setDlg({ kind: 'routing', rule: r })}>Change</Button></div>)}
             <p className="dim" style={{ padding: '8px 16px', margin: 0 }}>Rules are checked from the top. The first one that matches decides.</p></div>}
       </Panel>
 
-      <Panel title="Tags" icon="info" flush>
+      <Panel title="Tags" icon="info" flush actions={<Button variant="primary" disabled={!senior} title={senior ? '' : 'Managers and admins only'} onClick={() => setDlg({ kind: 'tag', rule: null })}>Add a tag rule</Button>}>
         {tagRules.loading ? <div style={{ padding: 16 }}><Skeleton h={60} /></div> : tagRules.rows.length === 0 ? <p className="dim" style={{ padding: 16, margin: 0 }}>There are no tag rules.</p>
           : <div>{tagRules.rows.map((r) => <div key={r.id} className="row wrap" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', gap: 12 }}>
             <b style={{ minWidth: 200 }}>{r.tag_label}</b><span className="grow">{conditionText(r.kind, r.params)}</span>
-            <span className="dim">{(() => { const n = tagCounts.find((t) => t.label === r.tag_label)?.n ?? 0; return `${n} order${n === 1 ? '' : 's'}`; })()}</span>{r.is_active ? <Status tone="good">On</Status> : <Status>Off</Status>}</div>)}
+            <span className="dim">{(() => { const n = tagCounts.find((t) => t.label === r.tag_label)?.n ?? 0; return `${n} order${n === 1 ? '' : 's'}`; })()}</span>{r.is_active ? <Status tone="good">On</Status> : <Status>Off</Status>}<Button variant="ghost" disabled={!senior} title={senior ? '' : 'Managers and admins only'} onClick={() => setDlg({ kind: 'tag', rule: r })}>Change</Button></div>)}
             <p className="dim" style={{ padding: '8px 16px', margin: 0 }}>A tag says what an order needs, for example person packing. The number on the tag is how many names, or how many decorations, were found. {tags.rows.length === 0 ? '' : `Last checked ${dateTime(tags.rows.reduce((m, t) => (t.set_at > m ? t.set_at : m), ''))}.`}</p></div>}
       </Panel>
       <p className="dim" style={{ margin: 0 }}>"Today" is the order's setting right now: set by hand, from DecoNetwork's Priority flag, or not decided. The rules look at the whole order, not one garment.</p>
+      {dlg?.kind === 'routing' && <RoutingRuleDialog rule={dlg.rule as RoutingRuleRow | null} onClose={() => setDlg(null)} />}
+      {dlg?.kind === 'tag' && <TagRuleDialog rule={dlg.rule as TagRuleRow | null} onClose={() => setDlg(null)} />}
     </div>
   );
 }
