@@ -1,5 +1,5 @@
 -- 21 Nov 2026: embroidery, step 3: files to update in DecoNetwork, the old-file warning, and a bulk "done before".
--- (written and tested locally; NOT applied to the live project)
+-- (APPLIED to the live project on 21 Nov 2026)
 -- THE PROBLEM: while doing a job we rework the stitch file and upload it into Flow, which is right for that job. But DecoNetwork still holds the OLD file,
 -- so when the next order for the same logo arrives we come close to using the old one.
 -- WHAT THIS DOES:
