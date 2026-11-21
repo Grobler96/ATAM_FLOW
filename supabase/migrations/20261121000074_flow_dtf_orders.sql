@@ -1,4 +1,4 @@
--- 21 Nov 2026: pre-production, phase B: the in-house DTF order to Super Print (written and tested locally; NOT applied to the live project).
+-- 21 Nov 2026: pre-production, phase B: the in-house DTF order to Super Print (applied to the live project 21 Nov 2026 as "flow_dtf_orders").
 -- DTFs are bought from Super Print. For an IN-HOUSE order we order them from Super Print and apply them here; for a THIRD-PARTY order the third party orders
 -- their own, so those placements are never put on a DTF order from here (they are skipped with the reason).
 --   1. Super Print is added as a supplier (no email address yet: the DTF order email then waits as a draft that cannot be approved until an address is
