@@ -27,7 +27,9 @@ begin
       -- answers only "is the caller a decorator login": used by the storage rule that confines decorators to the portal's buckets
       'flow.is_portal_login()',
       -- the storage rule that limits how many files and bytes a decorator login may store in one job's folder: answers yes or no, nothing else
-      'flow.portal_upload_allowed(text)');
+      'flow.portal_upload_allowed(text)',
+      -- the storage rule that lets a decorator fetch only the current DTF files of their own assigned third-party orders: answers yes or no, nothing else
+      'flow.portal_can_read_dtf(text)');
   if v_bad is not null then raise exception 'SECURITY: logged-in users can execute: %', v_bad; end if;
 
   -- 3. every flow table has row level security switched on

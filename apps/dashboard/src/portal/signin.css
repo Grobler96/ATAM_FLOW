@@ -64,3 +64,5 @@
 @keyframes so-rot { to { transform: rotate(360deg); } }
 @media (max-width: 480px) { .so-card { padding: 28px 20px 22px; border-radius: 20px; } .so-card h1 { font-size: 25px; } }
 @media (prefers-reduced-motion: reduce) { .so-stage *, .so-stage *::before, .so-stage *::after { animation: none !important; transition: none !important; } .so-mark path, .so-tick svg { stroke-dashoffset: 0; } }
+
+@media print { .no-print { display: none !important; } header, nav { display: none !important; } }
