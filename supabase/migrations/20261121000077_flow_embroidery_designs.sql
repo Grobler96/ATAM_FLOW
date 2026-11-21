@@ -1,5 +1,5 @@
 -- 21 Nov 2026: embroidery, step 1: a register of embroidery designs (per customer), swatch statuses, and the embroidery areas on each order.
--- (written and tested locally; NOT applied to the live project)
+-- (APPLIED to the live project on 21 Nov 2026)
 -- Before production an embroidered logo has to match its visual. A NEW logo needs a physical swatch, sent to the customer for sign-off; a logo we have
 -- already done does not. This is the same for in-house and third-party orders (the screens have a tab for each).
 --   * flow.emb_designs:  one row per logo per customer, with a status: known (done before), swatch_required, swatch_in_progress, swatch_sent,

@@ -5,7 +5,7 @@ Started 21 Nov 2026. **Step 1 of 3** (this change): the design register, swatch 
 ## Why
 We turn an enquiry into stitches, upload it to the order in DecoNetwork for a visual and pick thread colours. Once the order is placed a **physical swatch** is run to check it matches the visual, and a picture goes to the customer to sign off. **A logo we have already embroidered does not need a swatch.** The process is the same for in-house (IH) and third-party (3PD) orders, so the screen has a tab for each.
 
-## What was built (migration 77, `supabase/pending/`, **NOT applied; the n8n change is a draft, NOT published; nothing tested live**)
+## What was built (migration 77, **applied and the n8n workflow published on 21 Nov 2026; nothing used by a real person yet**)
 - **A register of designs, per customer** (`flow.emb_designs`, keyed by the DecoNetwork customer number). Statuses: **known** (done before), **swatch required**, **swatch in progress**, **swatch sent**, **swatch approved**, **changes needed**. A rejected swatch starts a **new round** when work starts again. Every change is in `flow.emb_events` and the audit log.
 - **Links** (`flow.emb_links`): which order area uses which design. Links are switched off, never removed.
 - **`public.ui_emb_areas`**: every embroidery area on every active order with its status, or a **suggestion** when the same customer has the same artwork or the same stitch count and size (within 2 mm). A suggestion is never applied by itself: a person confirms.
