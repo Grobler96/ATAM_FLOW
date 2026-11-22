@@ -45,3 +45,8 @@ export async function downloadFile(path: string, name: string): Promise<boolean>
   const url = await signedUrl(path, name); if (!url) return false;
   const a = document.createElement('a'); a.href = url; a.download = name; a.rel = 'noreferrer'; document.body.appendChild(a); a.click(); a.remove(); return true;
 }
+// A longer-lived link, for a picture that goes inside an email the customer may open days later (14 days).
+export async function longSignedUrl(path: string, seconds = 14 * 24 * 3600): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(ART_BUCKET).createSignedUrl(path, seconds);
+  return error || !data?.signedUrl ? null : data.signedUrl;
+}

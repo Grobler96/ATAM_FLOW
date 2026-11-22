@@ -4,6 +4,8 @@ import { Button, Field, Status } from '../ui/primitives';
 import { refreshAll, useView } from '../data/store';
 import { href } from '../router';
 import { exceptionActionTo } from '../lib/api';
+import { SwatchEmailDialog, SwatchEmailList } from './SwatchEmail';
+import { canEmailSwatch } from '../lib/swatchEmail';
 import { approvesFromArea, canChangeEmbroidery, decoWords, staleWarning, hasStitchFile, designsFor, embLight, embMoves, embWords, EMB_MARK, EMB_TONE, eventsFor, eventWords, sizeText, suggestionText, type EmbAreaRow, type EmbDesignRow, type EmbEventRow } from '../lib/embroidery';
 import { dateTime as fmtDateTime } from '../lib/format';
 import { downloadFile, fileNameOf } from '../lib/artworkFiles';
@@ -17,7 +19,7 @@ export const EmbStatus = ({ s }: { s: string }) => { const l = embLight(s); retu
 export function EmbroideryDialog({ row, role, onClose }: { row: EmbAreaRow; role: string | null | undefined; onClose: () => void }) {
   const toast = useToast(); const can = canChangeEmbroidery(role);
   const designs = useView<EmbDesignRow>('ui_emb_designs'), events = useView<EmbEventRow>('ui_emb_events');
-  const mine = designsFor(designs.rows, row.customer_id); const [pick, setPick] = useState(''); const [name, setName] = useState(''); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
+  const mine = designsFor(designs.rows, row.customer_id); const [mail, setMail] = useState(false); const [pick, setPick] = useState(''); const [name, setName] = useState(''); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
   const base = { order_id: row.order_id, deco_line_id: row.deco_line_id, area: row.area };
   async function go(action: string, params: Record<string, unknown>, title: string) {
     setBusy(true); setErr(null); const r = await exceptionActionTo('dtf', action, params); setBusy(false);
@@ -63,11 +65,14 @@ export function EmbroideryDialog({ row, role, onClose }: { row: EmbAreaRow; role
             <Field label={moves.some((m) => m.note) ? 'A note (needed for changes and for reopening)' : 'A note (optional)'}><input className="input" value={note} onChange={(e) => setNote(e.target.value)} aria-label="Note" /></Field>
             <div className="row wrap">{moves.map((m) => <Button key={m.to} variant={m.primary ? 'primary' : undefined} disabled={busy || !can || (needNote(m.to) && !note.trim())} title={needNote(m.to) && !note.trim() ? 'Say why first' : ''}
               onClick={async () => { const ok = approvesFromArea(m.to) ? await go('emb_approve', { ...base, design_id: row.design_id, note: note.trim() }, m.label) : await go('emb_status', { design_id: row.design_id, to: m.to, note: note.trim() }, m.label); if (ok) { setNote(''); onClose(); } }}>{m.label}</Button>)}</div></div>}
+          {canEmailSwatch(row.design_status) && <div className="row"><Button variant="primary" disabled={busy || !can} onClick={() => setMail(true)}>Email the swatch to the customer</Button><span className="dim">Photo and message, held for approval first.</span></div>}
+          <SwatchEmailList design={row.design_id as string} />
           {!can && <span className="dim">Your role can look but not change this.</span>}
           <div className="row"><Button variant="ghost" disabled={busy || !can} onClick={async () => { if (await go('emb_unlink', base, 'Taken off this logo')) onClose(); }}>This is the wrong logo: unlink</Button></div>
           {hist.length > 0 && <div className="stack" style={{ gap: 2 }}><span className="fact-l">History</span>{hist.map((e) => <span key={e.id} className="dim">{fmtDateTime(e.at)} · {eventWords(e)}</span>)}</div>}
         </div>}
         {err && <Err m={err} />}
+        {mail && <SwatchEmailDialog row={row} onClose={() => { setMail(false); onClose(); }} />}
         <div className="row"><Button variant="ghost" onClick={onClose}>Close</Button></div>
       </div>
     </Modal>
