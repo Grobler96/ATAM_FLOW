@@ -1,4 +1,4 @@
--- 22 Nov 2026: buying stock, step 1: supplier cards with shipping options. (written and tested locally; NOT applied to the live project)
+-- 22 Nov 2026: buying stock, step 1: supplier cards with shipping options. (APPLIED to the live project on 22 Nov 2026)
 -- Stock is going to be bought from Flow itself instead of from DecoNetwork. First every supplier needs a proper card: who they are, how we order from them
 -- (email today; API or EDI later for Ralawise and ORN), what they charge for delivery, and what the delivery options are.
 --   * flow.suppliers gets: order method (email / api / edi / portal / phone / other), notes on how to order, account number, website. The API or EDI
