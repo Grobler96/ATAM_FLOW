@@ -39,7 +39,7 @@ Apply order does not matter. Migrations sent through the Supabase tool: none of 
 - Plain-English explanations. Never expose secrets. Ask before anything destructive. Overrides need a reason and an audit record. Unbuilt things must be visibly disabled with a reason, never faked. Report honestly what is and is not done.
 - **No emails yet**: no email sending or notification to decorators or staff. Drafts that wait for review are existing behaviour.
 - Merge a PR **only when asked**; mark drafts ready first. Open a draft PR after pushing and subscribe to it.
-- Work on branch `claude/clever-hypatia-vwixp8`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **67**, file prefix `20261110000067_`: 63 to 65 are in the repo but not live; 66 is live).
+- Work on a branch named `oliverg/<name>`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **67**, file prefix `20261110000067_`: 63 to 65 are in the repo but not live; 66 is live).
 - No model names in repo artifacts (commits, code, docs).
 - Do not guess the things the owner still has to supply: producers list and rates, who gets which role, supplier emails and offers, machine shift hours, press speeds, QC checklist items, risk weights, the DecoNetwork artwork credential. Supabase settings only the owner can change: portal redirect URL (done), email sender, turning off new sign-ups, link expiry.
 
