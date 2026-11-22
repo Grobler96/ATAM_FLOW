@@ -7,7 +7,7 @@ export function Sidebar({ route, collapsed, onToggle }: { route: Route; collapse
   const ex = useView<ExceptionRow>('ui_exceptions');
   const critical = ex.rows.filter((e) => e.severity === 'critical').length;
   const current = route.path[0] ?? 'home';
-  const groups: [string, string[]][] = [['Operate', ['home', 'orders', 'pen', 'preprod', 'embroidery']], ['In house', ['ih-orders', 'production', 'crew', 'floor', 'quality']], ['Third parties & floor', ['tp-orders', 'goods-in', 'warehouse', 'dispatch', 'artwork', 'labels']], ['Stock & buying', ['stock', 'stocktake', 'purchasing']], ['Control', ['exceptions', 'waste', 'analytics', 'control', 'rules', 'settings', 'producers']]];
+  const groups: [string, string[]][] = [['Operate', ['home', 'orders', 'pen', 'preprod', 'embroidery']], ['In house', ['ih-orders', 'production', 'crew', 'floor', 'quality']], ['Third parties & floor', ['tp-orders', 'goods-in', 'warehouse', 'dispatch', 'artwork', 'labels']], ['Stock & buying', ['stock', 'stocktake', 'purchasing', 'suppliers']], ['Control', ['exceptions', 'waste', 'analytics', 'control', 'rules', 'settings', 'producers']]];
   return (
     <aside className="sidebar" aria-label="Main navigation">
       <div className="brand"><span className="logo"><Icon name="bolt" size={16} stroke={2.4} /></span><span className="name">ATAM_FLOW</span></div>
