@@ -54,7 +54,7 @@ Loaded straight into the live catalogue from the two price files (each batch che
 - **Prestige Leisure** sent a customer price file (account C31132) and a stock feed. None of the item codes Flow knows are in either, and no order API or EDI document came with them. The older Prestige card is switched off; use the one named USE THIS.
 - Still to come from Daniel: how DecoNetwork stock levels are topped up (a voice note), three more answers, and the Supplier Log and Details sheet (the shared link is private; it needs exporting).
 
-## Step 4: profit per order (**migration 84 written and tested, NOT applied**)
+## Step 4: profit per order (**migration 84 applied 23 Nov 2026**)
 - **Where the numbers come from:** the sale price per line is DecoNetwork's own, already held in `public.sales_order_lines` (1,398 of 1,400 active Flow lines match by workflow item id); the stock cost is the preferred supplier's catalogue price.
 - **"Margin over stock cost"** = what the lines sell for (ex VAT, so it includes decoration) less what the stock costs. It is before decoration, delivery and overheads. It is worked out only on lines that have both a sale price and a catalogue cost, and the screen says how many lines were counted and what is missing, so an incomplete answer is never passed off as a full one. DecoNetwork's own items (item codes with an underscore, such as name badges) are never counted as missing a cost.
 - **Screens:** a "Margin over stock" column on the Orders list and a "Margin over stock cost" line on the order drawer (green when complete, amber when something is missing, red when the stock costs more than the lines sell for).

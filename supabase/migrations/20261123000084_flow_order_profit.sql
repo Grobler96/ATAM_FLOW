@@ -1,4 +1,4 @@
--- 23 Nov 2026: profit per order, and how old each supplier's prices are (NOT APPLIED to the live project).
+-- 23 Nov 2026: profit per order, and how old each supplier's prices are (APPLIED to the live project 23 Nov 2026 as "flow_order_profit").
 --  1. flow.order_profit(): for every active order, the sale value of its lines (DecoNetwork's per-line price, ex VAT, from the order lines the
 --     DecoNetwork sync already keeps in public.sales_order_lines) against the stock cost of the same lines (the preferred supplier's catalogue price).
 --     "Margin over stock cost" = sale value - stock cost, before decoration, delivery and overheads. It is worked out only on lines that have BOTH a
