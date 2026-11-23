@@ -22,6 +22,8 @@ begin
     and has_function_privilege('authenticated', p.oid, 'execute')
     and p.oid::regprocedure::text not in ('flow.is_member()', 'flow.has_role(flow.app_role[])', 'flow.order_blocking_exceptions(uuid,text)', 'flow.portal_can_read_artwork(text)',
       'flow.dispatch_address(uuid)', 'flow.dispatch_state(uuid)',
+      -- profit per order: security definer so it can read DecoNetwork's sale prices; returns nothing unless the caller is a team member
+      'flow.order_profit()',
       -- read-only configuration helpers used inside views that staff query (they only return settings values)
       'flow.exc_digest_cfg()', 'flow.purchasing_rules()', 'flow.portal_security()',
       -- answers only "is the caller a decorator login": used by the storage rule that confines decorators to the portal's buckets

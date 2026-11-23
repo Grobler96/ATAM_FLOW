@@ -54,3 +54,7 @@ export interface DriveFileRow { drive_file_id: string; name: string; deco_order_
 
 // Orders sent to suppliers electronically (API or EDI), waiting for a person to approve (migration 83)
 export interface PoTransmissionRow { id: string; po_id: string; po_ref: string; supplier: string; method: 'api' | 'edi'; status: 'pending_review' | 'queued' | 'sending' | 'sent' | 'failed' | 'cancelled'; attempts: number; last_error: string | null; supplier_order_ref: string | null; queued_by: string; queued_at: string; approved_by: string | null; approved_at: string | null; sent_at: string | null; cancel_reason: string | null; updated_at: string; line_count: number; goods_value: number }
+
+// Profit per order and supplier price age (migration 84)
+export interface OrderProfitRow { order_id: string; order_ref: string; sell_value: number | null; stock_cost: number | null; margin: number | null; margin_pct: number | null; lines: number; costed_lines: number; missing_cost_lines: number; unpriced_sale_lines: number; complete: boolean }
+export interface SupplierPriceAgeRow { supplier_id: string; supplier: string; priced_items: number; last_loaded: string | null; days_old: number | null }

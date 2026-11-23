@@ -35,11 +35,12 @@ export function shippingSummary(opts: ShippingOptionRow[]): string {
   const d = defaultOption(on); return `${on.length} option${on.length === 1 ? '' : 's'}${d ? ' · usually ' + optionWords(d).split(' · ').slice(0, 2).join(' · ') : ''}`;
 }
 // The gaps that stop a supplier being used, in plain words.
-export function cardGaps(c: Pick<SupplierCardRow, 'order_method' | 'email' | 'catalogue_items' | 'is_active'>, opts: ShippingOptionRow[]): string[] {
+export function cardGaps(c: Pick<SupplierCardRow, 'order_method' | 'email' | 'catalogue_items' | 'is_active'>, opts: ShippingOptionRow[], priceDaysOld?: number | null): string[] {
   if (!c.is_active) return []; const g: string[] = [];
   if (c.order_method === 'email' && !c.email) g.push('No email address to send orders to');
   if (!opts.some((o) => o.is_active)) g.push('No delivery option');
   if (c.catalogue_items === 0) g.push('No prices in the catalogue');
+  else if (priceDaysOld !== null && priceDaysOld !== undefined && priceDaysOld >= 90) g.push(`Prices were last loaded ${priceDaysOld} days ago: load the supplier's latest price file`);
   return g;
 }
 export const sortCards = (list: SupplierCardRow[]): SupplierCardRow[] => [...list].sort((a, b) => Number(b.is_active) - Number(a.is_active) || a.name.localeCompare(b.name));

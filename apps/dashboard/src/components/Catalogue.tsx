@@ -5,6 +5,8 @@ import { refreshAll, useView } from '../data/store';
 import { useCtx } from '../data/context';
 import { supabase } from '../lib/api';
 import { parseCatalogue, TEMPLATE_CSV, type CatalogueRow } from '../lib/catalogue';
+import { priceAgeWords, priceIsStale } from '../lib/profit';
+import type { SupplierPriceAgeRow } from '../data/types';
 import { LAYOUTS, parsePriceFile, readSpreadsheet, type PriceLayout } from '../lib/priceFiles';
 import type { SupplierCardRow } from '../lib/supplierCards';
 import { money } from '../lib/domain';
@@ -16,7 +18,7 @@ export function CataloguePanel() {
   const [q, setQ] = useState(''); const [rows, setRows] = useState<CatalogueRow[] | null>(null); const [problems, setProblems] = useState<string[]>([]); const [busy, setBusy] = useState(false); const [fileName, setFileName] = useState('');
   const shown = useMemo(() => { const t = q.trim().toLowerCase(); return cat.rows.filter((r) => !t || `${r.item_code} ${r.supplier} ${r.product_name ?? ''} ${r.title ?? ''}`.toLowerCase().includes(t)).sort((a, b) => a.item_code.localeCompare(b.item_code) || a.supplier.localeCompare(b.supplier)).slice(0, 500); }, [cat.rows, q]);
   const items = useMemo(() => new Set(cat.rows.map((r) => r.item_code)).size, [cat.rows]);
-  const known = useView<{ sku: string }>('ui_known_skus'), suppliers = useView<SupplierCardRow>('ui_supplier_cards');
+  const ages = useView<SupplierPriceAgeRow>('ui_supplier_price_age'); const stale = useMemo(() => ages.rows.filter((a) => a.priced_items > 0 && priceIsStale(a.days_old)), [ages.rows]); const known = useView<{ sku: string }>('ui_known_skus'), suppliers = useView<SupplierCardRow>('ui_supplier_cards');
   const activeSuppliers = useMemo(() => suppliers.rows.filter((s) => s.is_active).sort((a, b) => a.name.localeCompare(b.name)), [suppliers.rows]);
   const [layout, setLayout] = useState<PriceLayout>('ralawise'); const [supplierName, setSupplierName] = useState(''); const [pf, setPf] = useState<{ rows: CatalogueRow[]; notes: string[]; unpriced: string[]; name: string } | null>(null); const [pfBusy, setPfBusy] = useState(false); const pfFile = useRef<HTMLInputElement>(null);
   const guess = (l: PriceLayout) => activeSuppliers.find((s) => s.name.toLowerCase().includes(l === 'orn' ? 'orn' : 'ralawise'))?.name ?? '';
@@ -58,6 +60,7 @@ export function CataloguePanel() {
   const download = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([TEMPLATE_CSV], { type: 'text/csv' })); a.download = 'product-catalogue-template.csv'; a.click(); URL.revokeObjectURL(a.href); };
   return (
     <div className="stack" style={{ gap: 16 }}>
+      {stale.length > 0 && <div className="callout" role="status" data-testid="stale-prices">{stale.map((a) => <div key={a.supplier_id}><b>{a.supplier}</b>: {priceAgeWords(a.days_old).toLowerCase()}. Prices change about every 3 months, so load their latest price file.</div>)}</div>}
       {senior && <Panel title="Load a supplier's price file">
         <div className="stack">
           <p className="dim">Pick the supplier and the file they sent us (Excel). Flow keeps only the items it already knows from stock and orders, with the supplier's title and price, and updates any price already there. Nothing is deleted. Load the file again when the supplier sends a new one.</p>

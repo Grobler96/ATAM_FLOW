@@ -1,4 +1,6 @@
 import { LightsCell } from '../components/PreproLights';
+import { marginTone, marginWords } from '../lib/profit';
+import type { OrderProfitRow } from '../data/types';
 import { lightScore, lightsText, type PreprodRow } from '../lib/preproduction';
 import { useMemo, useState } from 'react';
 import { Button, Panel, Status } from '../ui/primitives';
@@ -33,7 +35,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
   const decOf = useMemo(() => new Map(dec.rows.map((d) => [d.order_id, d.producer_name])), [dec.rows]);
   const orders = useView<OrderRow>('ui_orders'), tpo = useView<TpOrderRow>('ui_tp_orders'), art = useView<ArtworkStatusRow>('ui_artwork_status'), sel = useView<SelectionRow>('ui_selection');
   const chg = useView<{ order_id: string; status: string }>('ui_order_changes'); const changedIds = useMemo(() => new Set(chg.rows.filter((c) => c.status === 'new').map((c) => c.order_id)), [chg.rows]);
-  const prepV = useView<PreprodRow>('ui_preproduction'); const prepOf = useMemo(() => new Map(prepV.rows.map((r) => [r.order_id, r])), [prepV.rows]); const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
+  const profitV = useView<OrderProfitRow>('ui_order_profit'); const profitOf = useMemo(() => new Map(profitV.rows.map((r) => [r.order_id, r])), [profitV.rows]); const prepV = useView<PreprodRow>('ui_preproduction'); const prepOf = useMemo(() => new Map(prepV.rows.map((r) => [r.order_id, r])), [prepV.rows]); const scp = useView<OrderScopeRow>('ui_order_scope'); const scopeOf = useMemo(() => new Map(scp.rows.map((r) => [r.order_id, r.scope])), [scp.rows]);
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), alloc = useView<AllocationRow>('ui_allocation');
   const { canAct, senior } = useCtx(); const [tpRows, setTpRows] = useState<OrderVM[] | null>(null); const toast = useToast(); const runner = useRunner();
 
@@ -85,6 +87,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
     { id: 'units', header: 'Units', width: '72px', align: 'r', render: (o) => <Num v={o.total_units} />, sort: (o) => o.total_units, csv: (o) => o.total_units },
     { id: 'value', header: 'Value', width: '96px', align: 'r', render: (o) => <span className="num">{money(o.order_value)}</span>, sort: (o) => o.order_value, csv: (o) => o.order_value },
     { id: 'margin', header: 'Margin', width: '76px', align: 'r', render: (o) => <span className="num">{pct(o.margin)}</span>, sort: (o) => o.margin, csv: (o) => o.margin },
+    { id: 'profit', header: 'Margin over stock', width: '130px', align: 'r', render: (o) => { const r = profitOf.get(o.id); return r && r.margin !== null ? <Status tone={marginTone(r)} plain>{marginWords(r)}</Status> : <span className="dim">—</span>; }, sort: (o) => profitOf.get(o.id)?.margin ?? null, csv: (o) => profitOf.get(o.id)?.margin ?? '' },
     { id: 'bin', header: 'Bin', width: '100px', render: (o) => <span className="mono dim">{o.bin || '—'}</span>, csv: (o) => o.bin },
     { id: 'tobuy', header: 'To buy', width: '80px', align: 'r', render: (o) => o.toBuy > 0 ? <b className="num">{o.toBuy}</b> : <span className="dim">—</span>, sort: (o) => o.toBuy, csv: (o) => o.toBuy },
     { id: 'decorator', header: 'Decorator', width: '120px', render: (o) => o.decorator ? <span>{o.decorator}</span> : <span className="dim">—</span>, sort: (o) => o.decorator, csv: (o) => o.decorator },
