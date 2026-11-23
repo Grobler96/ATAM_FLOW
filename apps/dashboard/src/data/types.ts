@@ -47,7 +47,7 @@ export interface SupplierDiscRow { id: string; disc_ref: string; disc_type: stri
 // Streamlined purchasing (migration 66)
 export interface BuyLineRow { order_id: string; order_ref: string; order_line_id: string; sku: string; product_name: string | null; colour: string | null; size: string | null; qty_needed: number; supplier_id: string | null; supplier: string | null; unit_cost: number | null }
 export interface OrderDecoratorRow { order_id: string; scope: string; chosen_producer_id: string | null; producer_id: string | null; is_default: boolean; producer_name: string | null; can_direct_dispatch: boolean | null }
-export interface CatalogueRow { id: string; supplier_id: string; supplier: string; item_code: string; cost: number | null; is_preferred: boolean; updated_at: string; product_name: string | null }
+export interface CatalogueRow { id: string; supplier_id: string; supplier: string; item_code: string; cost: number | null; is_preferred: boolean; updated_at: string; product_name: string | null; title: string | null }
 
 // Artwork files from Google Drive (migration 68)
 export interface DriveFileRow { drive_file_id: string; name: string; deco_order_id: string | null; line_id: string | null; area: string | null; process_code: string | null; status: 'waiting' | 'failed' | 'ignored'; reason: string | null; attempts: number; web_link: string | null; first_seen: string; last_seen: string }
