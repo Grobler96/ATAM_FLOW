@@ -1,4 +1,4 @@
--- 23 Nov 2026: ordering stock electronically (NOT APPLIED to the live project).
+-- 23 Nov 2026: ordering stock electronically (APPLIED to the live project 23 Nov 2026 as "flow_supplier_electronic_orders").
 -- Ralawise takes orders by API and ORN by SFTP (a CSV file). This adds the Flow side; the sending itself is done by n8n workflows
 -- (drafts, not published) that need the supplier logins set up as n8n credentials.
 --  1. For a supplier whose card says the order method is API or EDI, "send the PO" no longer queues an email. It prepares an
