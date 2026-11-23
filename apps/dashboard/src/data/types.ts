@@ -51,3 +51,6 @@ export interface CatalogueRow { id: string; supplier_id: string; supplier: strin
 
 // Artwork files from Google Drive (migration 68)
 export interface DriveFileRow { drive_file_id: string; name: string; deco_order_id: string | null; line_id: string | null; area: string | null; process_code: string | null; status: 'waiting' | 'failed' | 'ignored'; reason: string | null; attempts: number; web_link: string | null; first_seen: string; last_seen: string }
+
+// Orders sent to suppliers electronically (API or EDI), waiting for a person to approve (migration 83)
+export interface PoTransmissionRow { id: string; po_id: string; po_ref: string; supplier: string; method: 'api' | 'edi'; status: 'pending_review' | 'queued' | 'sending' | 'sent' | 'failed' | 'cancelled'; attempts: number; last_error: string | null; supplier_order_ref: string | null; queued_by: string; queued_at: string; approved_by: string | null; approved_at: string | null; sent_at: string | null; cancel_reason: string | null; updated_at: string; line_count: number; goods_value: number }
