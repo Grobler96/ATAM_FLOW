@@ -16,14 +16,14 @@ Steps, in this order: **1 supplier cards** (this change), **2 the catalogue** (s
 - **Who:** managers and admins add and change suppliers and options; everyone else can look. The dashboard calls database functions that check the role themselves (the same way as the catalogue), so **no n8n change is needed**.
 - **Database:** migration 81 adds order method, ordering notes, account number and website to `flow.suppliers`, the table `flow.supplier_shipping_options`, private functions `supplier_save`, `supplier_shipping_save`, `supplier_sync_shipping`, the two callable wrappers `public.supplier_save` and `public.supplier_shipping_save`, and the views `ui_supplier_cards` and `ui_supplier_shipping`.
 
-## Step 2: supplier price files (**migration 82 written and tested, NOT applied**)
+## Step 2: supplier price files (**migration 82 applied 23 Nov 2026; no real price file loaded yet**)
 Supplier price files were received on 23 Nov 2026 and read.
 - **Item codes match ours.** Ralawise's "Product" column is our item code exactly (28 of 30 sampled Flow codes were in the file). ORN prices are **per style**; the style is the part of our code before the first dot (1150.NV.L is style 1150; 21 of the 23 ORN styles in Flow are in the file).
 - **Catalogue page: "Load a supplier's price file"** (managers and admins). Pick the layout (Ralawise or ORN), the supplier, and the Excel file as the supplier sent it. Flow keeps only items it already knows (from stock records and order lines, 2,000 or so, out of 100,000 lines in the Ralawise file), reads the supplier's title and price, and says how many known items have no price in the file. Saving updates prices already there; nothing is deleted. It goes through the existing `catalogue_import`.
   - **Ralawise:** columns Product (item code), Description (title) and the **Future Prices carton price** (the second CTN column, column K; prices in force from 1 Oct 2026).
   - **ORN:** Code, Product and the price column (BA26). The style price is applied to every ORN item code Flow knows in that style.
 - **Gap:** an item Flow has never seen has no price until the file is loaded again after it first appears on a stock record or an order. Load each new supplier price file when it arrives.
-- **Migration 82** adds `title` to `flow.supplier_offers`, makes `catalogue_import` store it (an empty title never clears one), shows it in `ui_catalogue`, and adds `public.ui_known_skus` (staff only). Not applied yet.
+- **Migration 82** adds `title` to `flow.supplier_offers`, makes `catalogue_import` store it (an empty title never clears one), shows it in `ui_catalogue`, and adds `public.ui_known_skus` (staff only). 
 - **New dependency:** `read-excel-file` 9.3.15 (reads .xlsx in the browser; loaded only when a spreadsheet is picked).
 
 ## How each supplier takes orders (from the supplier emails, 23 Nov 2026)

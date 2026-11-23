@@ -1,4 +1,4 @@
--- 23 Nov 2026: catalogue titles and a list of the item codes Flow already knows (NOT APPLIED to the live project).
+-- 23 Nov 2026: catalogue titles and a list of the item codes Flow already knows (APPLIED to the live project 23 Nov 2026 as "flow_catalogue_titles").
 --  1. Each supplier price can carry a title (the supplier's own description of the item), set by the catalogue import.
 --  2. public.ui_catalogue shows it.
 --  3. public.ui_known_skus lists every item code Flow has seen on a stock record or an order line, so a supplier price file can be
