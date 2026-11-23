@@ -60,3 +60,13 @@ What the live data showed (read-only): of 118 active orders with embroidery, 93 
 - **Embroidery:** see `docs/embroidery.md` (step 1 built and applied 21 Nov 2026).
 - DecoNetwork-side fix so DTF and embroidery files are actually stored (see earlier notes).
 - Optional later: live mode for routing rules.
+
+## In house "DTF prints" page (23 Nov 2026)
+Daniel asked for a section within **In house** just for ordering and managing the prints: ordering them from Super Print and booking them in, not applying them to garments. This is the sidebar page **DTF prints** (In house group, after IH Orders; keyboard `g` then `7`; address `#/dtf-prints`).
+- **To order:** the in-house orders that need prints (third-party orders are left out: the decorator orders their own). Tick orders and choose **Build DTF order**; the email to Super Print waits for a person's approval on the Emails tab of Purchasing. A placement with no file shows "file missing" with a link to add it.
+- **Ordered, waiting:** DTF orders sent to Super Print and not yet delivered, each with **DTF received…** to book them in (whole or part), with each print's picture to match up.
+- **Booked in:** finished DTF orders.
+- **By design:** what has to be made, with the number of garments, so the same artwork on several orders is one line.
+- Header: prints to order, orders waiting for delivery, placements missing a file.
+- It uses the same database views and actions as the DTF tab on Pre-production (no database or n8n change); that tab is unchanged and still shows third-party work.
+- **Still to come:** a matching section for third parties, so decorators can manage making their transfers and confirm once made (the decorator portal already has a DTF page; Daniel wants a staff-side section too).
