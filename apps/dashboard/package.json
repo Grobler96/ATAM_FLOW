@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.45.4",
-    "@zxing/browser": "0.1.5",
+    "@zxing/browser": "0.2.1",
     "@zxing/library": "0.21.3",
     "jsbarcode": "3.12.3",
     "qrcode": "1.5.4",
