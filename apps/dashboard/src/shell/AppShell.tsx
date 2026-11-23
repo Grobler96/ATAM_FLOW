@@ -17,6 +17,7 @@ import { PenPage } from '../pages/Pen';
 import { OrderRulesPage } from '../pages/OrderRules';
 import { PreproductionPage } from '../pages/Preproduction';
 import { EmbroideryPage } from '../pages/Embroidery';
+import { DtfPrintsPage } from '../pages/DtfPrints';
 import { SuppliersPage } from '../pages/Suppliers';
 import { CutOffBanner } from '../components/CutOffBanner';
 import { StockTakesPage } from '../pages/StockTakes';
@@ -96,7 +97,7 @@ function Frame() {
         <main className="content" id="main">
           <RoleBanner />
           <CutOffBanner />
-          {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'ih-orders' && <OrdersPage route={route} mode="ih" />}{page === 'tp-orders' && <OrdersPage route={route} mode="tp" />}{page === 'pen' && <PenPage route={route} />}{page === 'rules' && <OrderRulesPage route={route} />}{page === 'preprod' && <PreproductionPage route={route} />}{page === 'embroidery' && <EmbroideryPage route={route} />}{page === 'suppliers' && <SuppliersPage />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
+          {page === 'home' && <Home />}{page === 'orders' && <OrdersPage route={route} />}{page === 'ih-orders' && <OrdersPage route={route} mode="ih" />}{page === 'tp-orders' && <OrdersPage route={route} mode="tp" />}{page === 'pen' && <PenPage route={route} />}{page === 'rules' && <OrderRulesPage route={route} />}{page === 'preprod' && <PreproductionPage route={route} />}{page === 'embroidery' && <EmbroideryPage route={route} />}{page === 'dtf-prints' && <DtfPrintsPage route={route} />}{page === 'suppliers' && <SuppliersPage />}{page === 'production' && <ProductionPage route={route} />}{page === 'stock' && <StockPage route={route} />}
           {page === 'purchasing' && <PurchasingPage route={route} onCreatePo={() => setPoOpen(true)} />}{page === 'producers' && <ProducersPage route={route} />}{page === 'warehouse' && <WarehousePage route={route} />}{page === 'dispatch' && <DispatchPage route={route} />}{page === 'stocktake' && <StockTakesPage route={route} />}{page === 'goods-in' && <GoodsInPage />}{page === 'quality' && <QualityPage route={route} />}
           {page === 'artwork' && <ArtworkPage route={route} />}{page === 'exceptions' && <ExceptionsPage route={route} />}{page === 'labels' && <LabelsPage route={route} />}{page === 'analytics' && <AnalyticsPage />}{page === 'control' && <ControlPage />}{page === 'waste' && <WastePage />}{page === 'crew' && <CrewPage />}{page === 'floor' && <FloorPage />}{page === 'settings' && <SettingsPage />}
           {!NAV.some((n) => n.id === page) && <div className="state"><h3>Page not found</h3><a href="#/">Back to the Command Centre</a></div>}
