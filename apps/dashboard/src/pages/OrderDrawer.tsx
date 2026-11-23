@@ -16,6 +16,8 @@ import { CUSTODY_LABEL, METHOD_LABEL, money, PO_STATUS_LABEL, shortDate, stockSt
 import { DueCell, StatusCell, OrderLink, Num } from '../components/common';
 import { OrderDecorator } from '../components/OrderDecorator';
 import { EmbroideryCheck, LightPill } from '../components/PreproLights';
+import { marginDetail, marginTone, marginWords } from '../lib/profit';
+import type { OrderProfitRow } from '../data/types';
 import { dtfStatusWords, fileWords, hasFile, itemsFor, lightDetail, preprodFor, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type PreprodRow } from '../lib/preproduction';
 import { decisionFor, outcomeLabel, outcomeTone, scopeLabel, tagText, tagsFor, type DecisionRow, type TagRow } from '../lib/orderRules';
 import { SelectionCompare } from '../components/SelectionCompare';
@@ -41,7 +43,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const tpo = useView<TpOrderRow>('ui_tp_orders'), moves = useView<MovementRow>('ui_tp_movements'), pos = useView<PoRow>('ui_purchase_orders'), sel = useView<SelectionRow>('ui_selection');
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
-  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const prepRows = useView<PreprodRow>('ui_preproduction'), dtfRows = useView<DtfItemRow>('ui_dtf_items'); const [assign, setAssign] = useState<QueueRow | null>(null);
+  const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const profitRows = useView<OrderProfitRow>('ui_order_profit'); const prepRows = useView<PreprodRow>('ui_preproduction'), dtfRows = useView<DtfItemRow>('ui_dtf_items'); const [assign, setAssign] = useState<QueueRow | null>(null);
   const { canAct, role } = useCtx(); const toast = useToast();
   const [sendDlg, setSendDlg] = useState(false); const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
@@ -78,7 +80,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       header={<Tabs label="Order sections" value={tab} tabs={tabs} onChange={setTab} />}>
       {tab === 'overview' && d && <div className="stack" style={{ gap: 16 }}>
         {orderActions}
-        <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
+        <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Margin over stock cost', (() => { const pr = profitRows.rows.find((x) => x.order_id === o.id); const d = marginDetail(pr); return <span key="m" title={d ?? undefined}><Status tone={marginTone(pr)} plain>{marginWords(pr)}</Status>{d && <span className="dim" style={{ display: 'block', fontSize: 12 }}>{d}</span>}</span>; })()], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
         <OrderDecorator orderId={o.id} />
         {(() => { const pp = preprodFor(prepRows.rows, o.id), di = itemsFor(dtfRows.rows, o.id);

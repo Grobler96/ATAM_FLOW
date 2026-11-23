@@ -45,8 +45,25 @@ Loaded straight into the live catalogue from the two price files (each batch che
 - **ORN**: **no API**. They run an **SFTP server as an EDI route**: stock, ETA, product image and style files are read from `/ftp/stockfile/`, and orders are uploaded as a CSV to `/ftp/incoming/` (their system checks every 5 minutes and emails a confirmation). Order CSV columns: Company Reference (our account number, CPIC2197), Customer Order Reference (our PO number), Product Code (their SKU, with dots, must match exactly), Quantity, then delivery company, address lines, country, postcode, first and last name and phone; all columns must be present and filled; the file is named with the account number and a unique number. SFTP details go into n8n credentials. ORN want to be told when we are ready to place orders so they can check the first ones.
 - **Other suppliers:** a Google Sheet "Supplier Log and Details" was shared; not read yet.
 
+## Daniel's answers (23 Nov 2026)
+- **Item codes match** across suppliers: the website uses each supplier's own codes. Later he wants something that links the same product across suppliers, so prices can be compared.
+- **Buying prices:** DecoNetwork does not use the supplier price files (it pulls generic trade prices and applies a discount). The files loaded into Flow are the real account prices. Prices change about every 3 months, by about 5% at most over a year, so reload each supplier's file each quarter (Flow now shows how old each supplier's prices are, and prompts at 90 days).
+- **Selling price per order line** comes from the DecoNetwork order (see Step 4).
+- **The 71 open DecoNetwork POs: leave them.** Only POs raised in Flow are the focus, which keeps the move clean and leaves DecoNetwork as a backup. The DecoNetwork PO sync is therefore left as it is.
+- **Super Print's order email** is sales@supa-print.co.uk (on its card).
+- **Prestige Leisure** sent a customer price file (account C31132) and a stock feed. None of the item codes Flow knows are in either, and no order API or EDI document came with them. The older Prestige card is switched off; use the one named USE THIS.
+- Still to come from Daniel: how DecoNetwork stock levels are topped up (a voice note), three more answers, and the Supplier Log and Details sheet (the shared link is private; it needs exporting).
+
+## Step 4: profit per order (**migration 84 written and tested, NOT applied**)
+- **Where the numbers come from:** the sale price per line is DecoNetwork's own, already held in `public.sales_order_lines` (1,398 of 1,400 active Flow lines match by workflow item id); the stock cost is the preferred supplier's catalogue price.
+- **"Margin over stock cost"** = what the lines sell for (ex VAT, so it includes decoration) less what the stock costs. It is before decoration, delivery and overheads. It is worked out only on lines that have both a sale price and a catalogue cost, and the screen says how many lines were counted and what is missing, so an incomplete answer is never passed off as a full one. DecoNetwork's own items (item codes with an underscore, such as name badges) are never counted as missing a cost.
+- **Screens:** a "Margin over stock" column on the Orders list and a "Margin over stock cost" line on the order drawer (green when complete, amber when something is missing, red when the stock costs more than the lines sell for).
+- **Supplier price age:** each supplier card shows how long ago its prices were loaded, flags it from 90 days, and the Catalogue page lists suppliers due a reload.
+- **Read-only check on live data before applying:** 86 of 100 active orders have a margin and all 86 are fully costed; across them stock is about 47% of the sale value (52.9% margin); 5 orders cost more in stock than they sell for.
+- **Database:** `flow.order_profit()` (security definer so it can read DecoNetwork's prices, team members only), views `ui_order_profit` and `ui_supplier_price_age`. No change to n8n.
+
 ## Decisions and open points (22 Nov 2026)
-- **DecoNetwork purchasing:** the agreed approach is to **stop pulling new DecoNetwork purchase orders and finish the open ones in Flow** (71 open, about 1,400 units still to arrive: book their goods in through Flow's goods-in). **Not switched off yet.** Before the sync is switched off we need to know **how DecoNetwork's stock levels will be topped up**, because they normally rise when goods are received against a DecoNetwork PO, and they decide "stock secured".
+- **DecoNetwork purchasing:** superseded on 23 Nov 2026 (see Daniel's answers): the 71 open DecoNetwork POs are **left alone**; Flow-raised POs are the focus. **Not switched off.** Before the sync is switched off we need to know **how DecoNetwork's stock levels will be topped up**, because they normally rise when goods are received against a DecoNetwork PO, and they decide "stock secured".
 - **Supplier codes:** answered 23 Nov 2026: they match (see Step 2).
 - **API / EDI details** for Ralawise (API) and ORN (SFTP) have arrived (see above). Next step is raising POs from the catalogue prices, then sending them. The logins must be set up as n8n credentials, never pasted into Flow or a chat.
 - **Profit per order** also needs a selling price per order line, which Flow does not hold yet (only the order total).
