@@ -93,11 +93,11 @@ function Suggestions({ sug }: { sug: ReturnType<typeof useView<SuggestionRow>> }
         {s.area && <span className="tag">{s.area}</span>}<span className="dim">Suggested by {s.suggested_by_name ?? 'someone'} · {dayWords(s.created_at)} · {s.votes} rating{s.votes === 1 ? '' : 's'}{s.avg_importance != null ? `, average ${s.avg_importance}` : ''}</span></div>
       <div className="row wrap" style={{ gap: 6, marginTop: 8 }} role="group" aria-label={`Your rating for ${s.title}`}>
         <span className="dim">Your rating:</span>
-        {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" className={`chip ${s.my_rating === n ? 'on' : ''}`} aria-pressed={s.my_rating === n} disabled={busy === s.id} title={IMPORTANCE_WORDS[n]} onClick={() => void act(s.id, 'rate_update_suggestion', { p_id: s.id, p_importance: s.my_rating === n ? null : n }, s.my_rating === n ? 'Rating taken back' : 'Rating saved')}>{n}</button>)}
+        {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" className={`chip ${s.my_rating === n ? 'on' : ''}`} aria-pressed={s.my_rating === n} disabled={busy === s.id} title={IMPORTANCE_WORDS[n]} onClick={() => void act(s.id, 'update_log_rate', { p_id: s.id, p_importance: s.my_rating === n ? null : n }, s.my_rating === n ? 'Rating taken back' : 'Rating saved')}>{n}</button>)}
         {s.my_rating && <span className="dim">{IMPORTANCE_WORDS[s.my_rating]}</span>}
         <span className="grow" />
-        {senior && <select className="input" aria-label={`Status of ${s.title}`} value={s.status} disabled={busy === s.id} onChange={(e) => void act(s.id, 'set_update_suggestion_status', { p_id: s.id, p_status: e.target.value }, 'Status changed')} style={{ width: 130 }}>{(Object.keys(SUGGESTION_STATUS) as SuggestionRow['status'][]).map((k) => <option key={k} value={k}>{SUGGESTION_STATUS[k]}</option>)}</select>}
-        {s.mine && s.status === 'open' && <Button size="sm" variant="ghost" disabled={busy === s.id} onClick={() => { if (window.confirm('Take this suggestion back? It will be removed from the list.')) void act(s.id, 'withdraw_update_suggestion', { p_id: s.id }, 'Your suggestion was removed'); }}>Take my suggestion back</Button>}
+        {senior && <select className="input" aria-label={`Status of ${s.title}`} value={s.status} disabled={busy === s.id} onChange={(e) => void act(s.id, 'update_log_set_status', { p_id: s.id, p_status: e.target.value }, 'Status changed')} style={{ width: 130 }}>{(Object.keys(SUGGESTION_STATUS) as SuggestionRow['status'][]).map((k) => <option key={k} value={k}>{SUGGESTION_STATUS[k]}</option>)}</select>}
+        {s.mine && s.status === 'open' && <Button size="sm" variant="ghost" disabled={busy === s.id} onClick={() => { if (window.confirm('Take this suggestion back? It will be removed from the list.')) void act(s.id, 'update_log_withdraw', { p_id: s.id }, 'Your suggestion was removed'); }}>Take my suggestion back</Button>}
       </div>
     </div>);
   return (
@@ -117,7 +117,7 @@ function AddSuggestion({ onClose, onDone }: { onClose: () => void; onDone: () =>
   const areas = useMemo(() => areasOf(UPDATES), []);
   async function save() {
     if (title.trim().length < 3) { setErr('Give the suggestion a short title first.'); return; }
-    setBusy(true); setErr(null); const r = await call('suggest_update', { p_title: title.trim(), p_detail: detail.trim(), p_area: area, p_importance: imp }); setBusy(false);
+    setBusy(true); setErr(null); const r = await call('update_log_suggest', { p_title: title.trim(), p_detail: detail.trim(), p_area: area, p_importance: imp }); setBusy(false);
     if (!r.ok) { setErr(r.error ?? 'That did not work.'); return; }
     toast.push({ tone: 'good', title: 'Thanks, your suggestion is on the list' }); onDone();
   }

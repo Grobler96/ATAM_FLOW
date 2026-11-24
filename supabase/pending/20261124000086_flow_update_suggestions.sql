@@ -1,4 +1,5 @@
 -- 24 Nov 2026: suggestions for the Update log (NOT YET APPLIED).
+-- The functions are named update_log_*, NOT suggest_update etc., because ATAM GO shares this Supabase project and already owns those names.
 -- The Update log page (timeline of every change) lives in the dashboard code. This adds the other half, the same as ATAM GO has: the team's
 -- suggestions for new updates, each rated 1 (nice to have) to 5 (needed now), ranked by points.
 --   * Anyone on the team (any role) can suggest, rate and take back their own open suggestion. Nobody outside the team sees anything.
@@ -43,7 +44,7 @@ left join flow.update_suggestion_ratings r on r.suggestion_id = s.id
 where flow.is_member()
 group by s.id;
 
-create or replace function public.suggest_update(p_title text, p_detail text, p_area text, p_importance int) returns jsonb
+create or replace function public.update_log_suggest(p_title text, p_detail text, p_area text, p_importance int) returns jsonb
 language plpgsql security definer set search_path = flow, public as $$
 declare v_name text; v_id uuid;
 begin
@@ -60,7 +61,7 @@ begin
   return jsonb_build_object('ok', true, 'id', v_id);
 end $$;
 
-create or replace function public.rate_update_suggestion(p_id uuid, p_importance int) returns jsonb
+create or replace function public.update_log_rate(p_id uuid, p_importance int) returns jsonb
 language plpgsql security definer set search_path = flow, public as $$
 begin
   if not flow.is_member() then return jsonb_build_object('ok', false, 'error', 'Only the team can rate suggestions.'); end if;
@@ -75,7 +76,7 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-create or replace function public.withdraw_update_suggestion(p_id uuid) returns jsonb
+create or replace function public.update_log_withdraw(p_id uuid) returns jsonb
 language plpgsql security definer set search_path = flow, public as $$
 declare v_n int;
 begin
@@ -86,7 +87,7 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-create or replace function public.set_update_suggestion_status(p_id uuid, p_status text) returns jsonb
+create or replace function public.update_log_set_status(p_id uuid, p_status text) returns jsonb
 language plpgsql security definer set search_path = flow, public as $$
 begin
   if not flow.has_role('admin', 'manager') then return jsonb_build_object('ok', false, 'error', 'Only managers and admins change a suggestion''s status.'); end if;
@@ -101,6 +102,6 @@ do $$
 begin
   revoke all on public.ui_update_suggestions from public, anon;
   grant select on public.ui_update_suggestions to authenticated;
-  revoke all on function public.suggest_update(text, text, text, int), public.rate_update_suggestion(uuid, int), public.withdraw_update_suggestion(uuid), public.set_update_suggestion_status(uuid, text) from public, anon;
-  grant execute on function public.suggest_update(text, text, text, int), public.rate_update_suggestion(uuid, int), public.withdraw_update_suggestion(uuid), public.set_update_suggestion_status(uuid, text) to authenticated;
+  revoke all on function public.update_log_suggest(text, text, text, int), public.update_log_rate(uuid, int), public.update_log_withdraw(uuid), public.update_log_set_status(uuid, text) from public, anon;
+  grant execute on function public.update_log_suggest(text, text, text, int), public.update_log_rate(uuid, int), public.update_log_withdraw(uuid), public.update_log_set_status(uuid, text) to authenticated;
 end $$;
