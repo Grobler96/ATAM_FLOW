@@ -1,4 +1,4 @@
--- 24 Nov 2026: an order switched to third party lets go of its DTF placements (NOT YET APPLIED).
+-- 24 Nov 2026: an order switched to third party lets go of its DTF placements (APPLIED to the live project 24 Nov 2026 as "flow_dtf_release_on_third_party").
 -- The problem: an in-house DTF order to Super Print was built for order 636846, then the order was switched to third party. Its placements stayed
 -- locked to the in-house DTF order, so the 3PD DTF prints page and the decorator portal never showed them, and the Super Print email (still waiting for
 -- approval) would have ordered prints for a third-party order.
