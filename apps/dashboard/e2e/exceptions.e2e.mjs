@@ -819,8 +819,8 @@ try {
     const VU = { ui_update_suggestions: [sg('s1', 'Supplier league table', { points: 9, votes: 2, avg: 4.5, detail: 'Rank by lateness', area: 'Suppliers', my: 4 }), sg('s2', 'Mine to withdraw', { points: 3, mine: true }), sg('s3', 'Already done idea', { status: 'built', points: 20 })] };
     { const { page: pu, ctx: cu, st: su } = await newPage(browser, { role: 'manager', views: VU }); await signIn(pu);
       const labels = await pu.locator('.nav a, .nav .nav-label').allInnerTexts(); ok(labels.some((t) => /update log/i.test(t)), 'the menu has an Update log page');
-      await goto(pu, '#/update-log'); await pu.getByRole('heading', { name: 'Update log', exact: true }).waitFor(); await pu.getByTestId('update-v36').waitFor();
-      ok((await pu.getByTestId('update-v36').innerText()).includes('What changed'), 'the newest update is open on arrival');
+      await goto(pu, '#/update-log'); await pu.getByRole('heading', { name: 'Update log', exact: true }).waitFor(); await pu.locator('[data-testid^="update-v"]').first().waitFor();
+      ok((await pu.locator('[data-testid^="update-v"]').first().innerText()).includes('What changed'), 'the newest update is open on arrival (whichever version it is)');
       await pu.getByTestId('update-v1').getByRole('button').first().click(); await pu.getByTestId('update-v1').getByText('What changed').waitFor(); ok(true, 'an older update opens when clicked');
       await pu.getByLabel('Search updates').fill('embroidery'); ok((await pu.getByTestId('update-v26').count()) === 1 && (await pu.getByTestId('update-v35').count()) === 0, 'search narrows the timeline');
       await pu.getByLabel('Search updates').fill('');
