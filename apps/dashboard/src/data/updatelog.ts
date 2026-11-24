@@ -3,12 +3,15 @@
 //   1. Add a new entry at the TOP of UPDATES with the next version number (v37, v38...).
 //   2. status: 'in_progress' (being worked on; add progress 0 to 100 for the bar), 'built' (finished, waiting to go live),
 //      'partly' (some parts are live, some wait for a merge, a migration or a publish), 'live' (working now), 'rolled_back' (undone).
-//   3. When something goes live, change its status and, if wanted, add timeTaken (for example '2 h 30 m'). Never delete an entry: the point is to look back.
+//   3. When something goes live, change its status. Never delete an entry: the point is to look back. No times are recorded on entries.
 //   4. Keep it plain. Say what changed for the people using it and what to check if it goes wrong. No file or workflow names on the page.
 // Planned work goes in PLANNED (no version number until it is built). Move an item out of PLANNED when it is built.
 
+// Everything in the log is credited to the owner.
+export const DONE_BY = 'Oliver';
+
 export type UpdateStatus = 'in_progress' | 'live' | 'partly' | 'built' | 'rolled_back';
-export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr?: number; areas: string[]; title: string; summary: string; changes: string[]; watch?: string; progress?: number; timeTaken?: string }
+export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr?: number; areas: string[]; title: string; summary: string; changes: string[]; watch?: string; progress?: number }
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [

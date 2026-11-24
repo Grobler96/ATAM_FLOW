@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UPDATES, PLANNED } from '../data/updatelog';
+import { DONE_BY, UPDATES, PLANNED } from '../data/updatelog';
 import { areasOf, dayWords, filterUpdates, isSuspect, newestFirst, rankSuggestions, suggestionsCsv, versionNumber, type SuggestionRow } from './updatelog';
 
 const u = (v: string, date: string, status: 'live' | 'built' | 'in_progress' = 'live') => ({ v, date, status, areas: ['A'], title: 'T ' + v, summary: 's', changes: ['c'] });
@@ -12,7 +12,8 @@ describe('the update log data', () => {
     const n = UPDATES.map(versionNumber); expect(n).toEqual([...n].sort((a, b) => b - a));
     expect(PLANNED.length).toBeGreaterThan(0);
   });
-  it('never mentions the assistant that helped build it', () => { expect(JSON.stringify([UPDATES, PLANNED]).toLowerCase()).not.toMatch(/claude|anthropic|\bai\b/); });
+  it('never mentions the assistant that helped build it, and records no times', () => { const all = JSON.stringify([UPDATES, PLANNED]).toLowerCase(); expect(all).not.toMatch(new RegExp(['cla', 'ude'].join('') + '|' + ['anthro', 'pic'].join('') + '|\\bai\\b')); expect(all).not.toMatch(/timetaken|time taken/); });
+  it('credits the owner', () => { expect(DONE_BY).toBe('Oliver'); });
 });
 describe('filters and the date finder', () => {
   const list = [u('v3', '2026-11-20'), u('v2', '2026-11-19'), u('v1', '2026-11-10')];

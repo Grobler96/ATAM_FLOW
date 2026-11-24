@@ -5,7 +5,7 @@ import { useCtx } from '../data/context';
 import { refreshAll, useView } from '../data/store';
 import { supabase } from '../lib/api';
 import { navigate, type Route } from '../router';
-import { PLANNED, UPDATES, type UpdateEntry } from '../data/updatelog';
+import { DONE_BY, PLANNED, UPDATES, type UpdateEntry } from '../data/updatelog';
 import { areasOf, dayWords, filterUpdates, IMPORTANCE_WORDS, isLiveSuggestion, isSuspect, newestFirst, rankSuggestions, STATUS_LABEL, STATUS_TONE, SUGGESTION_STATUS, suggestionsCsv, SUSPECT_DAYS, type SuggestionRow } from '../lib/updatelog';
 
 // The Update log: a timeline of every change made to ATAM_FLOW, and the team's suggestions for what to build next, rated 1 to 5.
@@ -58,7 +58,7 @@ function Timeline() {
                 <b className="mono" style={{ minWidth: 44 }}>{u.v}</b><span className="grow"><b>{u.title}</b>{sus && <em> · possible cause</em>}<span className="dim"> · {dayWords(u.date)}</span></span>
                 <Status tone={STATUS_TONE[u.status]}>{STATUS_LABEL[u.status]}</Status><span aria-hidden>{isOpen ? '−' : '+'}</span></button>
               <div className="dim" style={{ marginTop: 4 }}>{u.summary}</div>
-              <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>{u.areas.map((a) => <span key={a} className="tag">{a}</span>)}{u.timeTaken && <span className="dim">Took {u.timeTaken}</span>}</div>
+              <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>{u.areas.map((a) => <span key={a} className="tag">{a}</span>)}<span className="dim">Done by {DONE_BY}</span></div>
               {isOpen && <div style={{ marginTop: 8 }}><b>What changed</b><ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>{u.changes.map((c) => <li key={c}>{c}</li>)}</ul>{u.watch && <div style={{ marginTop: 8 }}><b>If something goes wrong</b><div className="dim">{u.watch}</div></div>}</div>}
             </div>);
         })}
