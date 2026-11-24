@@ -41,6 +41,7 @@ Apply order does not matter. Migrations sent through the Supabase tool: none of 
 - Merge a PR **only when asked**; mark drafts ready first. Open a draft PR after pushing and subscribe to it.
 - Work on a branch named `oliverg/<name>`, restarted from `origin/main` after each merge. `git fetch` and check `origin/<branch>` before pushing; number migrations after the highest in the repo (next is **67**, file prefix `20261110000067_`: 63 to 65 are in the repo but not live; 66 is live).
 - No model names in repo artifacts (commits, code, docs).
+- **Update log:** every change gets an entry at the top of `apps/dashboard/src/data/updatelog.ts` (next v number, status, what changed, what to check if it goes wrong), in the same pull request. Keep it plain: no file or workflow names on the page. Move planned items out of `PLANNED` when they are built. Never delete an entry. Everything is credited to Oliver, and no times are recorded. See `docs/update-log.md`.
 - Do not guess the things the owner still has to supply: producers list and rates, who gets which role, supplier emails and offers, machine shift hours, press speeds, QC checklist items, risk weights, the DecoNetwork artwork credential. Supabase settings only the owner can change: portal redirect URL (done), email sender, turning off new sign-ups, link expiry.
 
 ## Engineering patterns and pitfalls
