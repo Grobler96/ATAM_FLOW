@@ -58,3 +58,7 @@ export interface PoTransmissionRow { id: string; po_id: string; po_ref: string; 
 // Profit per order and supplier price age (migration 84)
 export interface OrderProfitRow { order_id: string; order_ref: string; sell_value: number | null; stock_cost: number | null; margin: number | null; margin_pct: number | null; lines: number; costed_lines: number; missing_cost_lines: number; unpriced_sale_lines: number; complete: boolean }
 export interface SupplierPriceAgeRow { supplier_id: string; supplier: string; priced_items: number; last_loaded: string | null; days_old: number | null }
+
+// A third-party DTF transfer with the decorator making it (public.ui_dtf_third_party).
+export interface DtfThirdPartyRow { id: string; order_id: string; order_ref: string; customer_name: string | null; due_date: string | null; deco_line_id: string; product_name: string | null; area: string; qty: number; status: 'required' | 'in_progress' | 'done';
+  producer_id: string | null; producer_name: string | null; artwork_id: string | null; thumbnail_url: string | null; file_format: string | null; storage_status: string | null; content_hash: string | null; status_by: string | null; status_at: string | null; updated_at: string }
