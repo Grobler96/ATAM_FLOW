@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v37', date: '2026-11-24', status: 'built', areas: ['Pre-production', 'Third parties'], title: 'Switching an order to third party frees its DTF prints',
+    summary: 'If an order is switched to third party after an in-house DTF order was built for it, the DTF order is cancelled automatically and the prints are freed, so the order shows on the 3PD DTF prints page and to the decorator.',
+    changes: ['A DTF order to Super Print that has not been sent yet is cancelled, with its email, the moment one of its orders becomes third party.', 'Any other orders on that DTF order are freed too and can go on a new one.', 'A DTF order that has already been sent or received is left alone, because those prints were really ordered.', 'Each cancellation is recorded with the reason.'],
+    watch: 'Not live until its database change is applied. Until then, cancel the email for the DTF order by hand on the Emails tab in Purchasing. If an order you switched to third party still does not show on the 3PD DTF prints page, check whether its DTF order had already been sent.' },
   { v: 'v36', date: '2026-11-24', status: 'live', areas: ['Update log'], title: 'This Update log, with a suggestions board',
     summary: 'One place to see every change made to ATAM_FLOW, and for the team to suggest and rate what to build next.',
     changes: ['A timeline of every change, newest first, with what changed and what to check if it goes wrong.', 'A "something broke? it started around…" date finder that highlights the changes from the days before.', 'A suggestions board: anyone on the team adds an idea and rates every idea from 1 (nice to have) to 5 (needed now). The list is ranked by points and can be downloaded.', 'Managers and admins mark a suggestion Planned, Built or Declined.'],
