@@ -1,4 +1,4 @@
--- 23 Nov 2026: staff side of third-party DTF prints (NOT YET APPLIED).
+-- 23 Nov 2026: staff side of third-party DTF prints (APPLIED to the live project 24 Nov 2026 as "flow_dtf_third_party_staff").
 -- The decorator portal already lets a decorator mark their own transfers "in production" and "made". This adds the office side:
 --  1. public.ui_dtf_third_party: every current third-party transfer with the decorator who is making it (the order's producer, or the
 --     third_party.default_producer setting), the print file state, and who last moved it on and when. Team members only.
