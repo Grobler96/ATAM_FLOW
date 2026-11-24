@@ -15,10 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
-  { v: 'v36', date: '2026-11-24', status: 'built', areas: ['Update log'], title: 'This Update log, with a suggestions board',
+  { v: 'v36', date: '2026-11-24', status: 'live', areas: ['Update log'], title: 'This Update log, with a suggestions board',
     summary: 'One place to see every change made to ATAM_FLOW, and for the team to suggest and rate what to build next.',
     changes: ['A timeline of every change, newest first, with what changed and what to check if it goes wrong.', 'A "something broke? it started around…" date finder that highlights the changes from the days before.', 'A suggestions board: anyone on the team adds an idea and rates every idea from 1 (nice to have) to 5 (needed now). The list is ranked by points and can be downloaded.', 'Managers and admins mark a suggestion Planned, Built or Declined.'],
-    watch: 'The timeline works straight away. The suggestions board needs its database change applied first; until then it says it could not load.' },
+    watch: 'If the suggestions board says it could not load, check you are signed in with a team login. Ideas and ratings are kept separately from ATAM GO\'s.' },
   { v: 'v35', date: '2026-11-24', status: 'live', pr: 74, areas: ['Third parties', 'Pre-production'], title: '3PD DTF prints page',
     summary: 'The office can see every transfer a decorator is making for a third-party order and confirm one for them.',
     changes: ['New page after 3PD Orders with views To make, In production, Made and All, and a Decorator filter.', 'Each transfer says who confirmed it, the decorator on their portal or the office.', 'Managers, admins and production planners can mark transfers in production or made for a decorator, for example after a phone call. Moves only go forward.'],

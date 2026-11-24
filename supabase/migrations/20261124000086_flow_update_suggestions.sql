@@ -1,4 +1,4 @@
--- 24 Nov 2026: suggestions for the Update log (NOT YET APPLIED).
+-- 24 Nov 2026: suggestions for the Update log (APPLIED to the live project 24 Nov 2026 as "flow_update_suggestions").
 -- The functions are named update_log_*, NOT suggest_update etc., because ATAM GO shares this Supabase project and already owns those names.
 -- The Update log page (timeline of every change) lives in the dashboard code. This adds the other half, the same as ATAM GO has: the team's
 -- suggestions for new updates, each rated 1 (nice to have) to 5 (needed now), ranked by points.
