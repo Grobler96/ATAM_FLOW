@@ -1,3 +1,4 @@
+import { WorksheetButton } from '../components/WorksheetButton';
 import { useMemo, useState } from 'react';
 import { Drawer, Modal, useToast } from '../ui/overlay';
 import { Button, EmptyState, Facts, Field, Panel, Progress, Skeleton, Status, Tabs, Tag } from '../ui/primitives';
@@ -71,6 +72,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
 
   const orderActions = (
     <div className="row wrap" style={{ gap: 8 }}>
+      <WorksheetButton order={o} />
       <Button icon="artwork" onClick={() => navigate('artwork/' + o.order_ref.replace('#', ''))} title="Opens this order in Artwork & Job Packs, where files are uploaded, approved and made into a job pack">Add artwork</Button>
       <Button icon="producers" disabled={!canAct} title={canAct ? 'Opens a new consignment with this order\'s lines ready to pick' : 'Your role cannot create consignments'} onClick={() => setSendDlg(true)}>Send to a decorator</Button>
     </div>);

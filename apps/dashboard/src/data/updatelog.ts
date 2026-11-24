@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v38', date: '2026-11-24', status: 'built', areas: ['Orders', 'Production'], title: 'Print a production worksheet for any order',
+    summary: 'A Print worksheet button on every order prints a sheet laid out like the DecoNetwork production order, from what Flow already holds.',
+    changes: ['Delivery address, dispatch date and method, customer and units at the top.', 'Each garment under its DecoNetwork item number, with its sizes and quantities and a total.', 'Each design on the garment: placement, process, file and whether the customer has approved it, plus its size, position, stitch count and picture where Flow has them.', 'Anyone who can see an order can print it. Nothing is sent or changed.'],
+    watch: 'Where Flow holds no size, position, stitch count or picture for a design the sheet says so in red and lists what is missing at the bottom. Garment pictures and thread or print colours are not held in Flow yet, so use the DecoNetwork order for those. Live once this update is published.' },
   { v: 'v37', date: '2026-11-24', status: 'live', areas: ['Pre-production', 'Third parties'], title: 'Switching an order to third party frees its DTF prints',
     summary: 'If an order is switched to third party after an in-house DTF order was built for it, the DTF order is cancelled automatically and the prints are freed, so the order shows on the 3PD DTF prints page and to the decorator.',
     changes: ['A DTF order to Super Print that has not been sent yet is cancelled, with its email, the moment one of its orders becomes third party.', 'Any other orders on that DTF order are freed too and can go on a new one.', 'A DTF order that has already been sent or received is left alone, because those prints were really ordered.', 'Each cancellation is recorded with the reason.'],
