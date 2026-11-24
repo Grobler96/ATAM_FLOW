@@ -39,8 +39,8 @@ export function BuildDtfDialog({ orderIds, items, onClose }: { orderIds: string[
         </>}
         {done && <>
           <p role="status"><b>DTF order {done.ref} created.</b> {done.message}</p>
-          {done.noRecipient && <div className="callout" role="status">Super Print has no email address in Flow yet, so the email stays a draft that cannot be approved. Add the address to the supplier, then approve the email under <a href={href('purchasing')}>Purchasing, Emails</a>.</div>}
-          {!done.noRecipient && <p>Approve it under <a href={href('purchasing')}>Purchasing, Emails</a>. When it is sent the prints go to amber (Prints ordered).</p>}
+          {done.noRecipient && <div className="callout" role="status">Super Print has no email address in Flow yet, so the email stays a draft that cannot be approved. Add the address to the supplier, then approve the email under <a href={href('purchasing/emails')}>Purchasing, Emails</a>.</div>}
+          {!done.noRecipient && <p>Approve it under <a href={href('purchasing/emails')}>Purchasing, Emails</a>. When it is sent the prints go to amber (Prints ordered).</p>}
           <div className="row"><Button variant="primary" onClick={onClose}>Done</Button></div>
         </>}
       </div>
