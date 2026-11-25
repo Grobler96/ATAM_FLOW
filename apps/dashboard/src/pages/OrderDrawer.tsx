@@ -1,3 +1,6 @@
+import { WorksheetButton } from '../components/WorksheetButton';
+import { MakeThirdPartyDialog } from '../components/MakeThirdPartyDialog';
+import type { OrderScopeRow } from '../lib/scope';
 import { useMemo, useState } from 'react';
 import { Drawer, Modal, useToast } from '../ui/overlay';
 import { Button, EmptyState, Facts, Field, Panel, Progress, Skeleton, Status, Tabs, Tag } from '../ui/primitives';
@@ -44,7 +47,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
   const bins = useView<BinRow>('ui_bins'), ex = useView<ExceptionRow>('ui_exceptions'), acc = useView<Acc>('ui_order_accountability');
   const hist = useRpcList<Hist>('ui_order_history', { p_order: o?.id ?? '00000000-0000-0000-0000-000000000000' }, [o?.id], 0);
   const chg = useView<ChangeRow>('ui_order_changes'); const pen = useView<PenRow>('ui_pen'); const orderTagRows = useView<TagRow>('ui_order_tags'), ruleRows = useView<DecisionRow>('ui_routing_decisions'); const profitRows = useView<OrderProfitRow>('ui_order_profit'); const prepRows = useView<PreprodRow>('ui_preproduction'), dtfRows = useView<DtfItemRow>('ui_dtf_items'); const [assign, setAssign] = useState<QueueRow | null>(null);
-  const { canAct, role } = useCtx(); const toast = useToast();
+  const { canAct, role, senior } = useCtx(); const toast = useToast(); const scopeRows = useView<OrderScopeRow>('ui_order_scope'); const [tpOpen, setTpOpen] = useState(false);
   const [sendDlg, setSendDlg] = useState(false); const [compare, setCompare] = useState(false); const [pin, setPin] = useState<QueueRow | null>(null); const [pinRank, setPinRank] = useState('1'); const [pinWhy, setPinWhy] = useState(''); const [pinBusy, setPinBusy] = useState(false); const [pinErr, setPinErr] = useState<string | null>(null);
 
   const d = useMemo(() => {
@@ -71,6 +74,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
 
   const orderActions = (
     <div className="row wrap" style={{ gap: 8 }}>
+      <WorksheetButton order={o} />
       <Button icon="artwork" onClick={() => navigate('artwork/' + o.order_ref.replace('#', ''))} title="Opens this order in Artwork & Job Packs, where files are uploaded, approved and made into a job pack">Add artwork</Button>
       <Button icon="producers" disabled={!canAct} title={canAct ? 'Opens a new consignment with this order\'s lines ready to pick' : 'Your role cannot create consignments'} onClick={() => setSendDlg(true)}>Send to a decorator</Button>
     </div>);
@@ -79,6 +83,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
     <Drawer open onClose={onClose} wide title={<span className="row wrap" style={{ gap: 10 }}>{o.order_ref}<StatusCell s={o.order_status} />{o.is_overdue && <Status tone="critical">Overdue</Status>}</span>} subtitle={`${o.customer_name ?? 'No customer'}${o.customer_po ? ' · PO ' + o.customer_po : ''}`}
       header={<Tabs label="Order sections" value={tab} tabs={tabs} onChange={setTab} />}>
       {tab === 'overview' && d && <div className="stack" style={{ gap: 16 }}>
+        {o && scopeRows.rows.find((x) => x.order_id === o.id)?.scope === 'unclassified' && <div className="callout soft" role="status" data-testid="unclassified-note"><b>Nothing says whether this order is third party, so Flow treats it as an in-house order.</b> A third-party order is marked by DecoNetwork's Priority Order flag, which Flow reads every hour, or by a person here. This order has neither. To make it third party, set the Priority Order flag in DecoNetwork and wait up to an hour, or {senior ? <Button size="sm" onClick={() => setTpOpen(true)}>Make it third-party here</Button> : 'ask a manager or admin to make it third-party here'}.</div>}
         {orderActions}
         <Facts items={[['Due / dispatch', <DueCell key="d" days={o.days_to_due} date={o.due_date} />], ['Priority', `${PRIORITY[o.priority]?.label}${o.is_vip ? ' · VIP' : ''}`], ['Units', <Num key="u" v={o.total_units} />], ['Value', money(o.order_value)], ['Margin over stock cost', (() => { const pr = profitRows.rows.find((x) => x.order_id === o.id); const d = marginDetail(pr); return <span key="m" title={d ?? undefined}><Status tone={marginTone(pr)} plain>{marginWords(pr)}</Status>{d && <span className="dim" style={{ display: 'block', fontSize: 12 }}>{d}</span>}</span>; })()], ['Methods', o.decoration_methods.map((m) => METHOD_LABEL[m] ?? m).join(', ') || 'None recorded'],
           ['Stock', <Status key="s" tone={ss.tone}>{ss.label}</Status>], ['Shipping', o.shipping_method], ['Ordered', shortDate(o.order_date)], ['Last updated', dateTime(o.updated_at)], ['Status reason', o.status_reason], ['Notes', o.production_notes]]} />
@@ -159,6 +164,7 @@ export function OrderDrawer({ orderRef, onClose }: { orderRef: string; onClose: 
       {sendDlg && <CreateMovementDialog presetOrders={[o.order_ref]} onClose={() => setSendDlg(false)} />}
       {assign && <AssignDialog step={assign} onClose={() => { setAssign(null); void refreshAll(); }} />}
       <SelectionCompare open={compare} onClose={() => setCompare(false)} orderId={o.id} orderRef={o.order_ref} />
+      {tpOpen && <MakeThirdPartyDialog rows={[{ id: o.id, ref: o.order_ref, scope: 'unclassified' }]} onClose={() => setTpOpen(false)} />}
       <Modal open={!!pin} onClose={() => setPin(null)} title="Override production position">
         {pin && <div className="stack"><div className="callout soft"><b>System recommendation: position #{pin.recommended_position ?? '–'}</b><span className="muted">{pin.reason}</span></div>
           <Field label="Pin this job to position"><input className="input" inputMode="numeric" value={pinRank} onChange={(e) => setPinRank(e.target.value)} /></Field>

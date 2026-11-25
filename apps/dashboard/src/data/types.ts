@@ -4,7 +4,7 @@ export interface OrderRow { id: string; order_ref: string; customer_name: string
   risk_score: number | null; sequence_position: number | null; production_stage: string | null; artwork_status: string | null; proof_status: string | null; assigned_to: string | null; status_reason: string | null;
   label_status: string; updated_at: string; source_synced_at: string | null; customer_po: string | null; shipping_method: string | null; production_notes: string | null; order_date: string | null; shipped_at: string | null }
 export interface OrderLineRow { id: string; order_id: string; sku: string | null; product_name: string | null; colour: string | null; size: string | null; qty_required: number; qty_produced: number; qty_shipped: number; decoration_methods: string[];
-  decoration_placement: string | null; stitches_per_piece: number | null; qty_allocated_on_hand: number; qty_allocated_incoming: number; qty_shortage: number }
+  decoration_placement: string | null; stitches_per_piece: number | null; deco_line_id?: string | null; qty_allocated_on_hand: number; qty_allocated_incoming: number; qty_shortage: number }
 export interface AllocationRow { order_id: string; decision: string; reason: string; score: number | null; projected_ready_date: string | null; late_risk: boolean | null; units_short: number; decided_at: string }
 export interface AllocationDecision { order_id: string; decision: string; reason: string; score: number | null; score_breakdown: Record<string, unknown> | null; created_at: string }
 export interface QueueRow { step_id: string; order_id: string; order_ref: string; customer_name: string | null; due_date: string | null; priority: number; order_status: string; risk_score: number | null; method_code: string; step_no: number; status: string;

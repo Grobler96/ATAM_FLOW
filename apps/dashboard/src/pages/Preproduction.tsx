@@ -1,3 +1,4 @@
+import { ArtworkGuide } from '../components/ArtworkGuide';
 import { useState } from 'react';
 import { Button, Panel, EmptyState, Status, Tabs } from '../ui/primitives';
 import { useCtx } from '../data/context';
@@ -24,6 +25,7 @@ export function PreproductionPage({ route }: { route: Route }) {
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>Pre-production</h1>
         <p>{c.total === 0 ? 'No active orders yet.' : `${c.total} active orders · ${c.ready} ready for production · ${c.prints} need prints · ${c.embroidery} need embroidery checked · ${c.stock} need stock`}</p></div></div>
+      <ArtworkGuide />
       <Tabs label="Pre-production sections" value={tab} tabs={[{ id: 'orders', label: 'Orders', count: prep.rows.length }, { id: 'dtf', label: 'DTF prints', count: withDtf.length }]} onChange={(t) => navigate(t === 'dtf' ? 'preprod/dtf' : 'preprod')} />
       {tab === 'orders' ? <OrdersTab prep={prep} route={route} /> : <DtfTab dtf={dtf} orders={withDtf} batches={batches} route={route} />}
     </div>

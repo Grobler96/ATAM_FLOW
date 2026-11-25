@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Button, EmptyState, Facts, Panel, Segmented, Skeleton, Status } from '../ui/primitives';
 import { Drawer, Modal, useToast } from '../ui/overlay';
 import { DataTable, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
@@ -20,11 +20,12 @@ import type { PoLineRow, PoRow, SupplierDiscRow } from '../data/types';
 interface SupplierRow { id: string; name: string; email: string | null; contact_name: string | null; lead_time_days: number; delivery_cost: number; free_delivery_over: number | null; min_order_value: number | null; payment_terms: string | null; on_time_rate: number | null; quality_rating: number | null; can_deliver_to_producer: boolean; pos_considered: number; pos_late: number; avg_days_late: number | null; open_late: number; issue_rate: number | null; stats_at: string | null }
 interface CommRow { id: string; comm_ref: string; kind: string; status: string; to_addresses: string[]; subject: string; created_at: string; entity_id: string | null; supplier_name: string | null; error: string | null }
 type Mode = 'pos' | 'discrepancies' | 'emails' | 'electronic' | 'suppliers' | 'catalogue';
+const MODES: readonly string[] = ['pos', 'discrepancies', 'emails', 'electronic', 'suppliers', 'catalogue'];
 const poTone = (s: string | null) => (s === 'received' || s === 'closed' ? 'good' : s === 'short_shipped' ? 'critical' : s === 'cancelled' ? 'low' : s === 'draft' ? 'medium' : 'info') as 'good' | 'critical' | 'low' | 'medium' | 'info';
 
 export function PurchasingPage({ route, onCreatePo }: { route: Route; onCreatePo: () => void }) {
   const pos = useView<PoRow>('ui_purchase_orders'), disc = useView<SupplierDiscRow>('ui_supplier_discrepancies'), sup = useView<SupplierRow>('ui_suppliers'), comms = useView<CommRow>('ui_communications'), etx = useView<PoTransmissionRow>('ui_po_transmissions');
-  const { canAct } = useCtx(); const pageToast = useToast(); const [mode, setMode] = useState<Mode>('pos');
+  const { canAct } = useCtx(); const pageToast = useToast(); const routeMode = route.path[1] ?? ''; const [mode, setMode] = useState<Mode>(MODES.includes(routeMode) ? (routeMode as Mode) : 'pos'); useEffect(() => { setMode(MODES.includes(routeMode) ? (routeMode as Mode) : 'pos'); }, [routeMode]);
   const refreshStats = async () => { const r = await spAction('refresh_stats', {}); pageToast.push(r.ok === false ? { tone: 'bad', title: 'Could not refresh', body: String(r.error) } : { tone: 'good', title: 'Supplier reliability refreshed', body: String(r.note ?? '') }); void refreshAll(); };
   const chaseAll = async () => { const r: any = await spAction('chase_all_late', {}); pageToast.push(r.ok === false ? { tone: 'bad', title: 'Could not draft chases', body: String(r.error) } : { tone: 'good', title: `${r.drafted ?? 0} chase email(s) drafted`, body: [r.already_queued ? `${r.already_queued} already waiting` : '', r.without_recipient ? `${r.without_recipient} have no supplier email yet` : '', 'Review them under Emails; nothing has been sent.'].filter(Boolean).join(' · '), href: '#/purchasing', linkLabel: 'Open Emails' }); void refreshAll(); setMode('emails'); }; const open = route.path[1];
   const views: ViewDef<PoRow>[] = [{ id: 'open', label: 'Open', test: (p) => p.units_outstanding > 0 && !['cancelled', 'closed'].includes(p.po_status ?? '') }, { id: 'late', label: 'Late', test: (p) => p.is_late }, { id: 'arriving', label: 'Arriving in 3 days', test: (p) => p.units_outstanding > 0 && !p.is_late && within(p.expected_date, 3) },

@@ -14,7 +14,7 @@ import { scopeLabel } from '../lib/orderRules';
 // In house: ordering and managing the DTF prints. This is not applying them to garments: it is working out what to order from Super Print, ordering it
 // (the email waits for a person's approval), and booking the prints in when they arrive. Third-party orders are not here: the decorator orders their own.
 const orderPath = (ref: string) => 'orders/' + ref.replace('#', '');
-const TABS = ['order', 'ordered', 'received', 'designs'] as const; type TabId = (typeof TABS)[number];
+const TABS = ['order', 'draft', 'ordered', 'received', 'designs'] as const; type TabId = (typeof TABS)[number];
 
 export function DtfPrintsPage({ route }: { route: Route }) {
   const tab: TabId = (TABS as readonly string[]).includes(route.path[1] ?? '') ? (route.path[1] as TabId) : 'order';
@@ -24,7 +24,10 @@ export function DtfPrintsPage({ route }: { route: Route }) {
   const items = useMemo(() => dtf.rows.filter((i) => i.scope !== 'third_party'), [dtf.rows]); // in house, and orders not yet decided
   const orders = useMemo(() => ordersWithDtf(items), [items]);
   const toOrder = useMemo(() => orders.filter((o) => o.status === 'required'), [orders]);
+  const drafts = useMemo(() => batches.rows.filter((b) => b.status === 'draft'), [batches.rows]);
   const waiting = useMemo(() => batches.rows.filter((b) => b.status === 'ordered'), [batches.rows]);
+  // A draft DTF order that holds a third-party order would order prints the decorator orders themselves: say so before anyone approves it.
+  const warnDraft = (b: DtfBatchRow): string | null => { const tp = [...new Set(dtf.rows.filter((i) => i.batch_id === b.id && i.scope === 'third_party').map((i) => i.order_ref))]; return tp.length ? `${tp.join(', ')} ${tp.length === 1 ? 'is' : 'are'} a third-party order, so the decorator orders ${tp.length === 1 ? 'its' : 'their'} own DTFs. Do not approve this email: cancel it under Purchasing, Emails.` : !b.supplier_has_email ? 'Super Print has no email address in Flow yet, so this email cannot be approved. Add the address to the supplier first.' : null; };
   const booked = useMemo(() => batches.rows.filter((b) => b.status === 'received'), [batches.rows]);
   const sortNew = (a: DtfBatchRow, b: DtfBatchRow) => b.created_at.localeCompare(a.created_at);
   const prints = (list: DtfItemRow[]) => list.reduce((n, i) => n + i.qty, 0);
@@ -47,15 +50,16 @@ export function DtfPrintsPage({ route }: { route: Route }) {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="page-head"><div><h1>DTF prints</h1>
-        <p>{dtf.loading ? 'Loading…' : `${needPrints.toLocaleString('en-GB')} prints to order · ${waiting.length} order${waiting.length === 1 ? '' : 's'} waiting for delivery · ${missing} placement${missing === 1 ? '' : 's'} missing a file`}</p></div></div>
-      <div className="callout soft">In house, this is where DTF prints are <b>ordered from Super Print and booked in</b>. Pick the orders that need prints and build one DTF order: the email to Super Print waits for a person's approval on the Emails tab of Purchasing. When the prints arrive, book them in here. Applying them to garments happens on the floor, not here. Third-party orders are not on this page: the decorator orders their own.</div>
-      <Tabs label="DTF print sections" value={tab} tabs={[{ id: 'order', label: 'To order', count: toOrder.length }, { id: 'ordered', label: 'Ordered, waiting', count: waiting.length }, { id: 'received', label: 'Booked in', count: booked.length }, { id: 'designs', label: 'By design' }]} onChange={(t) => navigate(t === 'order' ? 'dtf-prints' : 'dtf-prints/' + t)} />
+        <p>{dtf.loading ? 'Loading…' : `${needPrints.toLocaleString('en-GB')} prints to order · ${drafts.length} waiting to send · ${waiting.length} order${waiting.length === 1 ? '' : 's'} waiting for delivery · ${missing} placement${missing === 1 ? '' : 's'} missing a file`}</p></div></div>
+      <div className="callout soft">In house, this is where DTF prints are <b>ordered from Super Print and booked in</b>. Pick the orders that need prints and build one DTF order. It then shows under <b>Waiting to send</b> until a person approves its email: open <a href={href('purchasing/emails')}>Purchasing, Emails</a> and approve it there, which is what sends it to Super Print. When the prints arrive, book them in here. Applying them to garments happens on the floor, not here. Third-party orders are not on this page: the decorator orders their own.</div>
+      <Tabs label="DTF print sections" value={tab} tabs={[{ id: 'order', label: 'To order', count: toOrder.length }, { id: 'draft', label: 'Waiting to send', count: drafts.length }, { id: 'ordered', label: 'Ordered, waiting', count: waiting.length }, { id: 'received', label: 'Booked in', count: booked.length }, { id: 'designs', label: 'By design' }]} onChange={(t) => navigate(t === 'order' ? 'dtf-prints' : 'dtf-prints/' + t)} />
       {tab === 'order' && (
         <Panel title="Orders that need DTF prints" icon="orders" flush>
           <DataTable<DtfOrderRow> rows={orders} columns={cols} rowKey={(r) => r.order_id} loading={dtf.loading} error={dtf.error} onRetry={() => void dtf.refresh()} views={views} filters={filters} storageKey="dtf-prints" exportName="dtf-orders" defaultTab="req"
             searchText={(r) => [r.order_ref, r.customer_name].join(' ')} searchPlaceholder="Search order or customer…" onRowClick={(r) => navigate(orderPath(r.order_ref))} defaultSort={{ col: 'due', dir: 1 }} initial={tableStateFromQuery(route)} bulk={bulk}
             empty={<EmptyState icon="check" title="No prints to order">No in-house order matches this view.</EmptyState>} />
         </Panel>)}
+      {tab === 'draft' && <Panel title="DTF orders built but not sent to Super Print yet" icon="purchasing" flush><BatchList batches={[...drafts].sort(sortNew)} loading={batches.loading} empty="Nothing is waiting to be sent. Build a DTF order on the To order tab and it shows here until its email is approved." canReceive={false} warn={warnDraft} /></Panel>}
       {tab === 'ordered' && <Panel title="DTF orders waiting for delivery" icon="purchasing" flush><BatchList batches={[...waiting].sort(sortNew)} loading={batches.loading} empty="Nothing is waiting for delivery. An order shows here once its email to Super Print has been sent." canReceive={canRecv} onReceive={setRecv} /></Panel>}
       {tab === 'received' && <Panel title="Booked in" icon="check" flush><BatchList batches={[...booked].sort(sortNew)} loading={batches.loading} empty="No DTF order has been booked in yet." canReceive={canRecv} /></Panel>}
       {tab === 'designs' && <Panel title="What has to be made, by design" icon="artwork" flush><DesignList items={items} loading={dtf.loading} /></Panel>}
