@@ -1,4 +1,4 @@
--- 25 Nov 2026: the DTF order email to Super Print, reworded and with a picture of each design (NOT YET APPLIED).
+-- 25 Nov 2026: the DTF order email to Super Print, reworded and with a picture of each design (APPLIED to the live project 25 Nov 2026 as "flow_dtf_email_wording").
 -- Daniel's feedback on the first real DTF email (DTF-2026-00002): the body is good (the supplier likes it), but
 --   * it should open "Hi Supa print",
 --   * it should say what to do if there are problems (reply to the email or call 0330 159 6344),
