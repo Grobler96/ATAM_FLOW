@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v42', date: '2026-11-25', status: 'built', areas: ['Purchasing'], title: 'Fix: the Emails link no longer opens a "Purchase order not found" panel',
+    summary: 'Daniel followed the "Purchasing, Emails" link after building a DTF order and a "Purchase order not found" panel opened over the Emails list.',
+    changes: ['The Emails section now opens on its own, with nothing over it.', 'A section name in the address (emails, electronic, suppliers and so on) is never read as a purchase order number.'],
+    watch: 'Caused by the Emails link added in v39. If you still see the panel, close it with the cross at its top right: the emails behind it are unaffected, and approving or cancelling works as normal.' },
   { v: 'v41', date: '2026-11-25', status: 'live', areas: ['Pre-production', 'Purchasing'], title: 'The DTF email to Super Print: Daniel\'s wording, and a picture of each design',
     summary: 'Daniel checked the first real DTF email with the supplier, who liked it, and asked for a few changes.',
     changes: ['It now opens "Hi Supa print".', 'It says what to do if there are problems: reply to the email or call 0330 159 6344.', 'It is signed Atam Support Team.', 'Each design now has a picture. Where Flow holds no preview image, the stored image file (PNG, JPG, GIF or WebP) is used. A file that cannot be shown as a picture, such as an embroidery file, still has none.', 'The body Daniel and the supplier liked is unchanged.'],
