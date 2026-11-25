@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v41', date: '2026-11-25', status: 'built', areas: ['Pre-production', 'Purchasing'], title: 'The DTF email to Super Print: Daniel\'s wording, and a picture of each design',
+    summary: 'Daniel checked the first real DTF email with the supplier, who liked it, and asked for a few changes.',
+    changes: ['It now opens "Hi Supa print".', 'It says what to do if there are problems: reply to the email or call 0330 159 6344.', 'It is signed Atam Support Team.', 'Each design now has a picture. Where Flow holds no preview image, the stored image file (PNG, JPG, GIF or WebP) is used. A file that cannot be shown as a picture, such as an embroidery file, still has none.', 'The body Daniel and the supplier liked is unchanged.'],
+    watch: 'Not live until its database change is applied. DTF orders already built keep the old wording: cancel the email and build the DTF order again to get the new one. The picture uses the same download link as the email, which expires after 14 days.' },
   { v: 'v40', date: '2026-11-25', status: 'live', areas: ['Buying', 'Suppliers'], title: 'Ralawise and ORN supplier cards filled in from the Supplier Log',
     summary: 'The two supplier cards were nearly empty. Daniel\'s Supplier Log has been loaded into them.',
     changes: ['Ralawise: account number, sales email, the problem-with-an-order email and all seven delivery options with their charges (Next Day is the default, free over £75).', 'ORN Workwear: sales email and its 2 Day delivery charge (£6.95). Its other delivery options were blank in the log, so they are not set.', 'Everything is recorded in the audit trail under Oliver.'],
