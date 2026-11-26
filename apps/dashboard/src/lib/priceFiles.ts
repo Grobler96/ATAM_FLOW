@@ -4,16 +4,19 @@
 //    carton price under "Future Prices" (the second "CTN" column) because that is the price in force from the date on the file.
 //  - ORN: one row per STYLE ("Code", "Product", then one price column). Our ORN item codes look like 1150.NV.L, so the style is the part
 //    before the first dot. The style price is applied to every item code Flow already knows for that style.
+//  - PenCarrie: one row per item, size and colour. Each row has two codes, "prodcode" (PenCarrie's own, like 520M BLK XL) and "supprodcode" (the brand's, like
+//    PR694BLAC4XL); Flow holds items under either, so a known item code matches on either. One price per row ("price_sngl", the same as the carton and pack prices).
 // A supplier file can hold 100,000 lines and Flow holds about 2,000 items, so only item codes Flow already knows are kept.
 export type Cell = string | number | boolean | Date | null | undefined;
 export type Grid = Cell[][];
 export interface CatalogueLine { supplier: string; item_code: string; cost: string; title?: string }
-export type PriceLayout = 'ralawise' | 'orn';
+export type PriceLayout = 'ralawise' | 'orn' | 'pencarrie';
 export interface PriceFileResult { rows: CatalogueLine[]; problems: string[]; notes: string[]; fileRows: number; unpriced: string[] }
 
 export const LAYOUTS: { id: PriceLayout; label: string; hint: string }[] = [
   { id: 'ralawise', label: 'Ralawise price file', hint: 'Excel. Uses the Product, Description and Future carton price columns.' },
   { id: 'orn', label: 'ORN price file', hint: 'Excel. Prices are per style; each style price is applied to every ORN item code we know in that style.' },
+  { id: 'pencarrie', label: 'PenCarrie price file', hint: 'Excel. Matches our item codes on either the PenCarrie code or the brand code, and uses the single price.' },
 ];
 
 const text = (c: Cell): string => (c === null || c === undefined ? '' : c instanceof Date ? '' : String(c)).replace(/\s+/g, ' ').trim();
@@ -65,8 +68,28 @@ export function parseOrn(grid: Grid, supplier: string, known: ReadonlySet<string
   return finish(rows, rows.length ? [] : ['None of the ORN item codes Flow knows (style.colour.size) match a style in this file.'], notes, fileRows, unpriced);
 }
 
+export function parsePenCarrie(grid: Grid, supplier: string, known: ReadonlySet<string>): PriceFileResult {
+  const hi = grid.findIndex((r) => r.some((c) => key(c) === 'prodcode') && r.some((c) => key(c) === 'supprodcode') && r.some((c) => key(c) === 'price_sngl'));
+  if (hi < 0) return finish([], ['This does not look like a PenCarrie price file: there is no row with "prodcode", "supprodcode" and "price_sngl" columns.'], [], 0, []);
+  const head = grid[hi]; const col = (n: string) => head.findIndex((c) => key(c) === n);
+  const iOwn = col('prodcode'), iBrand = col('supprodcode'), iPrice = col('price_sngl'), iDesc = col('styledescprint'), iColour = col('longcolour'), iSize = col('size');
+  const byCode = new Map<string, CatalogueLine>(); let fileRows = 0; let noPrice = 0;
+  for (const r of grid.slice(hi + 1)) {
+    const own = text(r[iOwn]), brand = text(r[iBrand]); if (!own && !brand) continue; fileRows++;
+    const hit = [own, brand].filter((c) => c && known.has(c)); if (hit.length === 0) continue;
+    const cost = price(r[iPrice]); if (cost === null) { noPrice++; continue; }
+    const title = [iDesc >= 0 ? text(r[iDesc]) : '', iColour >= 0 ? text(r[iColour]) : '', iSize >= 0 ? text(r[iSize]) : ''].filter(Boolean).join(' ');
+    for (const code of hit) byCode.set(code, { supplier, item_code: code, cost, ...(title ? { title } : {}) });
+  }
+  const rows = [...byCode.values()];
+  const unpriced = [...known].filter((k) => !byCode.has(k)).sort();
+  const notes = [`${fileRows.toLocaleString('en-GB')} lines in the file; ${rows.length.toLocaleString('en-GB')} are items Flow already knows (matched on the PenCarrie code or the brand code).`, 'Prices are the single price (the same as the carton and pack price in this file).'];
+  if (noPrice) notes.push(`${noPrice} known items had no usable price in the file and were left out.`);
+  return finish(rows, rows.length ? [] : ['None of the items in this file are items Flow knows yet, so there is nothing to load.'], notes, fileRows, unpriced);
+}
+
 export function parsePriceFile(layout: PriceLayout, grid: Grid, supplier: string, known: ReadonlySet<string>): PriceFileResult {
-  const r = layout === 'ralawise' ? parseRalawise(grid, supplier, known) : parseOrn(grid, supplier, known);
+  const r = layout === 'ralawise' ? parseRalawise(grid, supplier, known) : layout === 'pencarrie' ? parsePenCarrie(grid, supplier, known) : parseOrn(grid, supplier, known);
   if (r.rows.length > 20000) return finish([], ['This would load more than 20,000 lines, which is more than one import allows.'], r.notes, r.fileRows, r.unpriced);
   return r;
 }

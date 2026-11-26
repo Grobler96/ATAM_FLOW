@@ -21,7 +21,7 @@ export function CataloguePanel() {
   const ages = useView<SupplierPriceAgeRow>('ui_supplier_price_age'); const stale = useMemo(() => ages.rows.filter((a) => a.priced_items > 0 && priceIsStale(a.days_old)), [ages.rows]); const known = useView<{ sku: string }>('ui_known_skus'), suppliers = useView<SupplierCardRow>('ui_supplier_cards');
   const activeSuppliers = useMemo(() => suppliers.rows.filter((s) => s.is_active).sort((a, b) => a.name.localeCompare(b.name)), [suppliers.rows]);
   const [layout, setLayout] = useState<PriceLayout>('ralawise'); const [supplierName, setSupplierName] = useState(''); const [pf, setPf] = useState<{ rows: CatalogueRow[]; notes: string[]; unpriced: string[]; name: string } | null>(null); const [pfBusy, setPfBusy] = useState(false); const pfFile = useRef<HTMLInputElement>(null);
-  const guess = (l: PriceLayout) => activeSuppliers.find((s) => s.name.toLowerCase().includes(l === 'orn' ? 'orn' : 'ralawise'))?.name ?? '';
+  const guess = (l: PriceLayout) => activeSuppliers.find((s) => s.name.toLowerCase().includes(l === 'orn' ? 'orn' : l === 'pencarrie' ? 'pencarrie' : 'ralawise'))?.name ?? '';
   const chosenSupplier = supplierName || guess(layout);
   async function pickPriceFile(f: File | undefined) {
     if (!f) return; setPf(null); setProblems([]);
