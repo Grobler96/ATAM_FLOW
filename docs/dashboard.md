@@ -37,6 +37,8 @@ npm run e2e          # browser test with a mocked backend; writes screenshots to
 1. Merge the pull request into `main`.
 2. In the GitHub repo: **Settings -> Pages -> Build and deployment -> Source: GitHub Actions**.
 3. The workflow `Deploy dashboard to GitHub Pages` builds and publishes it; the address will be `https://grobler96.github.io/ATAM_FLOW/` (the workflow run shows the exact URL).
+
+**Open sessions update themselves (26 Nov 2026).** Every build gets an id (date, time and commit) that the page carries as `__BUILD_ID__` and that the build publishes as `version.json`. `components/UpdateWatcher.tsx` (staff app and decorator portal) fetches `version.json` (never cached) every 2 minutes while the tab is visible and when the person returns to it. If the published id differs it refreshes the page, but only when the person moves to another page in Flow or returns to the tab, and never while a box (`role=dialog`) is open or a field is focused; then a "new version ready" bar with Refresh now waits instead. A tab refreshes itself at most once for the same newer id (kept in sessionStorage), so a slow cache cannot cause a loop. Logic and tests are in `lib/updateCheck.ts`. A local dev server has no build id, so it does nothing there. A tab only picks this up after its next refresh; tabs open from before this change still need one manual refresh. It fixes an old copy of the dashboard code, not stale data on the screen.
 4. Publish the n8n workflows the page uses (see below). Until then the page loads and reads data, but buttons that act explain that they are "not switched on yet".
 
 Users need a row in `flow.user_roles` (admin, manager, production, warehouse or viewer). Currently only the existing superusers have one.

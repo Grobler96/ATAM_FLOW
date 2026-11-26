@@ -31,7 +31,9 @@ begin
       -- the storage rule that limits how many files and bytes a decorator login may store in one job's folder: answers yes or no, nothing else
       'flow.portal_upload_allowed(text)',
       -- the storage rule that lets a decorator fetch only the current DTF files of their own assigned third-party orders: answers yes or no, nothing else
-      'flow.portal_can_read_dtf(text)');
+      'flow.portal_can_read_dtf(text)',
+      -- what each open order still needs to buy (behind the Raise purchase orders screen): returns nothing unless the caller is a team member
+      'flow.po_requirements(uuid[])');
   if v_bad is not null then raise exception 'SECURITY: logged-in users can execute: %', v_bad; end if;
 
   -- 3. every flow table has row level security switched on

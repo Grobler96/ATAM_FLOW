@@ -4,6 +4,7 @@ import { supabase } from './lib/api';
 import { clearCache } from './data/store';
 import { Login } from './components/Login';
 import { AppShell } from './shell/AppShell';
+import { UpdateWatcher } from './components/UpdateWatcher';
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -13,7 +14,6 @@ export function App() {
     const { data: sub } = supabase.auth.onAuthStateChange((e, s) => { if (e === 'SIGNED_OUT') clearCache(); setSession(s); });
     return () => sub.subscription.unsubscribe();
   }, []);
-  if (!ready) return <div className="state" role="status" style={{ minHeight: '100vh' }}>Loading…</div>;
-  if (!session) return <Login />;
-  return <AppShell session={session} />;
+  const page = !ready ? <div className="state" role="status" style={{ minHeight: '100vh' }}>Loading…</div> : !session ? <Login /> : <AppShell session={session} />;
+  return <>{page}<UpdateWatcher /></>;
 }
