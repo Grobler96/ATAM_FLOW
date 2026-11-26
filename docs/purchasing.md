@@ -78,3 +78,6 @@ The actions go through the **Purchasing actions** n8n workflow, which is **unpub
 
 - Changing the purchasing rules from a screen (no action exists; they are edited in the database), and switching scheduled chasing on.
 - Price-change handling and applying a substitution in DecoNetwork (see [supplier-resilience.md](supplier-resilience.md)).
+
+## Fix 26 Nov 2026: Raise purchase orders showed nothing (migration 90)
+`public.ui_order_buy_lines` (migration 67) runs with the caller's rights and reads `flow.po_requirements()`, which logged-in users could not execute, so the screen always said "No orders need stock buying right now" from 14 Nov. The database tests run with full rights and missed it. Migration 90 gives `po_requirements` its own check (it returns nothing unless the caller is a team member, or there is no login, as for the server-side jobs) and then lets logged-in users execute it; `permissions_test` lists it as allowed, and `buy_lines_grant_test` reads the view as a logged-in manager and as a user with no role. Applied live as `flow_buy_lines_grant` and `flow_buy_lines_guard`.

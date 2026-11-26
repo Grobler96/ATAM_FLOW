@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v46', date: '2026-11-26', status: 'live', areas: ['Purchasing'], title: 'Fix: "No orders need stock buying right now" when raising a purchase order',
+    summary: 'Daniel could not raise a purchase order for any order. The Raise purchase orders screen always said no orders needed stock.',
+    changes: ['Logged-in staff had never been allowed to read the list of what each order still needs to buy, so the screen got nothing back. They can now.', 'The list shows nothing to anyone who is not on the team, even if asked directly.', 'The tests now check this as a logged-in team member would, which is how it was missed.'],
+    watch: 'Happened since the screen was built (14 Nov). Items with no supplier in the catalogue still need one chosen in the box. If a screen still shows the old message, refresh it once.' },
   { v: 'v45', date: '2026-11-26', status: 'built', areas: ['Everyone'], title: 'Flow refreshes itself when a new version is published',
     summary: 'People were running an old copy of Flow after an update because nobody remembers to hard refresh.',
     changes: ['Every open session now checks every couple of minutes, and when you come back to the tab, whether a newer version has been published.', 'If there is one, Flow refreshes itself when you move to another page or come back to the tab.', 'It never refreshes while you have a box open or you are typing in a field. A bar says a new version is ready and a Refresh now button is there when you want it.', 'It refreshes by itself only once for each new version, so it cannot get stuck refreshing.'],
