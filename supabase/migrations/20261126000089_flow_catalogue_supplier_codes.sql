@@ -1,4 +1,4 @@
--- 26 Nov 2026: a supplier's own item code for an item DecoNetwork has given its own number (NOT YET APPLIED to the live project).
+-- 26 Nov 2026: a supplier's own item code for an item DecoNetwork has given its own number (APPLIED to the live project 26 Nov 2026 as "flow_catalogue_supplier_codes").
 -- Dan found order 636967 could not be bought: its item code was DecoNetwork's own number (264928361_194082258), not Ralawise's (WM118NATUXS). About
 -- 350 active order lines are like this. flow.supplier_offers already has a supplier_sku column, and raising a PO and the electronic order to Ralawise already
 -- use it, but nothing could fill it in. Two changes:
