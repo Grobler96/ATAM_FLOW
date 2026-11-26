@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v44', date: '2026-11-26', status: 'live', areas: ['Buying', 'Catalogue'], title: 'Items DecoNetwork has given its own number can now be bought from Ralawise',
+    summary: 'Daniel could not raise a purchase order for order 636967: the bag on it carried a DecoNetwork number (264928361_194082258) instead of Ralawise\'s code (WM118NATUXS). About 350 active order lines are like this.',
+    changes: ['Loading the Ralawise price file in Catalogue now also works out Ralawise\'s own code for these items, from the style code, colour and size DecoNetwork recorded, and keeps it with the price.', 'A purchase order and the order sent to Ralawise then use Ralawise\'s code.', 'Only an exact, single match is used. Anything that does not match cleanly is left alone and listed as having no price, so a wrong item is never ordered.', 'The bag on 636967 was linked by hand so Daniel could carry on.'],
+    watch: 'On a test with the live Ralawise file, 37 of 50 items matched. The rest differ in colour wording (for example Royal Blue against a code that names it differently) and need linking by hand. The database change (migration 89) is applied; the Ralawise price file needs loading again in Catalogue to fill in the codes.' },
   { v: 'v43', date: '2026-11-26', status: 'live', areas: ['Buying', 'Catalogue'], title: 'PenCarrie price file: Flow can now read it, and the first 10 prices are loaded',
     summary: 'Daniel got PenCarrie\'s price file (account CPIL, about 96,000 lines). Flow can now read it from Catalogue, Load a supplier\'s price file.',
     changes: ['A new layout, "PenCarrie price file". It matches our item codes on either the PenCarrie code or the brand code and uses the single price (the carton, pack and single prices are the same in this file).', 'Flow keeps only the items it already knows. 10 of them were in the file and have been loaded as PenCarrie prices: 1 SOL\'S, 1 Russell Athletic, 1 Premier and 7 Portwest (total 151.25).'],

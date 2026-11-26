@@ -7,7 +7,7 @@ import { supabase } from '../lib/api';
 import { parseCatalogue, TEMPLATE_CSV, type CatalogueRow } from '../lib/catalogue';
 import { priceAgeWords, priceIsStale } from '../lib/profit';
 import type { SupplierPriceAgeRow } from '../data/types';
-import { LAYOUTS, parsePriceFile, readSpreadsheet, type PriceLayout } from '../lib/priceFiles';
+import { LAYOUTS, parsePriceFile, readSpreadsheet, type InternalLine, type PriceLayout } from '../lib/priceFiles';
 import type { SupplierCardRow } from '../lib/supplierCards';
 import { money } from '../lib/domain';
 import type { CatalogueRow as Item } from '../data/types';
@@ -18,7 +18,7 @@ export function CataloguePanel() {
   const [q, setQ] = useState(''); const [rows, setRows] = useState<CatalogueRow[] | null>(null); const [problems, setProblems] = useState<string[]>([]); const [busy, setBusy] = useState(false); const [fileName, setFileName] = useState('');
   const shown = useMemo(() => { const t = q.trim().toLowerCase(); return cat.rows.filter((r) => !t || `${r.item_code} ${r.supplier} ${r.product_name ?? ''} ${r.title ?? ''}`.toLowerCase().includes(t)).sort((a, b) => a.item_code.localeCompare(b.item_code) || a.supplier.localeCompare(b.supplier)).slice(0, 500); }, [cat.rows, q]);
   const items = useMemo(() => new Set(cat.rows.map((r) => r.item_code)).size, [cat.rows]);
-  const ages = useView<SupplierPriceAgeRow>('ui_supplier_price_age'); const stale = useMemo(() => ages.rows.filter((a) => a.priced_items > 0 && priceIsStale(a.days_old)), [ages.rows]); const known = useView<{ sku: string }>('ui_known_skus'), suppliers = useView<SupplierCardRow>('ui_supplier_cards');
+  const ages = useView<SupplierPriceAgeRow>('ui_supplier_price_age'); const stale = useMemo(() => ages.rows.filter((a) => a.priced_items > 0 && priceIsStale(a.days_old)), [ages.rows]); const known = useView<{ sku: string }>('ui_known_skus'), internalLines = useView<InternalLine>('ui_known_sku_lines'), suppliers = useView<SupplierCardRow>('ui_supplier_cards');
   const activeSuppliers = useMemo(() => suppliers.rows.filter((s) => s.is_active).sort((a, b) => a.name.localeCompare(b.name)), [suppliers.rows]);
   const [layout, setLayout] = useState<PriceLayout>('ralawise'); const [supplierName, setSupplierName] = useState(''); const [pf, setPf] = useState<{ rows: CatalogueRow[]; notes: string[]; unpriced: string[]; name: string } | null>(null); const [pfBusy, setPfBusy] = useState(false); const pfFile = useRef<HTMLInputElement>(null);
   const guess = (l: PriceLayout) => activeSuppliers.find((s) => s.name.toLowerCase().includes(l === 'orn' ? 'orn' : l === 'pencarrie' ? 'pencarrie' : 'ralawise'))?.name ?? '';
@@ -28,7 +28,7 @@ export function CataloguePanel() {
     if (!chosenSupplier) { setProblems(['Choose the supplier first.']); return; }
     setPfBusy(true);
     try {
-      const r = parsePriceFile(layout, await readSpreadsheet(f), chosenSupplier, new Set(known.rows.map((k) => k.sku)));
+      const r = parsePriceFile(layout, await readSpreadsheet(f), chosenSupplier, new Set(known.rows.map((k) => k.sku)), internalLines.rows);
       if (r.problems.length) setProblems(r.problems); else setPf({ rows: r.rows, notes: r.notes, unpriced: r.unpriced, name: f.name });
     } catch { setProblems(['That file could not be read. It needs to be an Excel (.xlsx) file as the supplier sent it.']); }
     setPfBusy(false);

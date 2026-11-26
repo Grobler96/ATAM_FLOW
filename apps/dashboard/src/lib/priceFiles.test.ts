@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseOrn, parsePenCarrie, parsePriceFile, parseRalawise, type Grid } from './priceFiles';
+import { matchInternal, parseOrn, parsePenCarrie, parsePriceFile, parseRalawise, type FileRow, type Grid } from './priceFiles';
 
 const ralHead: Grid = [
   [null, null, null], [null, 'Current Date', 'Future Date'], [null, 'Product Details', null, null, null, null, null, 'Current Prices', null, null, 'Future Prices'],
@@ -75,5 +75,43 @@ describe('parsePenCarrie', () => {
   it('refuses a file that is not a PenCarrie price file and works through parsePriceFile', () => {
     expect(parsePenCarrie([['a', 'b']], 'PenCarrie', known).problems[0]).toMatch(/does not look like a PenCarrie/);
     expect(parsePriceFile('pencarrie', grid, 'PenCarrie', known).rows).toHaveLength(2);
+  });
+});
+
+describe('matching DecoNetwork-numbered items to Ralawise codes', () => {
+  const R = (code: string, desc: string, cost = '1'): FileRow => ({ code, desc, cost });
+  const rows = [R('WM118NATUXS', 'XS NATURAL WM118 DRAWCORD BAG', '0.67'), R('WM118NATUS', 'SML NATURAL WM118 DRAWCORD BAG', '0.72'), R('WM118BLACXS', 'XS BLACK WM118 DRAWCORD BAG'),
+    R('JC232FNAVM', 'MED FRENCH NAVY JC232 ACTIVE RECYLE'), R('JC232FNAVXL', 'XL FRENCH NAVY JC232 ACTIVE RECYLE'), R('JC232FNAV2XL', '2XL FRENCH NAVY JC232 ACTIVE RECYLE'),
+    R('KK188BLAC14.5', '14.5 BLACK KK188 L/S OXFORD SHIRT'), R('KK188BLAC16.0', '16 BLACK KK188 L/S OXFORD SHIRT'),
+    R('ST179NYNYXL', 'XL NAVY/NAVY ST179/XB-4 MATRIX JKT'), R('RE22XFORASM', 'SML/MED FLU.ORANGE R22X SAFETY TROUSER'), R('RE22XFORALXL', 'LGE/XL FLU.ORANGE R22X SAFETY TROUSER'),
+    R('PR137NAVY', 'NAVY PR137 CALIBRE POCKET APRON'), R('PR137RED', 'RED PR137 CALIBRE POCKET APRON', '6.89'), R('RG332NAVY32', '32 NAVY RG332 SHORTS'), R('RG33NAVY32', '32 NAVY RG33 OTHER SHORTS')];
+  const L = (product_code: string, colour: string, size: string) => ({ sku: '1_1', product_code, colour, size, supplier: 'Ralawise' });
+  it('matches style, colour and size to exactly one row', () => {
+    expect(matchInternal(L('WM118', 'Natural', 'XS'), rows)?.code).toBe('WM118NATUXS');
+    expect(matchInternal(L('JC232', 'French Navy', 'X Large'), rows)?.code).toBe('JC232FNAVXL');
+    expect(matchInternal(L('JC232', 'French Navy', '2X Large'), rows)?.code).toBe('JC232FNAV2XL');
+    expect(matchInternal(L('KK188', 'Black', '14.5'), rows)?.code).toBe('KK188BLAC14.5');
+    expect(matchInternal(L('KK188', 'Black', '16'), rows)?.code).toBe('KK188BLAC16.0');
+    expect(matchInternal(L('ST179', 'Navy/Navy', 'X Large'), rows)?.code).toBe('ST179NYNYXL');
+    expect(matchInternal(L('RE22X', 'Fluorescent Orange', 'LXL'), rows)?.code).toBe('RE22XFORALXL');
+    expect(matchInternal(L('PR137', 'Red', 'ONE SIZE'), rows)?.code).toBe('PR137RED');
+  });
+  it('leaves an item alone when nothing, or more than one row, fits', () => {
+    expect(matchInternal(L('WM118', 'Natural', 'Medium'), rows)).toBeNull(); // no such size
+    expect(matchInternal(L('WM118', 'Sky', 'XS'), rows)).toBeNull(); // colour wording differs
+    expect(matchInternal(L('ZZ999', 'Black', 'XS'), rows)).toBeNull();
+    expect(matchInternal(L('WM118', 'Natural', 'XS'), [...rows, R('WM118NATUXS', 'XS NATURAL WM118 DRAWCORD BAG (COPY)')])).toBeNull(); // two rows fit: never guess
+    expect(matchInternal(L('', 'Natural', 'XS'), rows)).toBeNull();
+  });
+  it('does not treat a longer style as the same style', () => {
+    expect(matchInternal(L('RG33', 'Navy', '32'), rows)?.code).toBe('RG33NAVY32');
+    expect(matchInternal(L('RG332', 'Navy', '32'), rows)?.code).toBe('RG332NAVY32');
+  });
+  it('stores the supplier code and the file price when a price file is read', () => {
+    const g: Grid = [['Product', 'Description', 'CTN'], ['WM118NATUXS', 'XS NATURAL WM118 DRAWCORD BAG', 0.67], ['WM118NATUS', 'SML NATURAL WM118 DRAWCORD BAG', 0.72], ['WM118BLACXS', 'XS BLACK WM118 DRAWCORD BAG', 0.7]];
+    const lines = [{ sku: '264928361_194082258', product_code: 'WM118', colour: 'Natural', size: 'XS', supplier: 'Ralawise' }, { sku: '264928361_999', product_code: 'WM118', colour: 'Sky', size: 'XS', supplier: 'Ralawise' }, { sku: '270_1', product_code: 'WM118', colour: 'Natural', size: 'XS', supplier: 'Portwest Clothing Ltd' }];
+    const r = parseRalawise(g, 'Ralawise', new Set(['264928361_194082258', '264928361_999', '270_1']), lines);
+    expect(r.rows).toEqual([{ supplier: 'Ralawise', item_code: '264928361_194082258', cost: '0.67', supplier_sku: 'WM118NATUXS', title: 'XS NATURAL WM118 DRAWCORD BAG' }]);
+    expect(r.unpriced).toEqual(['264928361_999', '270_1']); expect(r.notes.join(' ')).toMatch(/1 of 2 items carrying a DecoNetwork number were matched/);
   });
 });
