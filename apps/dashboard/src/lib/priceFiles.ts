@@ -6,10 +6,13 @@
 //    before the first dot. The style price is applied to every item code Flow already knows for that style.
 //  - PenCarrie: one row per item, size and colour. Each row has two codes, "prodcode" (PenCarrie's own, like 520M BLK XL) and "supprodcode" (the brand's, like
 //    PR694BLAC4XL); Flow holds items under either, so a known item code matches on either. One price per row ("price_sngl", the same as the carton and pack prices).
+//    Items that carry a DecoNetwork number instead of the supplier's code are matched to the file by style code, colour and size (see matchInternal), and the supplier's own code is stored with them.
 // A supplier file can hold 100,000 lines and Flow holds about 2,000 items, so only item codes Flow already knows are kept.
 export type Cell = string | number | boolean | Date | null | undefined;
 export type Grid = Cell[][];
-export interface CatalogueLine { supplier: string; item_code: string; cost: string; title?: string }
+export interface CatalogueLine { supplier: string; item_code: string; cost: string; title?: string; supplier_sku?: string }
+// An item DecoNetwork has given its own number (like 264928361_194082258), with the style code, colour and size DecoNetwork recorded for it.
+export interface InternalLine { sku: string; product_code: string; colour: string | null; size: string | null; supplier: string | null }
 export type PriceLayout = 'ralawise' | 'orn' | 'pencarrie';
 export interface PriceFileResult { rows: CatalogueLine[]; problems: string[]; notes: string[]; fileRows: number; unpriced: string[] }
 
@@ -27,7 +30,36 @@ const price = (c: Cell): string | null => {
 };
 const finish = (rows: CatalogueLine[], problems: string[], notes: string[], fileRows: number, unpriced: string[]): PriceFileResult => ({ rows, problems, notes, fileRows, unpriced });
 
-export function parseRalawise(grid: Grid, supplier: string, known: ReadonlySet<string>): PriceFileResult {
+
+// ---- Matching a DecoNetwork-numbered item to the supplier's own code (Ralawise) ----
+// Ralawise item codes are style + colour code + size code (WM118NATUXS) and the description reads "SIZE COLOUR STYLE NAME" (XS NATURAL WM118 DRAWCORD BAG).
+// DecoNetwork gives us the style code, its own colour name and its own size wording. A match needs the style to start the code, the size and the colour to be equal
+// after tidying, and exactly ONE row in the file to fit. Anything else is left unmatched for a person to deal with: a wrong code would order the wrong item.
+const SIZE_WORDS: Record<string, string> = { SMALL: 'SML', MEDIUM: 'MED', LARGE: 'LGE', 'X LARGE': 'XL', 'XX LARGE': '2XL', '2X LARGE': '2XL', '3X LARGE': '3XL', '4X LARGE': '4XL', '5X LARGE': '5XL', XS: 'XS', XXS: 'XXS', LXL: 'LGE/XL', 'ONE SIZE': '' };
+const SIZE_TOKEN = /^(XXS|XS|SML|MED|LGE|XL|\dXL|\d+(\.\d)?|\d+\/\d+|[A-Z]{3}\/[A-Z]{2,3}|\d+-\d+)$/;
+const tidySize = (s: string): string => { const u = s.trim().toUpperCase(); if (u in SIZE_WORDS) return SIZE_WORDS[u]; if (/^\d+\.\d+$/.test(u)) return u.replace(/0+$/, '').replace(/\.$/, ''); return u.replace('-', '/'); };
+const tidyColour = (c: string): string => {
+  const parts = c.toUpperCase().replace(/FLUORESCENT ?/g, 'FLU.').replace(/LIGHT ?/g, 'L.').replace(/ /g, '/').split('/').filter(Boolean).map((p) => p.replace(/[^A-Z0-9]/g, ''));
+  return (parts.length === 2 && parts[0] === parts[1] ? parts.slice(0, 1) : parts).join('/');
+};
+const splitDescription = (desc: string): { size: string; colour: string } => {
+  const t = desc.toUpperCase().split(/\s+/).filter(Boolean); let i = 0; let size = '';
+  if (t.length && SIZE_TOKEN.test(t[0])) { size = t[0]; i = 1; }
+  let j = i; while (j < t.length && !/\d/.test(t[j])) j++;
+  return { size, colour: t.slice(i, j).join(' ') };
+};
+export interface FileRow { code: string; desc: string; cost: string }
+export function matchInternal(line: InternalLine, rows: readonly FileRow[]): FileRow | null {
+  const style = line.product_code.trim().toUpperCase(); if (!style) return null;
+  const size = tidySize(line.size ?? ''), colour = tidyColour(line.colour ?? '');
+  const hits = rows.filter((r) => {
+    const code = r.code.toUpperCase(); if (!code.startsWith(style) || !/[A-Z]/.test(code.charAt(style.length))) return false;
+    const d = splitDescription(r.desc); return d.size === size && tidyColour(d.colour) === colour;
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+
+export function parseRalawise(grid: Grid, supplier: string, known: ReadonlySet<string>, lines: readonly InternalLine[] = []): PriceFileResult {
   const hi = grid.findIndex((r) => r.some((c) => key(c) === 'product') && r.some((c) => key(c) === 'description'));
   if (hi < 0) return finish([], ['This does not look like a Ralawise price file: there is no row with "Product" and "Description" columns.'], [], 0, []);
   const head = grid[hi]; const iCode = head.findIndex((c) => key(c) === 'product'), iTitle = head.findIndex((c) => key(c) === 'description');
@@ -35,17 +67,22 @@ export function parseRalawise(grid: Grid, supplier: string, known: ReadonlySet<s
   if (ctn.length === 0) return finish([], ['There is no carton price ("CTN") column in this file.'], [], 0, []);
   const iPrice = ctn[ctn.length - 1]; const usedFuture = ctn.length > 1;
   const byCode = new Map<string, CatalogueLine>(); let fileRows = 0; let noPrice = 0;
+  const pending = lines.filter((l) => known.has(l.sku) && /ralawise/i.test(l.supplier ?? '') && l.product_code.trim()); const styles = [...new Set(pending.map((l) => l.product_code.trim().toUpperCase()))]; const candidates: FileRow[] = [];
   for (const r of grid.slice(hi + 1)) {
     const code = text(r[iCode]); if (!code) continue; fileRows++;
+    if (styles.length && styles.some((st) => code.toUpperCase().startsWith(st))) { const c = price(r[iPrice]); if (c !== null) candidates.push({ code, desc: text(r[iTitle]), cost: c }); }
     if (!known.has(code)) continue;
     const cost = price(r[iPrice]); if (cost === null) { noPrice++; continue; }
     const title = text(r[iTitle]);
     byCode.set(code, { supplier, item_code: code, cost, ...(title ? { title } : {}) });
   }
+  let matched = 0;
+  for (const l of pending) { if (byCode.has(l.sku)) continue; const m = matchInternal(l, candidates); if (m) { byCode.set(l.sku, { supplier, item_code: l.sku, cost: m.cost, supplier_sku: m.code, ...(m.desc ? { title: m.desc } : {}) }); matched++; } }
   const rows = [...byCode.values()];
   const unpriced = [...known].filter((k) => !byCode.has(k)).sort();
   const notes = [`${fileRows.toLocaleString('en-GB')} lines in the file; ${rows.length.toLocaleString('en-GB')} are items Flow already knows.`,
     usedFuture ? 'Prices are the "Future Prices" carton price.' : 'The file has one price block; prices are its carton price.'];
+  if (pending.length) notes.push(`${matched} of ${new Set(pending.map((l) => l.sku)).size} items carrying a DecoNetwork number were matched to Ralawise's own code by style, colour and size. The rest could not be matched with certainty and are left alone.`);
   if (noPrice) notes.push(`${noPrice} known items had no usable price in the file and were left out.`);
   return finish(rows, rows.length ? [] : ['None of the items in this file are items Flow knows yet, so there is nothing to load.'], notes, fileRows, unpriced);
 }
@@ -88,8 +125,8 @@ export function parsePenCarrie(grid: Grid, supplier: string, known: ReadonlySet<
   return finish(rows, rows.length ? [] : ['None of the items in this file are items Flow knows yet, so there is nothing to load.'], notes, fileRows, unpriced);
 }
 
-export function parsePriceFile(layout: PriceLayout, grid: Grid, supplier: string, known: ReadonlySet<string>): PriceFileResult {
-  const r = layout === 'ralawise' ? parseRalawise(grid, supplier, known) : layout === 'pencarrie' ? parsePenCarrie(grid, supplier, known) : parseOrn(grid, supplier, known);
+export function parsePriceFile(layout: PriceLayout, grid: Grid, supplier: string, known: ReadonlySet<string>, lines: readonly InternalLine[] = []): PriceFileResult {
+  const r = layout === 'ralawise' ? parseRalawise(grid, supplier, known, lines) : layout === 'pencarrie' ? parsePenCarrie(grid, supplier, known) : parseOrn(grid, supplier, known);
   if (r.rows.length > 20000) return finish([], ['This would load more than 20,000 lines, which is more than one import allows.'], r.notes, r.fileRows, r.unpriced);
   return r;
 }

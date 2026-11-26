@@ -1,5 +1,5 @@
 // Reads the product catalogue spreadsheet (save from Excel as "CSV"). Columns: supplier, item code, cost, and optionally preferred (yes).
-export interface CatalogueRow { supplier: string; item_code: string; cost: string; preferred?: string }
+export interface CatalogueRow { supplier: string; item_code: string; cost: string; preferred?: string; title?: string; supplier_sku?: string }
 export interface ParsedCatalogue { rows: CatalogueRow[]; problems: string[] }
 
 export function parseCsv(text: string): string[][] {
