@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v43', date: '2026-11-26', status: 'live', areas: ['Buying', 'Catalogue'], title: 'PenCarrie price file: Flow can now read it, and the first 10 prices are loaded',
+    summary: 'Daniel got PenCarrie\'s price file (account CPIL, about 96,000 lines). Flow can now read it from Catalogue, Load a supplier\'s price file.',
+    changes: ['A new layout, "PenCarrie price file". It matches our item codes on either the PenCarrie code or the brand code and uses the single price (the carton, pack and single prices are the same in this file).', 'Flow keeps only the items it already knows. 10 of them were in the file and have been loaded as PenCarrie prices: 1 SOL\'S, 1 Russell Athletic, 1 Premier and 7 Portwest (total 151.25).'],
+    watch: 'The 7 Portwest items are priced from PenCarrie for now, so PenCarrie is their preferred supplier. The Portwest price list is still to come and can change that. Other unpriced items belong to other suppliers.' },
   { v: 'v42', date: '2026-11-25', status: 'built', areas: ['Purchasing'], title: 'Fix: the Emails link no longer opens a "Purchase order not found" panel',
     summary: 'Daniel followed the "Purchasing, Emails" link after building a DTF order and a "Purchase order not found" panel opened over the Emails list.',
     changes: ['The Emails section now opens on its own, with nothing over it.', 'A section name in the address (emails, electronic, suppliers and so on) is never read as a purchase order number.'],

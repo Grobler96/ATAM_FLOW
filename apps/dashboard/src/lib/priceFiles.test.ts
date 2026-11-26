@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseOrn, parsePriceFile, parseRalawise, type Grid } from './priceFiles';
+import { parseOrn, parsePenCarrie, parsePriceFile, parseRalawise, type Grid } from './priceFiles';
 
 const ralHead: Grid = [
   [null, null, null], [null, 'Current Date', 'Future Date'], [null, 'Product Details', null, null, null, null, null, 'Current Prices', null, null, 'Future Prices'],
@@ -55,5 +55,25 @@ describe('parsePriceFile', () => {
     const known = new Set<string>(); const rows: Grid = [['Code', 'Product', 'P'], [1, 'x', 2]];
     for (let i = 0; i < 20001; i++) known.add(`1.A.${i}`);
     expect(parsePriceFile('orn', rows, 'S', known).problems[0]).toMatch(/20,000/);
+  });
+});
+
+describe('parsePenCarrie', () => {
+  const head = ['mystat', 'prodcode', 'supprodcode', 'style', 'colour', 'longcolour', 'size', 'position', 'brand', 'price_ctn', 'price_pck', 'price_sngl', 'vatcode', 'PenCarrieEAN', 'commoditycode', 'styledescprint'];
+  const row = (own: string, brand: string, p: number | null, desc = 'Premier Shirt'): Grid[number] => ['-', own, brand, 's', 'c', 'Black', '4XL', 1, 'Premier', p, p, p, '1', '', '', desc];
+  const grid: Grid = [head, row('PR694 BLK 4XL', 'PR694BLAC4XL', 13.45), row('520M BLK XL', '0R520M036XL', 42.75, 'Russell Trousers'), row('NOPRICE', 'NP1', null), row('ZZ9', 'ZZ9X', 1)];
+  const known = new Set(['PR694BLAC4XL', '520M BLK XL', 'NOPRICE', 'ABSENT', 'GD001PIST3XL']);
+  it('matches on either the PenCarrie code or the brand code and uses the single price', () => {
+    const r = parsePenCarrie(grid, 'PenCarrie', known);
+    expect(r.problems).toEqual([]);
+    expect(r.rows).toEqual([
+      { supplier: 'PenCarrie', item_code: 'PR694BLAC4XL', cost: '13.45', title: 'Premier Shirt Black 4XL' },
+      { supplier: 'PenCarrie', item_code: '520M BLK XL', cost: '42.75', title: 'Russell Trousers Black 4XL' },
+    ]);
+    expect(r.fileRows).toBe(4); expect(r.unpriced).toEqual(['ABSENT', 'GD001PIST3XL', 'NOPRICE']); expect(r.notes.join(' ')).toMatch(/1 known items had no usable price/);
+  });
+  it('refuses a file that is not a PenCarrie price file and works through parsePriceFile', () => {
+    expect(parsePenCarrie([['a', 'b']], 'PenCarrie', known).problems[0]).toMatch(/does not look like a PenCarrie/);
+    expect(parsePriceFile('pencarrie', grid, 'PenCarrie', known).rows).toHaveLength(2);
   });
 });
