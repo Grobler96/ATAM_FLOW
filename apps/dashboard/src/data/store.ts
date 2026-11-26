@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { supabase } from '../lib/api';
-import { cutOffAt, needsCountCheck } from './cutoff';
+import { cutOffAt, fetchAllPages, needsCountCheck, pagingKey } from './cutoff';
 
 // One shared cache for every page: a view is fetched once, shared by whoever needs it, refreshed every minute while somebody is looking at it,
 // and a failed refresh keeps the last good data (so the UI can say "showing data from 3 minutes ago").
@@ -23,10 +23,18 @@ async function fetchView(name: string, limit: number): Promise<void> {
     try {
       const { data, error } = await supabase.from(name).select('*').limit(limit);
       if (error) throw new Error(error.message);
-      const rows = (data ?? []) as unknown[];
+      let rows = (data ?? []) as unknown[];
       // A big list that did not reach our limit may still have hit a server-side cap: only a count can tell, so ask (and only then).
       let total: number | null = null;
       if (needsCountCheck(rows.length, limit)) { try { const c = await supabase.from(name).select('*', { count: 'exact', head: true }); total = c.error ? null : c.count; } catch { total = null; } }
+      // The server held back rows. If the list has a column that is different on every row to put it in a fixed order, fetch it page by page so nothing is missing (otherwise it stays flagged as cut off).
+      const orderBy = rows.length > 0 ? pagingKey(rows[0]) : null;
+      if (total !== null && total > rows.length && orderBy) {
+        try {
+          const all = await fetchAllPages(async (from, to) => { const pg = await supabase.from(name).select('*').order(orderBy).range(from, to); if (pg.error) throw new Error(pg.error.message); return (pg.data ?? []) as unknown[]; }, total, limit);
+          if (all) rows = all;
+        } catch { /* keep the first page: the list is flagged as cut off */ }
+      }
       cache.set(key, { ...(cache.get(key) as Entry), data: rows, cut: cutOffAt(rows.length, limit, total), error: null, at: Date.now(), loading: false });
     } catch (e) {
       cache.set(key, { ...(cache.get(key) as Entry), error: e instanceof Error ? e.message : 'Could not load', loading: false });

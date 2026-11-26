@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v47', date: '2026-11-26', status: 'built', areas: ['Everyone'], title: 'Fix: lists longer than 1,000 rows were silently cut short (order #636967 showed "No lines")',
+    summary: 'Daniel opened order #636967 and its Lines & stock tab said "No lines". The order does have a line.',
+    changes: ['The database hands back at most 1,000 rows per request, and some lists are longer: order lines (1,611), stock (1,700), purchase order lines (2,634), the catalogue, artwork files, Drive files and the list of known items. The newest orders were the ones left off.', 'Flow now asks for such a list page by page until it has every row.', 'A list that still cannot be completed is flagged as cut off, as before.'],
+    watch: 'Lists without a unique column to order by (for example the exception history, 5,381 rows) are still flagged as cut off rather than fixed. Raising the API\'s Max rows setting in Supabase would also help everything at once.' },
   { v: 'v46', date: '2026-11-26', status: 'live', areas: ['Purchasing'], title: 'Fix: "No orders need stock buying right now" when raising a purchase order',
     summary: 'Daniel could not raise a purchase order for any order. The Raise purchase orders screen always said no orders needed stock.',
     changes: ['Logged-in staff had never been allowed to read the list of what each order still needs to buy, so the screen got nothing back. They can now.', 'The list shows nothing to anyone who is not on the team, even if asked directly.', 'The tests now check this as a logged-in team member would, which is how it was missed.'],
