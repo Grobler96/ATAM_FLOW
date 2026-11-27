@@ -52,7 +52,7 @@ export function CreatePoDialog({ open, onClose, presetOrders }: { open: boolean;
     <Modal open={open} onClose={onClose} title="Raise purchase orders">
       <div className="stack">
         {nothingToBuy.length > 0 && !buy.loading && <div className="callout" role="status" data-testid="po-nothing-to-buy"><b>{nothingToBuy.join(', ')} {nothingToBuy.length === 1 ? 'has' : 'have'} nothing left to buy</b>Its stock is already allocated or on a purchase order, so nothing was chosen for {nothingToBuy.length === 1 ? 'it' : 'them'}. The orders below do still need stock: tick any you want to include.</div>}
-        <Field label={`Customer orders that still need stock (${chosen.length} chosen)`}>
+        <Field label={`Customer orders that still need stock (${chosen.filter((id) => needingIds.has(id)).length} chosen)`}>
           <div className="panel" style={{ maxHeight: 190, overflow: 'auto', padding: 6 }}>
             {buy.loading && <p className="dim" style={{ padding: 8 }}>Loading…</p>}
             {!buy.loading && needing.length === 0 && <p className="dim" style={{ padding: 8 }}>No orders need stock buying right now.</p>}
