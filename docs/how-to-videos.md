@@ -33,6 +33,18 @@ To add a tutorial: add a scene to `capture/capture.mjs` (drive the app, call `sn
 
 Rules for the content: use made-up sample data only, show only what is built and live (see `docs/ui.md` and `docs/launch-checklist.md`), do not invent figures, and say plainly when a number is a placeholder setting ("as set up here").
 
+## The voice
+
+The three pilot videos are narrated by **Brady J, "Friendly, Casual, Warm"** from ElevenLabs (model `eleven_v4`). Kokoro (free, built into the project) is the fallback and is what `npm run voice` makes.
+
+To voice a tutorial with Brady J:
+
+1. `python3 audio/el_lines.py <id>` prints each line as plain text, with spelled-out letters separated ("A T A M", "P O", "Q R") so they are read as letters.
+2. Generate each line with the ElevenLabs voice **one take per line** (a retry is charged again), and save the files as `<key>.mp3` (`a.mp3`, `b.mp3`, ...) in a folder.
+3. `python3 audio/import_voice.py <id> <folder>` trims and imports them and records each length. Then run `make_timing.py`, `make_audio_tutorial.py`, `check_voice.py` and `check_mix.py` as usual. The pop-ups follow the spoken words, so they re-time themselves.
+
+Cost: about one credit (character) per character of text, roughly 700 characters per video. The Creator plan is 138,805 characters a month, so the whole planned library of about 40 videos fits in one month if nothing else uses the plan. Re-voicing a video after a script change costs that video's characters again.
+
 ## Hosting the videos (needs the owner's go-ahead)
 
 The page opens each video with a short-lived link from a **private** Storage bucket named `tutorials`, holding `<id>.mp4`. Nothing has been created in the live project. Until the bucket and files exist, opening a video shows the written steps and says the video is not available to watch yet.
@@ -50,4 +62,4 @@ Then upload `video/out/<id>.mp4` as `<id>.mp4`. The MP4s are not committed to th
 ## Known limits
 
 - The screenshots come from the mocked backend, which does not change state after an action (for example a purchase order stays "Draft" after approving). The videos therefore show a celebratory pop-up for the success moment, which is an overlay and not the app.
-- Voice is the free Kokoro model. Speech recognition checks catch mispronounced words, but nobody has listened to the finished videos yet: have a person watch each one before it is shared.
+- Speech recognition checks catch mispronounced words, but nobody has listened to the finished videos yet: have a person watch each one before it is shared.

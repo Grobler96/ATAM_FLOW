@@ -8,7 +8,7 @@
    "summary": "A quick, friendly tour of the first screen you see: key numbers, what needs attention, search and quick actions.",
    "page": "home",
    "pageLabel": "Command Centre",
-   "seconds": 53,
+   "seconds": 61,
    "steps": [
     "Hey there! Welcome to ATAM Flow. This is your Command Centre, mission control for every order.",
     "Up top are your key numbers. Every tile is a live count of what is happening right now.",
@@ -29,7 +29,7 @@
    "summary": "Turn orders that are waiting on stock into supplier purchase orders, then approve them.",
    "page": "purchasing",
    "pageLabel": "Purchasing",
-   "seconds": 48,
+   "seconds": 56,
    "steps": [
     "Time to buy some stock! Head to Purchasing. That is where all your supplier orders live.",
     "Hit the blue Create PO button.",
@@ -50,7 +50,7 @@
    "summary": "Make order and bin labels, preview exactly what will print, and print them with a record of who did it.",
    "page": "labels",
    "pageLabel": "Labels",
-   "seconds": 44,
+   "seconds": 50,
    "steps": [
     "Labels keep your warehouse running smoothly. This list shows everything waiting to be printed.",
     "Need new ones? Hit Generate labels.",
