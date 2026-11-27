@@ -35,7 +35,7 @@ Status as of 10 Nov 2026. [handoff.md](handoff.md) has the full picture (rules, 
 8. **Test one third-party order end to end with a real login**: pick, label, consignment, producer receives, returns, QC, dispatch.
 9. **Give the go-ahead for migrations 63 to 65** (decorator upload limit, audit trail for direct set-up changes, QC photos from a device). They are written and tested but not applied: see [handoff.md](handoff.md) for what each does and how to check it after.
 10. **Try real hardware**: print a real label and a courier label on your actual printer and scan each with your real scanner and phone. Nothing has been tried on real hardware yet.
-11. **Upload the how-to videos.** Migration 92 (the private `tutorials` bucket) is applied (27 Nov 2026). Upload each `video/out/<id>.mp4` as `<id>.mp4` in Supabase Storage, `tutorials`, then check a viewer can play one and a decorator login cannot. Until then the How-to videos page shows the written steps only. See [how-to-videos.md](how-to-videos.md).
+11. **Check the how-to videos as real users** once the How-to videos page is live. Migration 92 (the private `tutorials` bucket) is applied and the three pilot videos are uploaded (27 Nov 2026). Sign in as a view-only user and play one, and check a decorator login cannot see them. Upload each new video as `<id>.mp4`. See [how-to-videos.md](how-to-videos.md).
 
 ## Not built
 
