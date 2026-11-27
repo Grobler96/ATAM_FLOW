@@ -99,7 +99,7 @@ export function OrdersPage({ route, mode = 'all' }: { route: Route; mode?: 'all'
   const allocateWf = WORKFLOWS.find((w) => w.id === 'allocate')!;
   const bulk: BulkAction<OrderVM>[] = [
     { id: 'alloc', label: 'Allocate stock', icon: 'box', run: canAct && runner.can(allocateWf) ? () => void runner.run(allocateWf) : undefined, disabledReason: 'Your role cannot run allocation' },
-    { id: 'po', label: 'Create PO', icon: 'purchasing', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:create-po', { detail: r.filter((o) => o.order_status === 'awaiting_stock').map((o) => o.id) })) : undefined, disabledReason: 'Your role cannot create POs' },
+    { id: 'po', label: 'Create PO', icon: 'purchasing', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:create-po', { detail: r.map((o) => o.id) })) : undefined, disabledReason: 'Your role cannot create POs' },
     { id: 'esc', label: 'Escalate (raise issue)', icon: 'exceptions', run: canAct ? (r) => void raise(r) : undefined, disabledReason: 'Your role cannot raise issues' },
     ...(mode === 'tp' ? [] : [{ id: 'mktp', label: 'Make third-party', icon: 'truck', run: senior ? (r: OrderVM[]) => setTpRows(r) : undefined, disabledReason: 'Only a manager or admin can change an order’s scope' }]),
     { id: 'send', label: 'Send to producer', icon: 'truck', run: canAct ? (r) => window.dispatchEvent(new CustomEvent('atamflow:send-to-producer', { detail: { orders: r.map((o) => o.order_ref) } })) : undefined, disabledReason: 'Your role cannot create producer movements' },
