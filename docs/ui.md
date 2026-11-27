@@ -37,6 +37,7 @@ Persistent sidebar (12 sections, collapsible, off-canvas on a phone), top comman
 | **Exceptions** | Full list with groups, filters, ageing, detail with actions (assign, status, note, resolve, cancel, write off), raise an issue | None of substance |
 | **Labels** | Awaiting-print list, generate (6 types), preview with QR + barcode, A4 / thermal print, reprint with reason, print history | Needs the Warehouse actions workflow published; not tested on a physical printer |
 | **Analytics** | Due-date profile, pipeline, exceptions by area and age, late POs by supplier, shortages by urgency, revenue and cost exposure, all clickable | Trend lines for throughput, on-time rate, utilisation, downtime, rework, supplier / producer performance and margin by producer need history, which builds as work flows through ATAM_FLOW |
+| **How-to videos** | List of short tutorial videos with search and topic filter, each opening with its written steps and a button to the real page; a plain "on the list" panel for videos not made yet | Needs the private `tutorials` bucket and the video files (see [how-to-videos.md](how-to-videos.md)); until then it shows the steps only |
 | **Settings** | Account and role, every engine setting with its explanation (read-only) | Editing settings from the UI |
 
 ## Roles

@@ -82,3 +82,4 @@ run "$PSQL -d flowtest -f $ROOT/supabase/tests/order_profit_test.sql"
 run "$PSQL -d flowtest -f $ROOT/supabase/tests/permissions_test.sql"
 run "env PSQL='$PSQL -d flowtest' ROOT='$ROOT' WORK='$WORK' NODE='$NODE' FIXED_NOW=2026-11-09T09:00:00Z FIXED_TODAY=2026-11-09 bash $ROOT/scripts/allocation-roundtrip.sh"
 run "env PSQL='$PSQL -d flowtest' ROOT='$ROOT' WORK='$WORK' NODE='$NODE' FIXED_TODAY=2026-11-09 bash $ROOT/scripts/selection-roundtrip.sh"
+run "env ROOT='$ROOT' $PSQL -d flowtest -f $ROOT/supabase/tests/tutorials_bucket_test.sql"   # reads the migration file itself, to run its storage rules against a stand-in
