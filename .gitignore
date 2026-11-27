@@ -9,3 +9,10 @@ dist/
 # n8n exports must be secret-stripped before commit; raw exports stay local
 n8n/workflows/*.raw.json
 e2e/shots/
+video/node_modules/
+video/out/
+video/public/shots/
+video/public/audio/
+video/audio/vo/
+apps/dashboard/e2e/_capture_harness.gen.mjs
+__pycache__/

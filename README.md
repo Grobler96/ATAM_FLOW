@@ -21,6 +21,7 @@ lives in **Supabase** (`flow` schema); the dashboard is a static app on **GitHub
 | `n8n/workflows/` | Copies of the live n8n workflows (Verify caller, the action webhooks, exception detector, priority-flag sync), secrets stripped; how to restore one is in [docs/n8n-workflows.md](docs/n8n-workflows.md) |
 | `apps/dashboard/` | The staff command centre (`index.html`) and the decorator portal (`portal.html`), see [docs/ui.md](docs/ui.md) and [docs/producer-portal.md](docs/producer-portal.md) |
 | `packages/engine/` | Pure JavaScript (no I/O) for scoring, allocation and scheduling, with unit tests; embedded in n8n Code nodes |
+| `video/` | The how-to video project (Remotion, with screenshots of the real dashboard on synthetic data); see [docs/how-to-videos.md](docs/how-to-videos.md) |
 | `docs/` | Architecture, data model, one page per feature, security audit, handoff, launch checklist, assumptions |
 | `.github/workflows/` | CI (engine, dashboard, browser tests, database, n8n exports) and the GitHub Pages deploy |
 
@@ -48,6 +49,7 @@ security decides what anyone can see); the service-role key and DecoNetwork cred
 - [docs/architecture.md](docs/architecture.md): how the pieces fit
 - [docs/third-party-production.md](docs/third-party-production.md): outsourced production and chain of custody
 - [docs/scoring-and-sequencing.md](docs/scoring-and-sequencing.md): how the production scheduler decides
+- [docs/how-to-videos.md](docs/how-to-videos.md): the how-to videos, how they are made and how to host them
 - [docs/n8n-workflows.md](docs/n8n-workflows.md): workflow map, webhooks and restore steps
 - [docs/security-audit-2026-11.md](docs/security-audit-2026-11.md): the independent security audit and its fixes
 - [docs/assumptions-and-open-questions.md](docs/assumptions-and-open-questions.md): what still needs confirming

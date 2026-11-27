@@ -83,3 +83,17 @@ kbd { font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border-radi
 
 .attn-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: start; }
 @media (max-width: 700px) { .attn-row { grid-template-columns: auto 1fr; grid-template-areas: 'sev act' 'body body'; } .attn-row > :nth-child(1) { grid-area: sev; } .attn-row > :nth-child(2) { grid-area: body; } .attn-row > :nth-child(3) { grid-area: act; justify-self: end; } }
+
+/* How-to videos page */
+.howto-grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.howto-card { display: flex; flex-direction: column; text-align: left; padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--glass); color: var(--text-1); cursor: pointer; transition: transform var(--t-med) var(--ease), border-color var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease); }
+.howto-card:hover, .howto-card:focus-visible { transform: translateY(-3px); border-color: var(--accent-line); box-shadow: var(--glow); }
+.howto-thumb { position: relative; display: block; aspect-ratio: 16 / 9; background: var(--bg-2); }
+.howto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.howto-len { position: absolute; right: var(--s-2); bottom: var(--s-2); padding: 2px 8px; border-radius: var(--r-pill); background: var(--scrim); color: var(--text-1); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.howto-body { display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-3) var(--s-4) var(--s-4); }
+.howto-meta { display: flex; gap: var(--s-2); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-2); }
+.howto-meta span + span { color: var(--text-3); }
+.howto-video { width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-lg); background: var(--bg-0); border: 1px solid var(--border); }
+.howto-wait { display: grid; place-items: center; padding: var(--s-5); text-align: center; color: var(--text-2); }
+.howto-steps { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); }

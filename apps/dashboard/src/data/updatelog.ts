@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v50', date: '2026-11-27', status: 'built', areas: ['Help'], title: 'How-to videos: short, friendly videos showing how to do things in Flow',
+    summary: 'A new How-to videos page (Control menu) lists short videos for the team. Pick one to watch it, with the same steps written out underneath and a button that opens the real page.',
+    changes: ['Three videos to start: a tour of the Command Centre, raising and approving a purchase order, and making and printing labels.', 'Every video uses made-up sample data, so the screens are the real ones but never show a real customer.', 'Search the list, or filter by topic. A list of the videos still to be made is shown as "On the list", clearly marked as not made yet.', 'The videos are kept in a private store, so only signed-in people can watch them.'],
+    watch: 'Until the videos are uploaded, opening one shows the written steps and says the video is not available to watch yet. Nothing else in Flow changes.' },
   { v: 'v49', date: '2026-11-27', status: 'built', areas: ['Orders', 'Purchasing'], title: 'Fix: Create PO from picked orders no longer chooses every order',
     summary: 'Daniel picked one CPI order and clicked Create PO. The box opened with all 39 orders that need stock chosen, and raised purchase orders for all of them.',
     changes: ['Create PO now chooses only the orders you picked.', 'If an order you picked has nothing left to buy (its stock is already allocated or on order), the box says so and chooses nothing, instead of choosing every order.', 'You can still tick the orders listed in the box yourself.'],

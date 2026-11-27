@@ -1,0 +1,66 @@
+{
+ "tutorials": [
+  {
+   "id": "cc-tour",
+   "title": "Meet your Command Centre",
+   "section": "Getting started",
+   "level": "Everyone",
+   "summary": "A quick, friendly tour of the first screen you see: key numbers, what needs attention, search and quick actions.",
+   "page": "home",
+   "pageLabel": "Command Centre",
+   "seconds": 53,
+   "steps": [
+    "Hey there! Welcome to ATAM Flow. This is your Command Centre, mission control for every order.",
+    "Up top are your key numbers. Every tile is a live count of what is happening right now.",
+    "Tap a tile, like overdue orders, and Flow jumps straight to that list.",
+    "Boom! Just the overdue orders, ready to sort, filter and search.",
+    "Down here is what needs attention now, with the reason and the next step for each one.",
+    "Hunting for something? Hit slash, or control K, and search orders, stock, purchase orders, bins, anything.",
+    "Quick actions holds your one-click jobs, like syncing stock or raising a purchase order.",
+    "And the production pulse shows what is moving, what is stuck, and what might run late.",
+    "And that is the Command Centre! Pop back to the How-to videos page for more. See you next time!"
+   ]
+  },
+  {
+   "id": "po-approve",
+   "title": "Raise and approve a purchase order",
+   "section": "Stock and buying",
+   "level": "Managers and admins",
+   "summary": "Turn orders that are waiting on stock into supplier purchase orders, then approve them.",
+   "page": "purchasing",
+   "pageLabel": "Purchasing",
+   "seconds": 48,
+   "steps": [
+    "Time to buy some stock! Head to Purchasing. That is where all your supplier orders live.",
+    "Hit the blue Create PO button.",
+    "Flow lists the customer orders still waiting on stock, already grouped by supplier.",
+    "Tick what you want, check where each delivery goes, and raise it. Easy.",
+    "Your new PO opens as a draft. Nothing goes to the supplier until somebody approves it.",
+    "Approving commits you to buying these goods, so Flow shows you exactly who is allowed to.",
+    "As set up here, managers can approve up to five hundred pounds. Anything bigger needs an admin.",
+    "Press Approve PO and it is ready to email. Flow always lets you review the email first.",
+    "That is it! Raised, approved, and on its way. Nice work."
+   ]
+  },
+  {
+   "id": "labels",
+   "title": "Generate and print labels",
+   "section": "Warehouse",
+   "level": "Warehouse and managers",
+   "summary": "Make order and bin labels, preview exactly what will print, and print them with a record of who did it.",
+   "page": "labels",
+   "pageLabel": "Labels",
+   "seconds": 44,
+   "steps": [
+    "Labels keep your warehouse running smoothly. This list shows everything waiting to be printed.",
+    "Need new ones? Hit Generate labels.",
+    "Pick a label type, then tick the orders you want. Done in seconds.",
+    "Do not worry about doing it twice. Unchanged labels are left alone, and changed ones are flagged for a reprint.",
+    "Click a label to see exactly what will print: the order, the customer, the due date and a scannable QR code.",
+    "Choose a hundred by one fifty millimetre label, or A four paper.",
+    "Hit Print, and Flow records who printed it and when, so a reprint always has a reason.",
+    "And that is labels! Stick them on and keep things moving."
+   ]
+  }
+ ]
+}
