@@ -117,6 +117,7 @@ try {
   await page.getByRole('button', { name: 'Send report' }).click(); await page.getByText('ATAM has your report').waitFor();
   const sp = st.calls.find((c) => c.fn === 'portal_report_spoilage');
   ok(sp && sp.body.p_code === 'TP-2026-00007' && sp.body.p_item === 'i1' && sp.body.p_qty === 2 && sp.body.p_what === 'stained' && sp.body.p_evidence === null, 'the report names the job, line, units and what happened');
+  await page.getByText('With ATAM to review').waitFor();   // the list of reports reloads after the confirmation appears: wait for it before counting (a timing flake on the slower CI runner)
   ok((await page.getByText('With ATAM to review').count()) === 1, 'the decorator sees their report and where it stands');
   // the upload limit: a refused photo is explained in plain words, not as a database message, and nothing is sent without it
   { st.uploadRefused = true; const before = st.calls.filter((c) => c.fn === 'portal_report_spoilage').length;
