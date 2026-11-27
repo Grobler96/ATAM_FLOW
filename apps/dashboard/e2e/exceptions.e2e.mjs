@@ -106,7 +106,7 @@ const purchasingReply = (body, st) => {
 async function newPage(browser, o = {}) {
   const ctx = await browser.newContext({ viewport: o.viewport || { width: 1440, height: 900 }, deviceScaleFactor: o.dsf || 1, acceptDownloads: true });
   if (!o.focusDefault) await ctx.addInitScript(() => { try { if (localStorage.getItem('atamflow.focus') === null) localStorage.setItem('atamflow.focus', 'off'); } catch { /* none */ } });   // older checks look at every order
-  const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200))); const st = { rpcs: [], role: o.role === undefined ? 'manager' : o.role, roleFails: o.roleFails ?? 0, uploads: [], signs: [], removed: [], n8n: [], n8nStatus: o.n8nStatus ?? 200, badLogin: o.badLogin ?? false, approve: o.approve ?? null, views: o.views ?? {}, counts: o.counts ?? {}, uploadRefused: o.uploadRefused ?? false, exStatus: o.exStatus === undefined ? new Date(Date.now() - 600000).toISOString() : o.exStatus };
+  const page = await ctx.newPage(); page.on('pageerror', (e) => console.log('  PAGE ERROR: ' + e.message.slice(0, 200))); const st = { cap: o.cap ?? 0, pages: [], rpcs: [], role: o.role === undefined ? 'manager' : o.role, roleFails: o.roleFails ?? 0, uploads: [], signs: [], removed: [], n8n: [], n8nStatus: o.n8nStatus ?? 200, badLogin: o.badLogin ?? false, approve: o.approve ?? null, views: o.views ?? {}, counts: o.counts ?? {}, uploadRefused: o.uploadRefused ?? false, exStatus: o.exStatus === undefined ? new Date(Date.now() - 600000).toISOString() : o.exStatus };
   await page.route(`${SB}/**`, async (route) => {
     const req = route.request(), u = new URL(req.url()); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const json = (b, s = 200) => route.fulfill({ status: s, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(b) });
@@ -128,7 +128,9 @@ async function newPage(browser, o = {}) {
     if (v === 'ui_status') return json({ last_detection_at: st.exStatus, server_time: new Date().toISOString() });
     if (v === 'ui_exception_history') return json(history.map((h) => ({ ...h, exception_id: 'x' })));
     if (v === 'ui_order_accountability' && u.search.includes('order_ref')) return json({ order_id: 'o-1' });
-    return json(st.views[v] ?? VIEWS[v] ?? []);
+    { const rows = st.views[v] ?? VIEWS[v] ?? [];
+      if (st.cap && Array.isArray(rows)) { const off = Number(u.searchParams.get('offset') ?? 0), lim = Math.min(Number(u.searchParams.get('limit') ?? rows.length), st.cap); if (u.searchParams.has('offset')) st.pages.push(v + ':' + off); return json(rows.slice(off, off + lim)); }   // a server that never returns more than `cap` rows per request
+      return json(rows); }
   });
   await page.route(`${N8N}/**`, async (route) => {
     const req = route.request(); if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
@@ -914,8 +916,10 @@ try {
       await goto(pc, '#/orders'); await pc.waitForSelector('.dt-row'); await pc.waitForTimeout(400); ok((await pc.getByText('Not everything is shown.').count()) === 0, 'the warning goes away when the cut-off list is no longer on screen'); await cc.close(); }
     { const { page: p2, ctx: c2 } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(2000) } }); await signIn(p2); await goto(p2, '#/stock/SKU-3-M'); await p2.getByText('Not everything is shown.').waitFor();
       ok((await p2.getByText(/Stock movements \(first 2,000 rows\)/).count()) === 1, 'a list loaded with a smaller limit is cut off at that limit'); await c2.close(); }
-    { const { page: pd, ctx: cd } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(1000) }, counts: { ui_stock_movements: 1450 } }); await signIn(pd); await goto(pd, '#/stock/SKU-3-M'); await pd.getByText('Not everything is shown.').waitFor();
-      ok((await pd.getByText(/Stock movements \(first 1,000 rows\)/).count()) === 1, 'a list the server cut short (fewer rows than exist) is caught by a count'); await cd.close(); }
+    { const { page: pd, ctx: cd } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(1000).map(({ id, sku, drive_file_id, ...r }) => r) }, counts: { ui_stock_movements: 1450 } }); await signIn(pd); await goto(pd, '#/stock/SKU-3-M'); await pd.getByText('Not everything is shown.').waitFor();
+      ok((await pd.getByText(/Stock movements \(first 1,000 rows\)/).count()) === 1, 'a list the server cut short that has nothing to page it by is still caught by a count'); await cd.close(); }
+    { const { page: pg, ctx: cg, st: sg } = await newPage(browser, { role: 'manager', cap: 1000, views: { ui_stock_movements: many(1450) }, counts: { ui_stock_movements: 1450 } }); await signIn(pg); await goto(pg, '#/stock/SKU-3-M'); await pg.getByRole('dialog').waitFor(); await pg.waitForTimeout(800);
+      ok((await pg.getByText('Not everything is shown.').count()) === 0 && sg.pages.filter((x) => x.startsWith('ui_stock_movements:')).length >= 2, 'a list the server cut short is fetched page by page until it is complete, with no warning'); await cg.close(); }
     { const { page: pf, ctx: cf } = await newPage(browser, { role: 'manager', views: { ui_stock_movements: many(1000) }, counts: { ui_stock_movements: 1000 } }); await signIn(pf); await goto(pf, '#/stock/SKU-3-M'); await pf.getByRole('dialog').waitFor(); await pf.waitForTimeout(800);
       ok((await pf.getByText('Not everything is shown.').count()) === 0, 'a big list that is complete shows no warning'); await cf.close(); } }
 

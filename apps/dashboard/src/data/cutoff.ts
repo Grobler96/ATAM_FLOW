@@ -6,6 +6,25 @@ export const SUSPECT_SERVER_CAP = 1000;
 // Only worth asking the database for a count when the answer could be a server-side cap: a big list that did not reach our own limit.
 export const needsCountCheck = (returned: number, limit: number) => returned >= SUSPECT_SERVER_CAP && returned < limit;
 
+// The API hands back at most one page (often 1,000 rows) per request. To get a whole list that is bigger, ask page by page, in a fixed order, until every row is in:
+// the page ranges to ask for (inclusive), never beyond our own limit.
+export function pageRanges(total: number, limit: number, pageSize = SUSPECT_SERVER_CAP): [number, number][] {
+  const want = Math.min(total, limit), out: [number, number][] = [];
+  for (let from = 0; from < want; from += pageSize) out.push([from, Math.min(from + pageSize, want) - 1]);
+  return out;
+}
+
+// Fetches every page and returns all the rows, or null when the pages did not add up to what exists (so the caller can keep the first page and flag the list as cut off).
+export async function fetchAllPages(fetchPage: (from: number, to: number) => Promise<unknown[]>, total: number, limit: number): Promise<unknown[] | null> {
+  const all: unknown[] = [];
+  for (const [from, to] of pageRanges(total, limit)) all.push(...(await fetchPage(from, to)));
+  return all.length >= Math.min(total, limit) ? all : null;
+}
+
+// A column that is different on every row, to put the list in a fixed order while it is fetched page by page. A list with none of these stays cut off (and is flagged).
+export const PAGING_KEYS = ['id', 'sku', 'drive_file_id'];
+export const pagingKey = (row: unknown): string | null => (row && typeof row === 'object' ? PAGING_KEYS.find((k) => k in (row as object)) ?? null : null);
+
 // How many rows the list was cut off at, or null when it is complete (or we cannot tell).
 export function cutOffAt(returned: number, limit: number, total: number | null): number | null {
   if (returned >= limit) return returned;
