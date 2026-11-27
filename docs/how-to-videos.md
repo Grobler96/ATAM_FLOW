@@ -45,11 +45,11 @@ To voice a tutorial with Brady J:
 
 Cost: about one credit (character) per character of text, roughly 700 characters per video. The Creator plan is 138,805 characters a month, so the whole planned library of about 40 videos fits in one month if nothing else uses the plan. Re-voicing a video after a script change costs that video's characters again.
 
-## Hosting the videos (written and tested, not applied: needs the owner's go-ahead)
+## Hosting the videos (bucket applied 27 Nov 2026; the videos still need uploading)
 
 The page opens each video with a short-lived link from a **private** Storage bucket named `tutorials`, holding `<id>.mp4`. Until the bucket and files exist, opening a video shows the written steps and says the video is not available to watch yet.
 
-Migration 92 (`supabase/migrations/20261127000092_flow_tutorials_bucket.sql`, test `supabase/tests/tutorials_bucket_test.sql`) makes the bucket and its rules. It is **not applied to the live project**.
+Migration 92 (`supabase/migrations/20261127000092_flow_tutorials_bucket.sql`, test `supabase/tests/tutorials_bucket_test.sql`) makes the bucket and its rules. It is **applied to the live project** (27 Nov 2026, with the owner's go-ahead; checked after: private, mp4 only, 200 MB, three rules, no files yet).
 
 | Who | Can |
 |---|---|
@@ -59,7 +59,7 @@ Migration 92 (`supabase/migrations/20261127000092_flow_tutorials_bucket.sql`, te
 
 The bucket is private, mp4 only, and 200 MB per file. There is no delete rule: remove a file from the Supabase dashboard if one is ever needed. Where there is no storage schema (the local test database) the migration does nothing, so the test runs the real file against a stand-in.
 
-After it is applied: upload `video/out/<id>.mp4` as `<id>.mp4` (Supabase dashboard, Storage, `tutorials`), then sign in as a viewer and open a video on the How-to page, and check a decorator login cannot. The MP4s are not committed to the repo.
+Still to do: upload `video/out/<id>.mp4` as `<id>.mp4` (Supabase dashboard, Storage, `tutorials`), then sign in as a viewer and open a video on the How-to page, and check a decorator login cannot. The MP4s are not committed to the repo.
 
 ## Known limits
 

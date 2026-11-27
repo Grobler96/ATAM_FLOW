@@ -15,10 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
-  { v: 'v51', date: '2026-11-27', status: 'built', areas: ['Help'], title: 'How-to videos: a private home for the videos is ready to switch on',
-    summary: 'The How-to videos page needs somewhere to keep the video files. The private store and its rules are written and tested, but not switched on yet.',
-    changes: ['Everyone with a Flow role (including view-only) will be able to watch the videos. Decorators and anyone not signed in will not.', 'Only an admin will be able to add or replace a video.', 'Only video files up to 200 MB are accepted.'],
-    watch: 'Nothing changes in Flow until this is switched on and the videos are uploaded. Until then the How-to videos page shows the written steps and says the video is not available yet.' },
+  { v: 'v51', date: '2026-11-27', status: 'live', areas: ['Help'], title: 'How-to videos: the private home for the videos is switched on',
+    summary: 'The How-to videos page needed somewhere to keep the video files. The private store and its rules are now live. The videos themselves still have to be uploaded.',
+    changes: ['Everyone with a Flow role (including view-only) can watch the videos. Decorators and anyone not signed in cannot.', 'Only an admin can add or replace a video.', 'Only video files up to 200 MB are accepted.'],
+    watch: 'Until the videos are uploaded, opening one on the How-to videos page shows the written steps and says the video is not available yet. After uploading, check that someone with a view-only role can play one.' },
   { v: 'v50', date: '2026-11-27', status: 'built', areas: ['Help'], title: 'How-to videos: short, friendly videos showing how to do things in Flow',
     summary: 'A new How-to videos page (Control menu) lists short videos for the team. Pick one to watch it, with the same steps written out underneath and a button that opens the real page.',
     changes: ['Three videos to start: a tour of the Command Centre, raising and approving a purchase order, and making and printing labels.', 'Every video uses made-up sample data, so the screens are the real ones but never show a real customer.', 'Search the list, or filter by topic. A list of the videos still to be made is shown as "On the list", clearly marked as not made yet.', 'The videos are kept in a private store, so only signed-in people can watch them.'],
