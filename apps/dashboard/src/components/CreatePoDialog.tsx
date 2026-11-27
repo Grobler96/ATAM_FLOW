@@ -24,6 +24,9 @@ export function CreatePoDialog({ open, onClose, presetOrders }: { open: boolean;
   const needing = useMemo(() => { const ids = new Set(buy.rows.map((l) => l.order_id)); return orders.rows.filter((o) => ids.has(o.id)).sort((a, b) => (a.due_date ?? '9').localeCompare(b.due_date ?? '9')); }, [orders.rows, buy.rows]);
   const chosen = picked ?? needing.map((o) => o.id);
   const info = useMemo(() => new Map<string, PlanOrderInfo>(dec.rows.map((d) => [d.order_id, { orderId: d.order_id, thirdParty: d.scope === 'third_party', producerId: d.producer_id, producerName: d.producer_name }])), [dec.rows]);
+  // Opened for particular orders: only those are chosen. An order picked there that has nothing left to buy is said so, never swapped for "everything".
+  const needingIds = useMemo(() => new Set(needing.map((o) => o.id)), [needing]);
+  const nothingToBuy = useMemo(() => (presetOrders ?? []).filter((id) => !needingIds.has(id)).map((id) => orders.rows.find((o) => o.id === id)?.order_ref ?? 'An order'), [presetOrders, needingIds, orders.rows]);
   const fb = suppliers.rows.find((s) => s.id === fallback);
   const plan = useMemo(() => planPos(buy.rows.filter((l) => chosen.includes(l.order_id)), info, fb ? { id: fb.id, name: fb.name } : null), [buy.rows, chosen, info, fb]);
   const live = plan.groups.filter((g) => !skip.has(g.key));
@@ -48,7 +51,8 @@ export function CreatePoDialog({ open, onClose, presetOrders }: { open: boolean;
   return (
     <Modal open={open} onClose={onClose} title="Raise purchase orders">
       <div className="stack">
-        <Field label={`Customer orders that still need stock (${chosen.length} chosen)`}>
+        {nothingToBuy.length > 0 && !buy.loading && <div className="callout" role="status" data-testid="po-nothing-to-buy"><b>{nothingToBuy.join(', ')} {nothingToBuy.length === 1 ? 'has' : 'have'} nothing left to buy</b>Its stock is already allocated or on a purchase order, so nothing was chosen for {nothingToBuy.length === 1 ? 'it' : 'them'}. The orders below do still need stock: tick any you want to include.</div>}
+        <Field label={`Customer orders that still need stock (${chosen.filter((id) => needingIds.has(id)).length} chosen)`}>
           <div className="panel" style={{ maxHeight: 190, overflow: 'auto', padding: 6 }}>
             {buy.loading && <p className="dim" style={{ padding: 8 }}>Loading…</p>}
             {!buy.loading && needing.length === 0 && <p className="dim" style={{ padding: 8 }}>No orders need stock buying right now.</p>}
@@ -57,7 +61,7 @@ export function CreatePoDialog({ open, onClose, presetOrders }: { open: boolean;
         </Field>
         {plan.unassigned.length > 0 && <div className="callout" role="status"><b>{unassignedSkus.length} item(s) are not in the product catalogue</b>, so Flow does not know who to buy them from ({unassignedSkus.slice(0, 6).join(', ')}{unassignedSkus.length > 6 ? '…' : ''}). Choose a supplier for them, or add them to the catalogue.
           <div style={{ marginTop: 8 }}><select className="select" aria-label="Supplier for items not in the catalogue" value={fallback} onChange={(e) => setFallback(e.target.value)}><option value="">Leave them out for now</option>{suppliers.rows.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div></div>}
-        {plan.groups.length === 0 && plan.unassigned.length === 0 && chosen.length > 0 && !buy.loading && <p className="dim">Nothing left to buy for these orders.</p>}
+        {plan.groups.length === 0 && plan.unassigned.length === 0 && chosen.length > 0 && !buy.loading && <p className="dim">{nothingToBuy.length > 0 ? 'Nothing is chosen yet, so there is nothing to raise.' : 'Nothing left to buy for these orders.'}</p>}
         {plan.groups.map((g) => { const sup = suppliers.rows.find((s) => s.id === g.supplierId); const w = where(g); const on = !skip.has(g.key);
           return (
             <section key={g.key} className="panel" style={{ padding: 12, opacity: on ? 1 : 0.55 }} aria-label={`Purchase order to ${g.supplier}`}>
