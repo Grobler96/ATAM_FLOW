@@ -1,4 +1,4 @@
--- 27 Nov 2026: Drive artwork files that waited for their order are now picked up when it arrives (NOT YET APPLIED to the live project).
+-- 27 Nov 2026: Drive artwork files that waited for their order are now picked up when it arrives (APPLIED to the live project 27 Nov 2026 as "flow_drive_recheck").
 -- Audit finding: about 178 Drive files (mostly embroidery) sat as "waiting - the order is not in Flow yet" although 31 of their 36 orders are now in Flow with the matching
 -- line. The n8n job only lists Drive files created in the last 7 days (up to 500), and Flow only re-checked the files in that list, so a file whose order arrived later than
 -- the list covered it was never looked at again, and the order's artwork stayed blocked. Also, 12 files for order 636850 have sat as "ready" since 23 Nov (the first
