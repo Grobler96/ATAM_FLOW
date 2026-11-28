@@ -15,10 +15,18 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
-  { v: 'v50', date: '2026-11-28', status: 'built', areas: ['Purchasing'], title: 'Create PO now says why an order has nothing left to buy',
+  { v: 'v52', date: '2026-11-28', status: 'built', areas: ['Purchasing'], title: 'Create PO now says why an order has nothing left to buy',
     summary: 'Daniel picked order #636988 for a purchase order and was told "nothing left to buy", with no purchase order of ours against it.',
     changes: ['The box now says what each item is already covered by: stock on the shelf, or a purchase order already on its way, with its number, supplier and due date.', 'It says when that purchase order was raised in DecoNetwork rather than in Flow. Flow brings DecoNetwork purchase orders in every few hours and reserves their stock for waiting orders, so a purchase order made in DecoNetwork never shows against the order as one of ours.', 'For #636988 the item is reserved from DecoNetwork purchase order 877092 from Ralawise, due 1 Dec.'],
     watch: 'Nothing changes about what is chosen or ordered, only the explanation. No database change.' },
+  { v: 'v51', date: '2026-11-27', status: 'live', areas: ['Help'], title: 'How-to videos: the private home for the videos is switched on',
+    summary: 'The How-to videos page needed somewhere to keep the video files. The private store and its rules are now live, and the three first videos are uploaded.',
+    changes: ['Everyone with a Flow role (including view-only) can watch the videos. Decorators and anyone not signed in cannot.', 'Only an admin can add or replace a video.', 'Only video files up to 200 MB are accepted.'],
+    watch: 'Once the How-to videos page is live, check that someone with a view-only role can play a video, and that a decorator login cannot. If a video will not play, the written steps are still shown under it.' },
+  { v: 'v50', date: '2026-11-27', status: 'built', areas: ['Help'], title: 'How-to videos: short, friendly videos showing how to do things in Flow',
+    summary: 'A new How-to videos page (Control menu) lists short videos for the team. Pick one to watch it, with the same steps written out underneath and a button that opens the real page.',
+    changes: ['Three videos to start: a tour of the Command Centre, raising and approving a purchase order, and making and printing labels.', 'Every video uses made-up sample data, so the screens are the real ones but never show a real customer.', 'Search the list, or filter by topic. A list of the videos still to be made is shown as "On the list", clearly marked as not made yet.', 'The videos are kept in a private store, so only signed-in people can watch them.'],
+    watch: 'Until the videos are uploaded, opening one shows the written steps and says the video is not available to watch yet. Nothing else in Flow changes.' },
   { v: 'v49', date: '2026-11-27', status: 'built', areas: ['Orders', 'Purchasing'], title: 'Fix: Create PO from picked orders no longer chooses every order',
     summary: 'Daniel picked one CPI order and clicked Create PO. The box opened with all 39 orders that need stock chosen, and raised purchase orders for all of them.',
     changes: ['Create PO now chooses only the orders you picked.', 'If an order you picked has nothing left to buy (its stock is already allocated or on order), the box says so and chooses nothing, instead of choosing every order.', 'You can still tick the orders listed in the box yourself.'],
