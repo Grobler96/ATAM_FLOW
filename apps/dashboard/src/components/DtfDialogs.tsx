@@ -4,7 +4,7 @@ import { Button, Field, Status } from '../ui/primitives';
 import { refreshAll } from '../data/store';
 import { exceptionActionTo } from '../lib/api';
 import { href } from '../router';
-import { batchItems, planBuild, refsOf, type DtfBatchRow } from '../lib/dtfOrders';
+import { batchItems, DELIVERY_OPTIONS, planBuild, refsOf, type DtfBatchRow } from '../lib/dtfOrders';
 import { dtfStatusWords, LIGHT_TONE, STATUS_LIGHT, type DtfItemRow } from '../lib/preproduction';
 
 // Building a DTF order to Super Print, and booking the prints in when they arrive. Building creates the order and queues its email for a person's
@@ -14,10 +14,10 @@ const Thumb = ({ url }: { url: string | null }) => <span style={{ width: 40, hei
 
 export function BuildDtfDialog({ orderIds, items, onClose }: { orderIds: string[]; items: DtfItemRow[]; onClose: () => void }) {
   const plan = planBuild(items, orderIds); const toast = useToast();
-  const [note, setNote] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState<{ ref: string; message: string; noRecipient: boolean; skipped: number } | null>(null);
+  const [note, setNote] = useState(''); const [delivery, setDelivery] = useState<string>('standard'); const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState<{ ref: string; message: string; noRecipient: boolean; skipped: number } | null>(null);
   async function build() {
     setBusy(true); setErr(null);
-    const r = await exceptionActionTo('dtf', 'build_order', { order_ids: [...new Set(plan.included.map((i) => i.order_id))], note: note.trim() });
+    const r = await exceptionActionTo('dtf', 'build_order', { order_ids: [...new Set(plan.included.map((i) => i.order_id))], note: note.trim(), delivery });
     setBusy(false);
     if (r.ok === false) { setErr(String(r.error ?? 'That did not work.')); return; }
     setDone({ ref: String(r.batch_ref ?? ''), message: String(r.note ?? 'DTF order created.'), noRecipient: r.no_recipient === true, skipped: Array.isArray(r.skipped) ? r.skipped.length : 0 });
@@ -33,6 +33,8 @@ export function BuildDtfDialog({ orderIds, items, onClose }: { orderIds: string[
             {plan.designs.slice(0, 30).map((d) => <div key={d.key} className="row wrap" style={{ gap: 10 }}><Thumb url={d.thumbnail_url} /><span className="grow">{d.label}</span><span className="num">{d.qty} print{d.qty === 1 ? '' : 's'}</span><span className="dim">{d.orders} order{d.orders === 1 ? '' : 's'}</span></div>)}
             {plan.designs.length > 30 && <span className="dim">and {plan.designs.length - 30} more designs</span>}</div>}
           {plan.skipped.map((s) => <div key={s.reason} className="callout soft" role="status"><b>Left out: {s.reason}</b><div className="dim">{s.items.length} placement{s.items.length === 1 ? '' : 's'} · {refsOf(s.items)}</div></div>)}
+          <Field label="Delivery"><select className="input" value={delivery} onChange={(e) => setDelivery(e.target.value)} data-testid="dtf-delivery">{DELIVERY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field>
+          {delivery === 'next_day_pre12' && <div className="callout soft" role="status">The email will carry one extra line in bold: <b>Please can we have this Tomorrow on Pre 12 next day delivery.</b></div>}
           <Field label="A note for the DTF order (optional, kept on the order)"><input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example Needed by Friday" /></Field>
           {err && <Err m={err} />}
           <div className="row"><Button variant="primary" disabled={busy || plan.included.length === 0} onClick={() => void build()}>{busy ? 'Building…' : `Build DTF order (${plan.prints.toLocaleString('en-GB')} prints)`}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
@@ -40,7 +42,7 @@ export function BuildDtfDialog({ orderIds, items, onClose }: { orderIds: string[
         {done && <>
           <p role="status"><b>DTF order {done.ref} created.</b> {done.message}</p>
           {done.noRecipient && <div className="callout" role="status">Super Print has no email address in Flow yet, so the email stays a draft that cannot be approved. Add the address to the supplier, then approve the email under <a href={href('purchasing/emails')}>Purchasing, Emails</a>.</div>}
-          {!done.noRecipient && <p>Approve it under <a href={href('purchasing/emails')}>Purchasing, Emails</a>. When it is sent the prints go to amber (Prints ordered).</p>}
+          {!done.noRecipient && <p>Approve it on the <a href={href('dtf-prints/draft')}>Waiting to send</a> tab of this page. When it is sent the prints go to amber (Prints ordered).</p>}
           <div className="row"><Button variant="primary" onClick={onClose}>Done</Button></div>
         </>}
       </div>

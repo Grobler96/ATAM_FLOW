@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { batchItems, batchWords, canBuildRole, canReceiveRole, outstanding, planBuild, refsOf, skipReason, SKIP_NO_FILE, SKIP_ON_ORDER, SKIP_STARTED, SKIP_THIRD_PARTY } from './dtfOrders';
+import { batchItems, batchWords, canApproveHere, canBuildRole, DELIVERY_OPTIONS, deliveryWords, canReceiveRole, outstanding, planBuild, refsOf, skipReason, SKIP_NO_FILE, SKIP_ON_ORDER, SKIP_STARTED, SKIP_THIRD_PARTY } from './dtfOrders';
 import type { DtfItemRow } from './preproduction';
 
 const item = (o: Partial<DtfItemRow> = {}): DtfItemRow => ({ id: 'i1', order_id: 'o1', order_ref: '#1', customer_name: 'A', due_date: null, scope: 'in_house', deco_line_id: 'L1', product_name: 'Polo', area: 'Back', qty: 3, status: 'required', artwork_id: 'a1', thumbnail_url: 'https://x/t.png', file_format: 'png', storage_status: 'stored', approval_status: 'pending', content_hash: 'h1', updated_at: '', batch_id: null, batch_ref: null, batch_status: null, ...o });
@@ -40,5 +40,12 @@ describe('DTF orders in plain words', () => {
   it('who can build and who can book prints in', () => {
     expect(['admin', 'manager', 'production'].every(canBuildRole)).toBe(true); expect(canBuildRole('warehouse')).toBe(false); expect(canBuildRole('viewer')).toBe(false); expect(canBuildRole(null)).toBe(false);
     expect(canReceiveRole('warehouse')).toBe(true); expect(canReceiveRole('viewer')).toBe(false);
+  });
+  it('delivery choices and approving the email from the DTF page', () => {
+    expect(DELIVERY_OPTIONS.map((o) => o.value)).toEqual(['standard', 'next_day_pre12']); expect(deliveryWords('next_day_pre12')).toBe('Next day before 12'); expect(deliveryWords('standard')).toBeNull(); expect(deliveryWords(null)).toBeNull();
+    const b = { status: 'draft', comm_status: 'pending_review', supplier_has_email: true, comm_id: 'c1' };
+    expect(canApproveHere(b)).toBe(true); expect(canApproveHere({ ...b, comm_status: 'failed' })).toBe(true);
+    expect(canApproveHere({ ...b, supplier_has_email: false })).toBe(false); expect(canApproveHere({ ...b, comm_id: null })).toBe(false);
+    expect(canApproveHere({ ...b, comm_status: 'approved' })).toBe(false); expect(canApproveHere({ ...b, status: 'ordered' })).toBe(false);
   });
 });
