@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v52', date: '2026-11-28', status: 'built', areas: ['Purchasing'], title: 'Create PO now says why an order has nothing left to buy',
+    summary: 'Daniel picked order #636988 for a purchase order and was told "nothing left to buy", with no purchase order of ours against it.',
+    changes: ['The box now says what each item is already covered by: stock on the shelf, or a purchase order already on its way, with its number, supplier and due date.', 'It says when that purchase order was raised in DecoNetwork rather than in Flow. Flow brings DecoNetwork purchase orders in every few hours and reserves their stock for waiting orders, so a purchase order made in DecoNetwork never shows against the order as one of ours.', 'For #636988 the item is reserved from DecoNetwork purchase order 877092 from Ralawise, due 1 Dec.'],
+    watch: 'Nothing changes about what is chosen or ordered, only the explanation. No database change.' },
   { v: 'v51', date: '2026-11-27', status: 'live', areas: ['Help'], title: 'How-to videos: the private home for the videos is switched on',
     summary: 'The How-to videos page needed somewhere to keep the video files. The private store and its rules are now live, and the three first videos are uploaded.',
     changes: ['Everyone with a Flow role (including view-only) can watch the videos. Decorators and anyone not signed in cannot.', 'Only an admin can add or replace a video.', 'Only video files up to 200 MB are accepted.'],
