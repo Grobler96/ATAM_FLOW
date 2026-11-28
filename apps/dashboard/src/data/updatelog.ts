@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v50', date: '2026-11-28', status: 'built', areas: ['Purchasing'], title: 'Create PO now says why an order has nothing left to buy',
+    summary: 'Daniel picked order #636988 for a purchase order and was told "nothing left to buy", with no purchase order of ours against it.',
+    changes: ['The box now says what each item is already covered by: stock on the shelf, or a purchase order already on its way, with its number, supplier and due date.', 'It says when that purchase order was raised in DecoNetwork rather than in Flow. Flow brings DecoNetwork purchase orders in every few hours and reserves their stock for waiting orders, so a purchase order made in DecoNetwork never shows against the order as one of ours.', 'For #636988 the item is reserved from DecoNetwork purchase order 877092 from Ralawise, due 1 Dec.'],
+    watch: 'Nothing changes about what is chosen or ordered, only the explanation. No database change.' },
   { v: 'v49', date: '2026-11-27', status: 'built', areas: ['Orders', 'Purchasing'], title: 'Fix: Create PO from picked orders no longer chooses every order',
     summary: 'Daniel picked one CPI order and clicked Create PO. The box opened with all 39 orders that need stock chosen, and raised purchase orders for all of them.',
     changes: ['Create PO now chooses only the orders you picked.', 'If an order you picked has nothing left to buy (its stock is already allocated or on order), the box says so and chooses nothing, instead of choosing every order.', 'You can still tick the orders listed in the box yourself.'],

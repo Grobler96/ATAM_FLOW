@@ -6,9 +6,18 @@ import { exceptionActionTo } from '../lib/api';
 import { navigate } from '../router';
 import { planPos, type PlanOrderInfo } from '../lib/poPlan';
 import { money } from '../lib/domain';
-import type { BuyLineRow, OrderDecoratorRow, OrderRow, ProducerRow } from '../data/types';
+import { whyNothingToBuy } from '../lib/poWhy';
+import type { BuyLineRow, OrderDecoratorRow, OrderLineRow, OrderRow, PoLineRow, PoRow, ProducerRow } from '../data/types';
 
 interface SupplierRow { id: string; name: string; email: string | null; lead_time_days: number; delivery_cost: number; can_deliver_to_producer?: boolean }
+
+// Why a picked order has nothing left to buy: what each item is already covered by (the shelf, or a purchase order on its way, often one raised in DecoNetwork).
+function Covered({ orderIds }: { orderIds: string[] }) {
+  const lines = useView<OrderLineRow>('ui_order_lines'), poLines = useView<PoLineRow>('ui_po_lines'), pos = useView<PoRow>('ui_purchase_orders');
+  const reasons = useMemo(() => whyNothingToBuy(lines.rows.filter((l) => orderIds.includes(l.order_id)), poLines.rows, pos.rows), [lines.rows, poLines.rows, pos.rows, orderIds]);
+  if (reasons.length === 0) return null;
+  return <ul data-testid="po-covered" style={{ margin: '6px 0', paddingLeft: 18 }}>{reasons.map((r) => <li key={r}>{r}</li>)}</ul>;
+}
 
 // Raises purchase orders from the stock that customer orders still need. The product catalogue decides the supplier for each item, so an
 // order that needs items from two suppliers becomes two POs. Third-party orders are pre-set to be delivered straight to their decorator.
@@ -26,7 +35,8 @@ export function CreatePoDialog({ open, onClose, presetOrders }: { open: boolean;
   const info = useMemo(() => new Map<string, PlanOrderInfo>(dec.rows.map((d) => [d.order_id, { orderId: d.order_id, thirdParty: d.scope === 'third_party', producerId: d.producer_id, producerName: d.producer_name }])), [dec.rows]);
   // Opened for particular orders: only those are chosen. An order picked there that has nothing left to buy is said so, never swapped for "everything".
   const needingIds = useMemo(() => new Set(needing.map((o) => o.id)), [needing]);
-  const nothingToBuy = useMemo(() => (presetOrders ?? []).filter((id) => !needingIds.has(id)).map((id) => orders.rows.find((o) => o.id === id)?.order_ref ?? 'An order'), [presetOrders, needingIds, orders.rows]);
+  const nothingIds = useMemo(() => (presetOrders ?? []).filter((id) => !needingIds.has(id)), [presetOrders, needingIds]);
+  const nothingToBuy = useMemo(() => nothingIds.map((id) => orders.rows.find((o) => o.id === id)?.order_ref ?? 'An order'), [nothingIds, orders.rows]);
   const fb = suppliers.rows.find((s) => s.id === fallback);
   const plan = useMemo(() => planPos(buy.rows.filter((l) => chosen.includes(l.order_id)), info, fb ? { id: fb.id, name: fb.name } : null), [buy.rows, chosen, info, fb]);
   const live = plan.groups.filter((g) => !skip.has(g.key));
@@ -51,7 +61,7 @@ export function CreatePoDialog({ open, onClose, presetOrders }: { open: boolean;
   return (
     <Modal open={open} onClose={onClose} title="Raise purchase orders">
       <div className="stack">
-        {nothingToBuy.length > 0 && !buy.loading && <div className="callout" role="status" data-testid="po-nothing-to-buy"><b>{nothingToBuy.join(', ')} {nothingToBuy.length === 1 ? 'has' : 'have'} nothing left to buy</b>Its stock is already allocated or on a purchase order, so nothing was chosen for {nothingToBuy.length === 1 ? 'it' : 'them'}. The orders below do still need stock: tick any you want to include.</div>}
+        {nothingToBuy.length > 0 && !buy.loading && <div className="callout" role="status" data-testid="po-nothing-to-buy"><b>{nothingToBuy.join(', ')} {nothingToBuy.length === 1 ? 'has' : 'have'} nothing left to buy</b>Its stock is already covered, so nothing was chosen for {nothingToBuy.length === 1 ? 'it' : 'them'}.<Covered orderIds={nothingIds} />The orders below do still need stock: tick any you want to include.</div>}
         <Field label={`Customer orders that still need stock (${chosen.filter((id) => needingIds.has(id)).length} chosen)`}>
           <div className="panel" style={{ maxHeight: 190, overflow: 'auto', padding: 6 }}>
             {buy.loading && <p className="dim" style={{ padding: 8 }}>Loading…</p>}
