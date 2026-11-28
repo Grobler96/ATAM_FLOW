@@ -5,7 +5,9 @@ import { BuildDtfDialog, ReceiveDtfDialog } from '../components/DtfDialogs';
 import { BatchList, DesignList } from '../components/DtfParts';
 import { canBuildRole, canReceiveRole, type DtfBatchRow } from '../lib/dtfOrders';
 import { DataTable, type BulkAction, type Column, type FilterDef, type ViewDef } from '../ui/DataTable';
-import { useView } from '../data/store';
+import { refreshAll, useView } from '../data/store';
+import { exceptionActionTo } from '../lib/api';
+import { useToast } from '../ui/overlay';
 import { href, navigate, tableStateFromQuery, type Route } from '../router';
 import { shortDate } from '../lib/domain';
 import { dtfStatusWords, ordersWithDtf, STATUS_LIGHT, LIGHT_TONE, type DtfItemRow, type DtfOrderRow } from '../lib/preproduction';
@@ -18,9 +20,15 @@ const TABS = ['order', 'draft', 'ordered', 'received', 'designs'] as const; type
 
 export function DtfPrintsPage({ route }: { route: Route }) {
   const tab: TabId = (TABS as readonly string[]).includes(route.path[1] ?? '') ? (route.path[1] as TabId) : 'order';
-  const { role } = useCtx(); const canBuild = canBuildRole(role), canRecv = canReceiveRole(role);
+  const { role, canAct } = useCtx(); const toast = useToast(); const canBuild = canBuildRole(role), canRecv = canReceiveRole(role);
   const dtf = useView<DtfItemRow>('ui_dtf_items'), batches = useView<DtfBatchRow>('ui_dtf_batches');
   const [build, setBuild] = useState<string[] | null>(null); const [recv, setRecv] = useState<DtfBatchRow | null>(null);
+  const approve = async (b: DtfBatchRow) => {
+    if (!b.comm_id) return;
+    const r = await exceptionActionTo('purchasing', 'comm_approve', { communication_id: b.comm_id });
+    toast.push(r.ok === false ? { tone: 'bad', title: 'Could not approve it', body: String(r.error) } : { tone: 'good', title: `${b.batch_ref} approved`, body: 'The email to Super Print is sent shortly. The prints show as ordered once it has gone.' });
+    void refreshAll();
+  };
   const items = useMemo(() => dtf.rows.filter((i) => i.scope !== 'third_party'), [dtf.rows]); // in house, and orders not yet decided
   const orders = useMemo(() => ordersWithDtf(items), [items]);
   const toOrder = useMemo(() => orders.filter((o) => o.status === 'required'), [orders]);
@@ -59,7 +67,7 @@ export function DtfPrintsPage({ route }: { route: Route }) {
             searchText={(r) => [r.order_ref, r.customer_name].join(' ')} searchPlaceholder="Search order or customer…" onRowClick={(r) => navigate(orderPath(r.order_ref))} defaultSort={{ col: 'due', dir: 1 }} initial={tableStateFromQuery(route)} bulk={bulk}
             empty={<EmptyState icon="check" title="No prints to order">No in-house order matches this view.</EmptyState>} />
         </Panel>)}
-      {tab === 'draft' && <Panel title="DTF orders built but not sent to Super Print yet" icon="purchasing" flush><BatchList batches={[...drafts].sort(sortNew)} loading={batches.loading} empty="Nothing is waiting to be sent. Build a DTF order on the To order tab and it shows here until its email is approved." canReceive={false} warn={warnDraft} /></Panel>}
+      {tab === 'draft' && <Panel title="DTF orders built but not sent to Super Print yet" icon="purchasing" flush><BatchList onApprove={(b) => void approve(b)} canApprove={canAct} batches={[...drafts].sort(sortNew)} loading={batches.loading} empty="Nothing is waiting to be sent. Build a DTF order on the To order tab and it shows here until its email is approved." canReceive={false} warn={warnDraft} /></Panel>}
       {tab === 'ordered' && <Panel title="DTF orders waiting for delivery" icon="purchasing" flush><BatchList batches={[...waiting].sort(sortNew)} loading={batches.loading} empty="Nothing is waiting for delivery. An order shows here once its email to Super Print has been sent." canReceive={canRecv} onReceive={setRecv} /></Panel>}
       {tab === 'received' && <Panel title="Booked in" icon="check" flush><BatchList batches={[...booked].sort(sortNew)} loading={batches.loading} empty="No DTF order has been booked in yet." canReceive={canRecv} /></Panel>}
       {tab === 'designs' && <Panel title="What has to be made, by design" icon="artwork" flush><DesignList items={items} loading={dtf.loading} /></Panel>}

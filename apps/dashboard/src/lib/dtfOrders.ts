@@ -5,8 +5,14 @@ import { artworkTotals, hasFile, type ArtworkTotal, type DtfItemRow } from './pr
 // dialog can show what will and will not be ordered before anything is created. Nothing is sent: the email waits for a person's approval.
 export interface DtfBatchRow {
   id: string; batch_ref: string; status: 'draft' | 'ordered' | 'received' | 'cancelled' | string; supplier_name: string; supplier_has_email: boolean; note: string | null; created_by: string | null;
-  created_at: string; ordered_at: string | null; received_at: string | null; comm_ref: string | null; comm_status: string | null; placements: number; prints: number; received: number
+  created_at: string; ordered_at: string | null; received_at: string | null; comm_ref: string | null; comm_status: string | null; comm_id?: string | null; delivery?: string | null; placements: number; prints: number; received: number
 }
+
+// How fast the prints are wanted. Next day adds one bold line to the email to Super Print (the database writes it).
+export const DELIVERY_OPTIONS = [{ value: 'standard', label: 'Standard delivery' }, { value: 'next_day_pre12', label: 'Next day, before 12 (Pre 12)' }] as const;
+export const deliveryWords = (d: string | null | undefined): string | null => (d === 'next_day_pre12' ? 'Next day before 12' : null);
+// The email can be approved from the DTF page once it has a recipient and is waiting for a person
+export const canApproveHere = (b: Pick<DtfBatchRow, 'status' | 'comm_status' | 'supplier_has_email' | 'comm_id'>): boolean => b.status === 'draft' && !!b.comm_id && b.supplier_has_email && ['pending_review', 'failed'].includes(b.comm_status ?? '');
 
 export const SKIP_THIRD_PARTY = 'Third-party order: the decorator orders their own DTFs';
 export const SKIP_ON_ORDER = 'Already on a DTF order';

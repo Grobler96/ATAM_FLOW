@@ -44,7 +44,7 @@ select pg_temp.assert((select (flow.comm_approve(b.comm_id, 'tester')->>'ok')::b
 -- nothing left to order on the same orders
 insert into r select 'again', flow.dtf_build_order(array[:'o1', :'o2']::uuid[], '{}'::jsonb, 'tester', null);
 select pg_temp.assert((select not (j->>'ok')::bool and j->>'error' like 'Nothing can go%' from r where k = 'again'), 'the same placements cannot go on a second order');
-select pg_temp.assert(not has_function_privilege('authenticated', 'public.flow_dtf_build_order(uuid[],jsonb,text,text)', 'execute') and has_function_privilege('service_role', 'public.flow_dtf_build_order(uuid[],jsonb,text,text)', 'execute'), 'only n8n can build one');
+select pg_temp.assert(not has_function_privilege('authenticated', 'public.flow_dtf_build_order(uuid[],jsonb,text,text,text)', 'execute') and has_function_privilege('service_role', 'public.flow_dtf_build_order(uuid[],jsonb,text,text,text)', 'execute'), 'only n8n can build one');
 -- receiving before it is sent is refused
 select pg_temp.assert(not (flow.dtf_receive(:'b1', null, 'tester', null)->>'ok')::bool, 'nothing can be received before the email has been sent');
 
