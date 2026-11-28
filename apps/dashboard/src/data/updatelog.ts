@@ -15,10 +15,14 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
-  { v: 'v52', date: '2026-11-28', status: 'built', areas: ['Help'], title: 'Ten more how-to videos for everyday work',
+  { v: 'v53', date: '2026-11-28', status: 'built', areas: ['Help'], title: 'Ten more how-to videos for everyday work',
     summary: 'The How-to videos page now has thirteen videos. Ten new ones cover the everyday screens: finding orders, why the system says what it does, stock and shortages, supplier emails, goods in, artwork, quality, dispatch, exceptions and the holding pen.',
     changes: ['Each video shows the real screen with made-up sample data, and the same steps are written out under it.', 'The new videos are uploaded to the private store, so only signed-in people with a Flow role can watch them.', 'The list of videos still to be made is shorter, and the in-house production videos are marked as waiting for in-house production to be switched on.'],
     watch: 'Until this is merged the new videos are not on the page. After that, check that a view-only user can play one and that a decorator login cannot.' },
+  { v: 'v52', date: '2026-11-28', status: 'built', areas: ['Purchasing'], title: 'Create PO now says why an order has nothing left to buy',
+    summary: 'Daniel picked order #636988 for a purchase order and was told "nothing left to buy", with no purchase order of ours against it.',
+    changes: ['The box now says what each item is already covered by: stock on the shelf, or a purchase order already on its way, with its number, supplier and due date.', 'It says when that purchase order was raised in DecoNetwork rather than in Flow. Flow brings DecoNetwork purchase orders in every few hours and reserves their stock for waiting orders, so a purchase order made in DecoNetwork never shows against the order as one of ours.', 'For #636988 the item is reserved from DecoNetwork purchase order 877092 from Ralawise, due 1 Dec.'],
+    watch: 'Nothing changes about what is chosen or ordered, only the explanation. No database change.' },
   { v: 'v51', date: '2026-11-27', status: 'live', areas: ['Help'], title: 'How-to videos: the private home for the videos is switched on',
     summary: 'The How-to videos page needed somewhere to keep the video files. The private store and its rules are now live, and the three first videos are uploaded.',
     changes: ['Everyone with a Flow role (including view-only) can watch the videos. Decorators and anyone not signed in cannot.', 'Only an admin can add or replace a video.', 'Only video files up to 200 MB are accepted.'],
