@@ -13,6 +13,26 @@ Short, friendly tutorial videos for the team, with a **How-to videos** page in t
 | `apps/dashboard/src/data/howto.generated.json` | The list the page shows, generated from `tutorials.json` (`npm run catalogue`). |
 | `apps/dashboard/public/howto/*.jpg` | Poster images for the cards (`npm run posters`). |
 
+## The library so far
+
+| Video | Topic | Who it is for |
+|---|---|---|
+| Meet your Command Centre | Getting started | Everyone |
+| Find any order, fast | Orders | Everyone |
+| Why the system says this | Orders | Everyone |
+| The holding pen | Orders | Everyone |
+| Raise and approve a purchase order | Stock and buying | Managers and admins |
+| Stock and shortage advice | Stock and buying | Everyone |
+| Review supplier emails | Stock and buying | Managers and admins |
+| Generate and print labels | Warehouse | Warehouse and managers |
+| Book a delivery in | Warehouse | Warehouse and managers |
+| Dispatch and courier labels | Warehouse | Warehouse and managers |
+| Artwork, proofs and job packs | Artwork and quality | Managers and production |
+| Quality checks and rework | Artwork and quality | Warehouse and managers |
+| Exceptions: raise, assign, resolve | Admin | Everyone |
+
+Not yet made are the in-house production screens (Production, Machine downtime, Crew and floor, Embroidery, DTF): in-house production is switched off for the third-party launch, so a video would show something staff cannot use yet. They are listed on the page as waiting for in-house to be switched on.
+
 ## Make or change a video
 
 ```bash

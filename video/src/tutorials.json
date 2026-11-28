@@ -8,24 +8,185 @@
     "pageLabel": "Command Centre",
     "summary": "A quick, friendly tour of the first screen you see: key numbers, what needs attention, search and quick actions.",
     "steps": [
-      { "key": "a", "shot": "cc-home", "voice": "Hey there! Welcome to [[A]] [[T]] [[A]] [[M]] Flow. This is your Command Centre, mission control for every order.",
-        "pops": [ { "on": "Hey", "kind": "sticker", "icon": "👋", "text": "Hi!", "at": [0.8, 0.2], "tone": "yellow" } ] },
-      { "key": "b", "shot": "cc-home", "zoom": "kpis", "voice": "Up top are your key numbers. Every tile is a live count of what is happening right now.",
-        "pops": [ { "on": "key", "kind": "ring", "rect": "kpis" }, { "on": "live", "kind": "sticker", "icon": "⚡", "text": "Live!", "rect": "kpis", "corner": "tr", "tone": "teal" } ] },
-      { "key": "c", "shot": "cc-home", "zoom": "kpiOverdue", "voice": "Tap a tile, like overdue orders, and Flow jumps straight to that list.",
-        "pops": [ { "on": "Tap", "kind": "arrow", "rect": "kpiOverdue", "text": "Tap me!", "from": "bottom-right" } ] },
-      { "key": "d", "shot": "cc-drill", "zoom": "table", "voice": "Boom! Just the overdue orders, ready to sort, filter and search.",
-        "pops": [ { "on": "Boom", "kind": "confetti" }, { "on": "Boom", "kind": "sticker", "icon": "🎯", "text": "Just those!", "at": [0.8, 0.22], "tone": "pink" } ] },
-      { "key": "e", "shot": "cc-home", "zoom": "attention", "voice": "Down here is what needs attention now, with the reason and the next step for each one.",
-        "pops": [ { "on": "attention", "kind": "ring", "rect": "attention" }, { "on": "reason", "kind": "sticker", "icon": "🧭", "text": "Next step", "rect": "attention", "corner": "tr", "tone": "yellow" } ] },
-      { "key": "f", "shot": "cc-palette", "zoom": "palette", "voice": "Hunting for something? Hit slash, or control K, and search orders, stock, purchase orders, bins, anything.",
-        "pops": [ { "on": "slash", "kind": "keys", "keys": ["/", "or", "Ctrl", "K"], "at": [0.5, 0.12] } ] },
-      { "key": "g", "shot": "cc-quick", "zoom": "menu", "voice": "Quick actions holds your one-click jobs, like syncing stock or raising a purchase order.",
-        "pops": [ { "on": "Quick", "kind": "ring", "rect": "quick" }, { "on": "one-click", "kind": "sticker", "icon": "🖱️", "text": "One click", "at": [0.82, 0.55], "tone": "teal" } ] },
-      { "key": "h", "shot": "cc-home", "zoom": "pulse", "voice": "And the production pulse shows what is moving, what is stuck, and what might run late.",
-        "pops": [ { "on": "pulse", "kind": "ring", "rect": "pulse" }, { "on": "late", "kind": "sticker", "icon": "⏰", "text": "Heads up!", "rect": "pulse", "corner": "tl", "tone": "pink" } ] },
-      { "key": "i", "shot": "cc-home", "voice": "And that is the Command Centre! Pop back to the How-to videos page for more. See you next time!",
-        "pops": [ { "on": "Command", "kind": "confetti" } ] }
+      {
+        "key": "a",
+        "shot": "cc-home",
+        "voice": "Hey there! Welcome to [[A]] [[T]] [[A]] [[M]] Flow. This is your Command Centre, mission control for every order.",
+        "pops": [
+          {
+            "on": "Hey",
+            "kind": "sticker",
+            "icon": "👋",
+            "text": "Hi!",
+            "at": [
+              0.8,
+              0.2
+            ],
+            "tone": "yellow"
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "cc-home",
+        "zoom": "kpis",
+        "voice": "Up top are your key numbers. Every tile is a live count of what is happening right now.",
+        "pops": [
+          {
+            "on": "key",
+            "kind": "ring",
+            "rect": "kpis"
+          },
+          {
+            "on": "live",
+            "kind": "sticker",
+            "icon": "⚡",
+            "text": "Live!",
+            "rect": "kpis",
+            "corner": "tr",
+            "tone": "teal"
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "cc-home",
+        "zoom": "kpiOverdue",
+        "voice": "Tap a tile, like overdue orders, and Flow jumps straight to that list.",
+        "pops": [
+          {
+            "on": "Tap",
+            "kind": "arrow",
+            "rect": "kpiOverdue",
+            "text": "Tap me!",
+            "from": "bottom-right"
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "cc-drill",
+        "zoom": "table",
+        "voice": "Boom! Just the overdue orders, ready to sort, filter and search.",
+        "pops": [
+          {
+            "on": "Boom",
+            "kind": "confetti"
+          },
+          {
+            "on": "Boom",
+            "kind": "sticker",
+            "icon": "🎯",
+            "text": "Just those!",
+            "at": [
+              0.8,
+              0.22
+            ],
+            "tone": "pink"
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "cc-home",
+        "zoom": "attention",
+        "voice": "Down here is what needs attention now, with the reason and the next step for each one.",
+        "pops": [
+          {
+            "on": "attention",
+            "kind": "ring",
+            "rect": "attention"
+          },
+          {
+            "on": "reason",
+            "kind": "sticker",
+            "icon": "🧭",
+            "text": "Next step",
+            "rect": "attention",
+            "corner": "tr",
+            "tone": "yellow"
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "cc-palette",
+        "zoom": "palette",
+        "voice": "Hunting for something? Hit slash, or control K, and search orders, stock, purchase orders, bins, anything.",
+        "pops": [
+          {
+            "on": "slash",
+            "kind": "keys",
+            "keys": [
+              "/",
+              "or",
+              "Ctrl",
+              "K"
+            ],
+            "at": [
+              0.5,
+              0.12
+            ]
+          }
+        ]
+      },
+      {
+        "key": "g",
+        "shot": "cc-quick",
+        "zoom": "menu",
+        "voice": "Quick actions holds your one-click jobs, like syncing stock or raising a purchase order.",
+        "pops": [
+          {
+            "on": "Quick",
+            "kind": "ring",
+            "rect": "quick"
+          },
+          {
+            "on": "one-click",
+            "kind": "sticker",
+            "icon": "🖱️",
+            "text": "One click",
+            "at": [
+              0.82,
+              0.55
+            ],
+            "tone": "teal"
+          }
+        ]
+      },
+      {
+        "key": "h",
+        "shot": "cc-home",
+        "zoom": "pulse",
+        "voice": "And the production pulse shows what is moving, what is stuck, and what might run late.",
+        "pops": [
+          {
+            "on": "pulse",
+            "kind": "ring",
+            "rect": "pulse"
+          },
+          {
+            "on": "late",
+            "kind": "sticker",
+            "icon": "⏰",
+            "text": "Heads up!",
+            "rect": "pulse",
+            "corner": "tl",
+            "tone": "pink"
+          }
+        ]
+      },
+      {
+        "key": "i",
+        "shot": "cc-home",
+        "voice": "And that is the Command Centre! Pop back to the How-to videos page for more. See you next time!",
+        "pops": [
+          {
+            "on": "Command",
+            "kind": "confetti"
+          }
+        ]
+      }
     ]
   },
   {
@@ -37,24 +198,184 @@
     "pageLabel": "Purchasing",
     "summary": "Turn orders that are waiting on stock into supplier purchase orders, then approve them.",
     "steps": [
-      { "key": "a", "shot": "po-list", "voice": "Time to buy some stock! Head to Purchasing. That is where all your supplier orders live.",
-        "pops": [ { "on": "stock", "kind": "sticker", "icon": "📦", "text": "Stock up!", "at": [0.82, 0.2], "tone": "yellow" } ] },
-      { "key": "b", "shot": "po-list", "zoom": "create", "voice": "Hit the blue Create [[P]] [[O]] button.",
-        "pops": [ { "on": "blue", "kind": "arrow", "rect": "create", "text": "Here!", "from": "bottom-left" } ] },
-      { "key": "c", "shot": "po-create", "voice": "Flow lists the customer orders still waiting on stock, already grouped by supplier.",
-        "pops": [ { "on": "customer", "kind": "ring", "rect": "dialog" }, { "on": "grouped", "kind": "sticker", "icon": "🧠", "text": "Auto-grouped", "at": [0.82, 0.3], "tone": "teal" } ] },
-      { "key": "d", "shot": "po-create", "voice": "Tick what you want, check where each delivery goes, and raise it. Easy.",
-        "pops": [ { "on": "Tick", "kind": "sticker", "icon": "✅", "text": "Tick it", "at": [0.2, 0.3], "tone": "pink" } ] },
-      { "key": "e", "shot": "po-drawer", "zoom": "approve", "voice": "Your new [[P]] [[O]] opens as a draft. Nothing goes to the supplier until somebody approves it.",
-        "pops": [ { "on": "draft", "kind": "sticker", "icon": "📝", "text": "Draft", "at": [0.82, 0.18], "tone": "yellow" }, { "on": "approves", "kind": "arrow", "rect": "approve", "text": "Approve", "from": "bottom-right" } ] },
-      { "key": "f", "shot": "po-approve", "zoom": "dialog", "voice": "Approving commits you to buying these goods, so Flow shows you exactly who is allowed to.",
-        "pops": [ { "on": "who", "kind": "ring", "rect": "rules" } ] },
-      { "key": "g", "shot": "po-approve", "zoom": "dialog", "voice": "As set up here, managers can approve up to five hundred pounds. Anything bigger needs an admin.",
-        "pops": [ { "on": "five", "kind": "sticker", "icon": "💷", "text": "£500 limit", "at": [0.82, 0.3], "tone": "teal" }, { "on": "admin", "kind": "sticker", "icon": "🔑", "text": "Admin only", "at": [0.82, 0.5], "tone": "pink" } ] },
-      { "key": "h", "shot": "po-approve", "zoom": "dialog", "voice": "Press Approve [[P]] [[O]] and it is ready to email. Flow always lets you review the email first.",
-        "pops": [ { "on": "Press", "kind": "arrow", "rect": "confirm", "text": "Click!", "from": "top-right" }, { "on": "ready", "kind": "stamp", "text": "APPROVED" }, { "on": "ready", "kind": "confetti" } ] },
-      { "key": "i", "shot": "po-list", "voice": "That is it! Raised, approved, and on its way. Nice work.",
-        "pops": [ { "on": "Nice", "kind": "confetti" } ] }
+      {
+        "key": "a",
+        "shot": "po-list",
+        "voice": "Time to buy some stock! Head to Purchasing. That is where all your supplier orders live.",
+        "pops": [
+          {
+            "on": "stock",
+            "kind": "sticker",
+            "icon": "📦",
+            "text": "Stock up!",
+            "at": [
+              0.82,
+              0.2
+            ],
+            "tone": "yellow"
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "po-list",
+        "zoom": "create",
+        "voice": "Hit the blue Create [[P]] [[O]] button.",
+        "pops": [
+          {
+            "on": "blue",
+            "kind": "arrow",
+            "rect": "create",
+            "text": "Here!",
+            "from": "bottom-left"
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "po-create",
+        "voice": "Flow lists the customer orders still waiting on stock, already grouped by supplier.",
+        "pops": [
+          {
+            "on": "customer",
+            "kind": "ring",
+            "rect": "dialog"
+          },
+          {
+            "on": "grouped",
+            "kind": "sticker",
+            "icon": "🧠",
+            "text": "Auto-grouped",
+            "at": [
+              0.82,
+              0.3
+            ],
+            "tone": "teal"
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "po-create",
+        "voice": "Tick what you want, check where each delivery goes, and raise it. Easy.",
+        "pops": [
+          {
+            "on": "Tick",
+            "kind": "sticker",
+            "icon": "✅",
+            "text": "Tick it",
+            "at": [
+              0.2,
+              0.3
+            ],
+            "tone": "pink"
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "po-drawer",
+        "zoom": "approve",
+        "voice": "Your new [[P]] [[O]] opens as a draft. Nothing goes to the supplier until somebody approves it.",
+        "pops": [
+          {
+            "on": "draft",
+            "kind": "sticker",
+            "icon": "📝",
+            "text": "Draft",
+            "at": [
+              0.82,
+              0.18
+            ],
+            "tone": "yellow"
+          },
+          {
+            "on": "approves",
+            "kind": "arrow",
+            "rect": "approve",
+            "text": "Approve",
+            "from": "bottom-right"
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "po-approve",
+        "zoom": "dialog",
+        "voice": "Approving commits you to buying these goods, so Flow shows you exactly who is allowed to.",
+        "pops": [
+          {
+            "on": "who",
+            "kind": "ring",
+            "rect": "rules"
+          }
+        ]
+      },
+      {
+        "key": "g",
+        "shot": "po-approve",
+        "zoom": "dialog",
+        "voice": "As set up here, managers can approve up to five hundred pounds. Anything bigger needs an admin.",
+        "pops": [
+          {
+            "on": "five",
+            "kind": "sticker",
+            "icon": "💷",
+            "text": "£500 limit",
+            "at": [
+              0.82,
+              0.3
+            ],
+            "tone": "teal"
+          },
+          {
+            "on": "admin",
+            "kind": "sticker",
+            "icon": "🔑",
+            "text": "Admin only",
+            "at": [
+              0.82,
+              0.5
+            ],
+            "tone": "pink"
+          }
+        ]
+      },
+      {
+        "key": "h",
+        "shot": "po-approve",
+        "zoom": "dialog",
+        "voice": "Press Approve [[P]] [[O]] and it is ready to email. Flow always lets you review the email first.",
+        "pops": [
+          {
+            "on": "Press",
+            "kind": "arrow",
+            "rect": "confirm",
+            "text": "Click!",
+            "from": "top-right"
+          },
+          {
+            "on": "ready",
+            "kind": "stamp",
+            "text": "APPROVED"
+          },
+          {
+            "on": "ready",
+            "kind": "confetti"
+          }
+        ]
+      },
+      {
+        "key": "i",
+        "shot": "po-list",
+        "voice": "That is it! Raised, approved, and on its way. Nice work.",
+        "pops": [
+          {
+            "on": "Nice",
+            "kind": "confetti"
+          }
+        ]
+      }
     ]
   },
   {
@@ -66,22 +387,1650 @@
     "pageLabel": "Labels",
     "summary": "Make order and bin labels, preview exactly what will print, and print them with a record of who did it.",
     "steps": [
-      { "key": "a", "shot": "lb-list", "voice": "Labels keep your warehouse running smoothly. This list shows everything waiting to be printed.",
-        "pops": [ { "on": "Labels", "kind": "sticker", "icon": "🏷️", "text": "Label time!", "at": [0.82, 0.2], "tone": "yellow" } ] },
-      { "key": "b", "shot": "lb-list", "zoom": "generate", "voice": "Need new ones? Hit Generate labels.",
-        "pops": [ { "on": "Generate", "kind": "arrow", "rect": "generate", "text": "Start here", "from": "bottom-left" } ] },
-      { "key": "c", "shot": "lb-generate", "voice": "Pick a label type, then tick the orders you want. Done in seconds.",
-        "pops": [ { "on": "type", "kind": "ring", "rect": "dialog" }, { "on": "seconds", "kind": "sticker", "icon": "⚡", "text": "Quick!", "at": [0.82, 0.3], "tone": "teal" } ] },
-      { "key": "d", "shot": "lb-generate", "voice": "Do not worry about doing it twice. Unchanged labels are left alone, and changed ones are flagged for a reprint.",
-        "pops": [ { "on": "twice", "kind": "sticker", "icon": "🛟", "text": "Safe to repeat", "at": [0.18, 0.3], "tone": "pink" } ] },
-      { "key": "e", "shot": "lb-preview", "voice": "Click a label to see exactly what will print: the order, the customer, the due date and a scannable [[Q]] [[R]] code.",
-        "pops": [ { "on": "exactly", "kind": "ring", "rect": "drawer" }, { "on": "scannable", "kind": "sticker", "icon": "📱", "text": "Scan me!", "at": [0.2, 0.3], "tone": "yellow" } ] },
-      { "key": "f", "shot": "lb-preview", "zoom": "formats", "voice": "Choose a hundred by one fifty millimetre label, or [[A]] four paper.",
-        "pops": [ { "on": "Choose", "kind": "ring", "rect": "formats" } ] },
-      { "key": "g", "shot": "lb-preview", "zoom": "print", "voice": "Hit Print, and Flow records who printed it and when, so a reprint always has a reason.",
-        "pops": [ { "on": "Print", "kind": "arrow", "rect": "print", "text": "Print!", "from": "bottom-left" }, { "on": "records", "kind": "sticker", "icon": "🧾", "text": "Logged", "at": [0.2, 0.55], "tone": "teal" } ] },
-      { "key": "h", "shot": "lb-list", "voice": "And that is labels! Stick them on and keep things moving.",
-        "pops": [ { "on": "labels", "kind": "confetti" } ] }
+      {
+        "key": "a",
+        "shot": "lb-list",
+        "voice": "Labels keep your warehouse running smoothly. This list shows everything waiting to be printed.",
+        "pops": [
+          {
+            "on": "Labels",
+            "kind": "sticker",
+            "icon": "🏷️",
+            "text": "Label time!",
+            "at": [
+              0.82,
+              0.2
+            ],
+            "tone": "yellow"
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "lb-list",
+        "zoom": "generate",
+        "voice": "Need new ones? Hit Generate labels.",
+        "pops": [
+          {
+            "on": "Generate",
+            "kind": "arrow",
+            "rect": "generate",
+            "text": "Start here",
+            "from": "bottom-left"
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "lb-generate",
+        "voice": "Pick a label type, then tick the orders you want. Done in seconds.",
+        "pops": [
+          {
+            "on": "type",
+            "kind": "ring",
+            "rect": "dialog"
+          },
+          {
+            "on": "seconds",
+            "kind": "sticker",
+            "icon": "⚡",
+            "text": "Quick!",
+            "at": [
+              0.82,
+              0.3
+            ],
+            "tone": "teal"
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "lb-generate",
+        "voice": "Do not worry about doing it twice. Unchanged labels are left alone, and changed ones are flagged for a reprint.",
+        "pops": [
+          {
+            "on": "twice",
+            "kind": "sticker",
+            "icon": "🛟",
+            "text": "Safe to repeat",
+            "at": [
+              0.18,
+              0.3
+            ],
+            "tone": "pink"
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "lb-preview",
+        "voice": "Click a label to see exactly what will print: the order, the customer, the due date and a scannable [[Q]] [[R]] code.",
+        "pops": [
+          {
+            "on": "exactly",
+            "kind": "ring",
+            "rect": "drawer"
+          },
+          {
+            "on": "scannable",
+            "kind": "sticker",
+            "icon": "📱",
+            "text": "Scan me!",
+            "at": [
+              0.2,
+              0.3
+            ],
+            "tone": "yellow"
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "lb-preview",
+        "zoom": "formats",
+        "voice": "Choose a hundred by one fifty millimetre label, or [[A]] four paper.",
+        "pops": [
+          {
+            "on": "Choose",
+            "kind": "ring",
+            "rect": "formats"
+          }
+        ]
+      },
+      {
+        "key": "g",
+        "shot": "lb-preview",
+        "zoom": "print",
+        "voice": "Hit Print, and Flow records who printed it and when, so a reprint always has a reason.",
+        "pops": [
+          {
+            "on": "Print",
+            "kind": "arrow",
+            "rect": "print",
+            "text": "Print!",
+            "from": "bottom-left"
+          },
+          {
+            "on": "records",
+            "kind": "sticker",
+            "icon": "🧾",
+            "text": "Logged",
+            "at": [
+              0.2,
+              0.55
+            ],
+            "tone": "teal"
+          }
+        ]
+      },
+      {
+        "key": "h",
+        "shot": "lb-list",
+        "voice": "And that is labels! Stick them on and keep things moving.",
+        "pops": [
+          {
+            "on": "labels",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "orders-find",
+    "title": "Find any order, fast",
+    "section": "Orders",
+    "level": "Everyone",
+    "summary": "Ready-made views, filters and search on All Orders, then open any order.",
+    "page": "orders",
+    "pageLabel": "All Orders",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "od-list",
+        "voice": "Every open order lives on All Orders, with a reason for where it is and what happens next.",
+        "pops": [
+          {
+            "on": "Every",
+            "kind": "sticker",
+            "icon": "📋",
+            "text": "One list",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.2
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "od-list",
+        "voice": "These chips are ready-made views: overdue, at risk, blocked by stock, ready for dispatch and more.",
+        "zoom": "chips",
+        "pops": [
+          {
+            "on": "chips",
+            "kind": "ring",
+            "rect": "chips"
+          },
+          {
+            "on": "ready-made",
+            "kind": "sticker",
+            "icon": "🎛️",
+            "text": "Ready-made views",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.52
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "od-overdue",
+        "voice": "Tap Overdue and the list narrows to just those orders, with how many days late each one is.",
+        "zoom": "table",
+        "pops": [
+          {
+            "on": "Tap",
+            "kind": "arrow",
+            "rect": "chip",
+            "text": "Tap!",
+            "from": "bottom-right"
+          },
+          {
+            "on": "days",
+            "kind": "sticker",
+            "icon": "⏰",
+            "text": "Days late",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "od-search",
+        "voice": "Or search by order number, customer, purchase order, producer or bin.",
+        "zoom": "search",
+        "pops": [
+          {
+            "on": "search",
+            "kind": "ring",
+            "rect": "search"
+          },
+          {
+            "on": "customer",
+            "kind": "sticker",
+            "icon": "🔎",
+            "text": "Type anything",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.4
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "od-list",
+        "voice": "Like a filter you built? Save it as a view, or export the list to a spreadsheet.",
+        "zoom": "saveExport",
+        "pops": [
+          {
+            "on": "Save",
+            "kind": "ring",
+            "rect": "saveExport"
+          },
+          {
+            "on": "spreadsheet",
+            "kind": "sticker",
+            "icon": "📊",
+            "text": "Export CSV",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "od-drawer",
+        "voice": "Click any row to open the order and see everything about it. That is the next video.",
+        "pops": [
+          {
+            "on": "next",
+            "kind": "sticker",
+            "icon": "👉",
+            "text": "Next up!",
+            "tone": "yellow",
+            "at": [
+              0.13,
+              0.35
+            ]
+          },
+          {
+            "on": "video",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "order-why",
+    "title": "Why the system says this",
+    "section": "Orders",
+    "level": "Everyone",
+    "summary": "Open an order and see why Flow decided what it did, plus the tabs for everything else about it.",
+    "page": "orders",
+    "pageLabel": "All Orders",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "ow-overview",
+        "voice": "Open an order and the top shows its due date, priority, units, value and how much stock is secured.",
+        "zoom": "facts",
+        "pops": [
+          {
+            "on": "top",
+            "kind": "ring",
+            "rect": "facts"
+          },
+          {
+            "on": "value",
+            "kind": "sticker",
+            "icon": "🧾",
+            "text": "At a glance",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.22
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "ow-overview",
+        "voice": "Here is the clever part. Flow explains why it made each decision, in plain words.",
+        "zoom": "why",
+        "pops": [
+          {
+            "on": "explains",
+            "kind": "ring",
+            "rect": "why"
+          },
+          {
+            "on": "clever",
+            "kind": "sticker",
+            "icon": "💡",
+            "text": "Not a black box",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.25
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "ow-overview",
+        "voice": "Stock allocation shows a score, with bars for what helped, like due date and VIP, and what pulled it down.",
+        "zoom": "why",
+        "pops": [
+          {
+            "on": "score",
+            "kind": "sticker",
+            "icon": "📈",
+            "text": "The score",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.25
+            ]
+          },
+          {
+            "on": "down",
+            "kind": "sticker",
+            "icon": "📉",
+            "text": "Pulled down",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "ow-overview",
+        "voice": "Across the top are tabs for lines and stock, artwork, purchasing, warehouse, exceptions and history.",
+        "zoom": "tabs",
+        "pops": [
+          {
+            "on": "tabs",
+            "kind": "ring",
+            "rect": "tabs"
+          },
+          {
+            "on": "history",
+            "kind": "sticker",
+            "icon": "🗂️",
+            "text": "Everything here",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "ow-lines",
+        "voice": "Lines and stock lists every item, how many are needed, and exactly how many are short.",
+        "zoom": "table",
+        "pops": [
+          {
+            "on": "needed",
+            "kind": "ring",
+            "rect": "table"
+          },
+          {
+            "on": "short",
+            "kind": "sticker",
+            "icon": "⚠️",
+            "text": "Short",
+            "tone": "pink",
+            "rect": "table",
+            "corner": "tr"
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "ow-overview",
+        "voice": "Ready to send the work out? Send to a decorator opens a consignment with this order's lines ready.",
+        "zoom": "send",
+        "pops": [
+          {
+            "on": "Send",
+            "kind": "arrow",
+            "rect": "send",
+            "text": "Send it!",
+            "from": "bottom-right"
+          },
+          {
+            "on": "lines",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "stock-shortage",
+    "title": "Stock and shortage advice",
+    "section": "Stock and buying",
+    "level": "Everyone",
+    "summary": "Find what is short, then let Flow suggest what to do about it.",
+    "page": "stock",
+    "pageLabel": "Stock",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "st-list",
+        "voice": "The Stock page lists every item: what is available, what is reserved, and what is on the way.",
+        "pops": [
+          {
+            "on": "available",
+            "kind": "ring",
+            "rect": "table"
+          },
+          {
+            "on": "every",
+            "kind": "sticker",
+            "icon": "📦",
+            "text": "Every SKU",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.2
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "st-list",
+        "voice": "Use the chips to jump to low stock, out of stock, or items short for orders.",
+        "zoom": "chips",
+        "pops": [
+          {
+            "on": "chips",
+            "kind": "ring",
+            "rect": "chips"
+          },
+          {
+            "on": "jump",
+            "kind": "sticker",
+            "icon": "🎚️",
+            "text": "Jump to it",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "st-short",
+        "voice": "Short for orders shows only the items that customers are waiting on.",
+        "zoom": "table",
+        "pops": [
+          {
+            "on": "Short",
+            "kind": "arrow",
+            "rect": "chip",
+            "text": "This one",
+            "from": "bottom-right"
+          },
+          {
+            "on": "waiting",
+            "kind": "sticker",
+            "icon": "⏳",
+            "text": "Customers waiting",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "st-drawer",
+        "voice": "Open an item and Flow advises you: wait, substitute, reorder, split, or tell the customer.",
+        "zoom": "advice",
+        "pops": [
+          {
+            "on": "advises",
+            "kind": "ring",
+            "rect": "advice"
+          },
+          {
+            "on": "tell",
+            "kind": "sticker",
+            "icon": "🧭",
+            "text": "Next step",
+            "tone": "teal",
+            "at": [
+              0.18,
+              0.3
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "st-drawer",
+        "voice": "It lists the orders that need the item, and the purchase orders already on the way.",
+        "zoom": "orders",
+        "pops": [
+          {
+            "on": "orders",
+            "kind": "ring",
+            "rect": "orders"
+          },
+          {
+            "on": "way",
+            "kind": "sticker",
+            "icon": "🚚",
+            "text": "On the way",
+            "tone": "yellow",
+            "at": [
+              0.18,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "st-drawer",
+        "voice": "And it recommends how many to buy, so raising a purchase order takes seconds.",
+        "zoom": "reorder",
+        "pops": [
+          {
+            "on": "recommends",
+            "kind": "ring",
+            "rect": "reorder"
+          },
+          {
+            "on": "seconds",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "supplier-emails",
+    "title": "Review supplier emails",
+    "section": "Stock and buying",
+    "level": "Managers and admins",
+    "summary": "Where supplier emails wait for approval, and why nothing is ever sent by surprise.",
+    "page": "purchasing",
+    "pageLabel": "Purchasing",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "em-list",
+        "voice": "Flow drafts supplier emails for you, but it never sends one until a person approves it.",
+        "zoom": "emailsTab",
+        "pops": [
+          {
+            "on": "drafts",
+            "kind": "ring",
+            "rect": "emailsTab"
+          },
+          {
+            "on": "never",
+            "kind": "sticker",
+            "icon": "✉️",
+            "text": "You approve",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.25
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "em-queue",
+        "voice": "Drafts wait here, under Emails. Each one shows what it is about and who it is for.",
+        "zoom": "panel",
+        "pops": [
+          {
+            "on": "wait",
+            "kind": "ring",
+            "rect": "panel"
+          },
+          {
+            "on": "about",
+            "kind": "sticker",
+            "icon": "📬",
+            "text": "Waiting for you",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "em-queue",
+        "voice": "This one chases a stock shortage on a purchase order, and is waiting for review.",
+        "zoom": "row",
+        "pops": [
+          {
+            "on": "waiting",
+            "kind": "ring",
+            "rect": "badge"
+          },
+          {
+            "on": "chases",
+            "kind": "sticker",
+            "icon": "🧐",
+            "text": "Review me",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.35
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "em-queue",
+        "voice": "Approve and send stays greyed out until the supplier has an email address on file.",
+        "zoom": "buttons",
+        "pops": [
+          {
+            "on": "greyed",
+            "kind": "arrow",
+            "rect": "approve",
+            "text": "Greyed out",
+            "from": "bottom-left"
+          },
+          {
+            "on": "address",
+            "kind": "sticker",
+            "icon": "📭",
+            "text": "No address yet",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "em-queue",
+        "voice": "Not right? Cancel it, and nothing is sent.",
+        "zoom": "cancel",
+        "pops": [
+          {
+            "on": "Cancel",
+            "kind": "arrow",
+            "rect": "cancel",
+            "text": "Cancel",
+            "from": "bottom-left"
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "em-list",
+        "voice": "Orders running late? Draft chases for late purchase orders writes the emails for you to check.",
+        "zoom": "chase",
+        "pops": [
+          {
+            "on": "Draft",
+            "kind": "arrow",
+            "rect": "chase",
+            "text": "Try this",
+            "from": "bottom-left"
+          },
+          {
+            "on": "check",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "goods-in",
+    "title": "Book a delivery in",
+    "section": "Warehouse",
+    "level": "Warehouse and managers",
+    "summary": "Receive a supplier delivery against its purchase order and let Flow flag shortages and damage.",
+    "page": "goods-in",
+    "pageLabel": "Goods in",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "gi-start",
+        "voice": "When a delivery arrives, open Goods in and pick the purchase order it is for.",
+        "zoom": "picker",
+        "pops": [
+          {
+            "on": "pick",
+            "kind": "ring",
+            "rect": "picker"
+          },
+          {
+            "on": "arrives",
+            "kind": "sticker",
+            "icon": "📦",
+            "text": "Delivery!",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.25
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "gi-form",
+        "voice": "Each one shows the supplier, how many units are outstanding, and when they were due.",
+        "zoom": "picker",
+        "pops": [
+          {
+            "on": "supplier",
+            "kind": "ring",
+            "rect": "picker"
+          },
+          {
+            "on": "outstanding",
+            "kind": "sticker",
+            "icon": "🏷️",
+            "text": "Still to come",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "gi-form",
+        "voice": "For each line, enter how many arrived good, damaged, or the wrong item.",
+        "zoom": "lines",
+        "pops": [
+          {
+            "on": "line",
+            "kind": "ring",
+            "rect": "lines"
+          },
+          {
+            "on": "good",
+            "kind": "sticker",
+            "icon": "✅",
+            "text": "Good",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.28
+            ]
+          },
+          {
+            "on": "damaged",
+            "kind": "sticker",
+            "icon": "💥",
+            "text": "Damaged",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "gi-form",
+        "voice": "If part of the order is still on its way, tick More coming.",
+        "zoom": "moreAll",
+        "pops": [
+          {
+            "on": "tick",
+            "kind": "ring",
+            "rect": "moreAll"
+          },
+          {
+            "on": "way",
+            "kind": "sticker",
+            "icon": "🚚",
+            "text": "Part delivery",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "gi-form",
+        "voice": "Add your name and the supplier's delivery note number, then paste links to any photos, and notes.",
+        "zoom": "fields",
+        "pops": [
+          {
+            "on": "name",
+            "kind": "ring",
+            "rect": "fields"
+          },
+          {
+            "on": "photos",
+            "kind": "sticker",
+            "icon": "📸",
+            "text": "Photo links",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "gi-form",
+        "voice": "Check the summary, press Book in delivery, and stock updates. Shortages or damage raise a supplier issue.",
+        "zoom": "book",
+        "pops": [
+          {
+            "on": "Book",
+            "kind": "arrow",
+            "rect": "book",
+            "text": "Book it",
+            "from": "top-right"
+          },
+          {
+            "on": "damage",
+            "kind": "sticker",
+            "icon": "🚨",
+            "text": "Auto-flagged",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.35
+            ]
+          },
+          {
+            "on": "issue",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "artwork",
+    "title": "Artwork, proofs and job packs",
+    "section": "Artwork and quality",
+    "level": "Managers and production",
+    "summary": "See whether every order's artwork is ready, how proofs work, and what a job pack is.",
+    "page": "artwork",
+    "pageLabel": "Artwork & Job Packs",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "aw-list",
+        "voice": "Artwork and Job Packs shows, for every decorated order, whether the artwork is ready to go.",
+        "pops": [
+          {
+            "on": "every",
+            "kind": "ring",
+            "rect": "table"
+          },
+          {
+            "on": "ready",
+            "kind": "sticker",
+            "icon": "🎨",
+            "text": "Is it ready?",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.2
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "aw-list",
+        "voice": "Chips pick out orders with missing artwork, unapproved files, or file problems.",
+        "zoom": "chips",
+        "pops": [
+          {
+            "on": "chips",
+            "kind": "ring",
+            "rect": "chips"
+          },
+          {
+            "on": "problems",
+            "kind": "sticker",
+            "icon": "🚧",
+            "text": "Needs attention",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "aw-list",
+        "voice": "Tabs cover customer proofs, file versions, job packs, and artwork arriving from Google Drive.",
+        "zoom": "tabs",
+        "pops": [
+          {
+            "on": "Tabs",
+            "kind": "ring",
+            "rect": "tabs"
+          },
+          {
+            "on": "Google",
+            "kind": "sticker",
+            "icon": "☁️",
+            "text": "Google Drive",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "aw-drawer",
+        "voice": "Open an order to see its artwork area by area, with every file version and its approval status.",
+        "zoom": "areas",
+        "pops": [
+          {
+            "on": "area",
+            "kind": "ring",
+            "rect": "areas"
+          },
+          {
+            "on": "approval",
+            "kind": "sticker",
+            "icon": "✔️",
+            "text": "Approved?",
+            "tone": "teal",
+            "at": [
+              0.17,
+              0.3
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "aw-drawer",
+        "voice": "Customer proofs record what was sent and what the customer said. An approval only counts for the artwork they saw.",
+        "zoom": "proofs",
+        "pops": [
+          {
+            "on": "proofs",
+            "kind": "ring",
+            "rect": "proofs"
+          },
+          {
+            "on": "counts",
+            "kind": "sticker",
+            "icon": "🔒",
+            "text": "Tied to that version",
+            "tone": "pink",
+            "at": [
+              0.17,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "aw-packs",
+        "voice": "A job pack bundles the lines, quantities and approved artwork for the decorator.",
+        "zoom": "packs",
+        "pops": [
+          {
+            "on": "bundles",
+            "kind": "ring",
+            "rect": "packs"
+          },
+          {
+            "on": "decorator",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "quality",
+    "title": "Quality checks and rework",
+    "section": "Artwork and quality",
+    "level": "Warehouse and managers",
+    "summary": "Record a quality check, see what gets checked, and follow rework through to a fix.",
+    "page": "quality",
+    "pageLabel": "Quality",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "qa-list",
+        "voice": "Quality shows orders waiting for a check, with rework jobs and replacements alongside.",
+        "pops": [
+          {
+            "on": "waiting",
+            "kind": "ring",
+            "rect": "table"
+          },
+          {
+            "on": "waiting",
+            "kind": "sticker",
+            "icon": "🔍",
+            "text": "To check",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.2
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "qa-list",
+        "voice": "Tabs split the work into things to check, rework jobs, past checks, and the checklist.",
+        "zoom": "tabs",
+        "pops": [
+          {
+            "on": "Tabs",
+            "kind": "ring",
+            "rect": "tabs"
+          },
+          {
+            "on": "past",
+            "kind": "sticker",
+            "icon": "🗂️",
+            "text": "Four tabs",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "qa-record",
+        "voice": "Press Record check, choose the order, and mark each point on the checklist as pass or fail.",
+        "zoom": "dialog",
+        "pops": [
+          {
+            "on": "choose",
+            "kind": "ring",
+            "rect": "dialog"
+          },
+          {
+            "on": "pass",
+            "kind": "sticker",
+            "icon": "✅",
+            "text": "Pass",
+            "tone": "teal",
+            "at": [
+              0.84,
+              0.3
+            ]
+          },
+          {
+            "on": "fail",
+            "kind": "sticker",
+            "icon": "❌",
+            "text": "Fail",
+            "tone": "pink",
+            "at": [
+              0.84,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "qa-record",
+        "voice": "Add notes and photo links if you need them, then record the result.",
+        "zoom": "dialog",
+        "pops": [
+          {
+            "on": "notes",
+            "kind": "ring",
+            "rect": "dialog"
+          },
+          {
+            "on": "photo",
+            "kind": "sticker",
+            "icon": "📸",
+            "text": "Photo links",
+            "tone": "yellow",
+            "at": [
+              0.84,
+              0.4
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "qa-checklist",
+        "voice": "The checklist lists what gets checked. These starter items are placeholders until your real standards are confirmed.",
+        "zoom": "notice",
+        "pops": [
+          {
+            "on": "placeholders",
+            "kind": "ring",
+            "rect": "notice"
+          },
+          {
+            "on": "starter",
+            "kind": "sticker",
+            "icon": "🚧",
+            "text": "Placeholders",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "qa-rework",
+        "voice": "If something fails, rework tracks the fix, whether that is a redo or a replacement.",
+        "zoom": "row",
+        "pops": [
+          {
+            "on": "rework",
+            "kind": "ring",
+            "rect": "row"
+          },
+          {
+            "on": "replacement",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dispatch",
+    "title": "Dispatch and courier labels",
+    "section": "Warehouse",
+    "level": "Warehouse and managers",
+    "summary": "Pack an order, make the courier labels, see what blocks it, and hand parcels over.",
+    "page": "dispatch",
+    "pageLabel": "Dispatch",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "dp-list",
+        "voice": "Dispatch is where finished orders go out: pack, print the courier label, add tracking, and hand over.",
+        "zoom": "heading",
+        "pops": [
+          {
+            "on": "Dispatch",
+            "kind": "ring",
+            "rect": "heading"
+          },
+          {
+            "on": "go",
+            "kind": "sticker",
+            "icon": "🚚",
+            "text": "Out the door",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.3
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "dp-list",
+        "voice": "The tiles count what is ready to pack, blocked, packed and waiting, and with the courier.",
+        "zoom": "kpis",
+        "pops": [
+          {
+            "on": "tiles",
+            "kind": "ring",
+            "rect": "kpis"
+          },
+          {
+            "on": "count",
+            "kind": "sticker",
+            "icon": "🔢",
+            "text": "Live counts",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "dp-pack",
+        "voice": "Open an order that is ready, enter the parcels and weights, and press Pack and make labels.",
+        "zoom": "form",
+        "pops": [
+          {
+            "on": "parcels",
+            "kind": "ring",
+            "rect": "form"
+          },
+          {
+            "on": "press",
+            "kind": "arrow",
+            "rect": "button",
+            "text": "Click!",
+            "from": "top-right"
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "dp-blocked",
+        "voice": "If something is wrong, Flow says exactly what is stopping it, like artwork changing after approval.",
+        "zoom": "why",
+        "pops": [
+          {
+            "on": "stopping",
+            "kind": "ring",
+            "rect": "why"
+          },
+          {
+            "on": "wrong",
+            "kind": "sticker",
+            "icon": "🛑",
+            "text": "Blocked",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "dp-courier",
+        "voice": "Packed parcels wait for the courier. Hand over scan records the hand-over, one label at a time.",
+        "zoom": "handover",
+        "pops": [
+          {
+            "on": "Hand",
+            "kind": "arrow",
+            "rect": "handover",
+            "text": "Scan",
+            "from": "bottom-left"
+          },
+          {
+            "on": "records",
+            "kind": "sticker",
+            "icon": "✅",
+            "text": "Recorded",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "dp-courier",
+        "voice": "Marking an order shipped is still done in DecoNetwork.",
+        "zoom": "heading",
+        "pops": [
+          {
+            "on": "DecoNetwork",
+            "kind": "sticker",
+            "icon": "⚠️",
+            "text": "Still in DecoNetwork",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.4
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "exceptions",
+    "title": "Exceptions: raise, assign, resolve",
+    "section": "Admin",
+    "level": "Everyone",
+    "summary": "Work through everything that is wrong or unknown: see it, take it, resolve it, or raise your own.",
+    "page": "exceptions",
+    "pageLabel": "Exceptions",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "ex-list",
+        "voice": "Exceptions lists everything wrong or unknown, each with an owner and a next step.",
+        "zoom": "heading",
+        "pops": [
+          {
+            "on": "everything",
+            "kind": "sticker",
+            "icon": "🚨",
+            "text": "Nothing slips",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.25
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "ex-list",
+        "voice": "The tiles show how many are open, critical, overdue, blocking work, or without an owner.",
+        "zoom": "kpis",
+        "pops": [
+          {
+            "on": "tiles",
+            "kind": "ring",
+            "rect": "kpis"
+          },
+          {
+            "on": "critical",
+            "kind": "sticker",
+            "icon": "🔥",
+            "text": "Critical first",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.5
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "ex-list",
+        "voice": "Needs a person lists the urgent ones, and you can filter by who should handle them.",
+        "zoom": "need",
+        "pops": [
+          {
+            "on": "urgent",
+            "kind": "ring",
+            "rect": "need"
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "ex-drawer",
+        "voice": "Open one to see what is wrong, the recommended action, and the impact on the customer.",
+        "zoom": "recommended",
+        "pops": [
+          {
+            "on": "recommended",
+            "kind": "ring",
+            "rect": "recommended"
+          },
+          {
+            "on": "action",
+            "kind": "sticker",
+            "icon": "🧭",
+            "text": "Next step",
+            "tone": "teal",
+            "at": [
+              0.15,
+              0.3
+            ]
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "ex-drawer",
+        "voice": "Then take it, add a note, resolve it, mark it not a real issue, or write it off.",
+        "zoom": "actions",
+        "pops": [
+          {
+            "on": "take",
+            "kind": "ring",
+            "rect": "actions"
+          },
+          {
+            "on": "resolve",
+            "kind": "sticker",
+            "icon": "✅",
+            "text": "Resolve",
+            "tone": "teal",
+            "at": [
+              0.15,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "ex-raise",
+        "voice": "Spotted something Flow missed? Raise an issue, say what is wrong, and give it an owner.",
+        "zoom": "dialog",
+        "pops": [
+          {
+            "on": "Raise",
+            "kind": "ring",
+            "rect": "dialog"
+          },
+          {
+            "on": "owner",
+            "kind": "confetti"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "holding-pen",
+    "title": "The holding pen",
+    "section": "Orders",
+    "level": "Everyone",
+    "summary": "Why an order is held back for a data problem, what it cannot do while held, and how it gets out.",
+    "page": "pen",
+    "pageLabel": "Holding pen",
+    "steps": [
+      {
+        "key": "a",
+        "shot": "pn-list",
+        "voice": "When an order has a data problem, it goes into the holding pen so nothing can go wrong with it.",
+        "zoom": "explain",
+        "pops": [
+          {
+            "on": "data",
+            "kind": "ring",
+            "rect": "explain"
+          },
+          {
+            "on": "pen",
+            "kind": "sticker",
+            "icon": "🚧",
+            "text": "Held back",
+            "tone": "pink",
+            "at": [
+              0.82,
+              0.25
+            ]
+          }
+        ]
+      },
+      {
+        "key": "b",
+        "shot": "pn-list",
+        "voice": "While it is held, it is left out of production planning and cannot be dispatched or completed.",
+        "zoom": "explain",
+        "pops": [
+          {
+            "on": "cannot",
+            "kind": "sticker",
+            "icon": "🔒",
+            "text": "Can't ship",
+            "tone": "yellow",
+            "at": [
+              0.82,
+              0.3
+            ]
+          }
+        ]
+      },
+      {
+        "key": "c",
+        "shot": "pn-list",
+        "voice": "The list says what is wrong: no delivery address, no due date, or no shipping method.",
+        "zoom": "table",
+        "pops": [
+          {
+            "on": "wrong",
+            "kind": "ring",
+            "rect": "table"
+          },
+          {
+            "on": "address",
+            "kind": "sticker",
+            "icon": "📍",
+            "text": "No address",
+            "tone": "teal",
+            "at": [
+              0.82,
+              0.55
+            ]
+          }
+        ]
+      },
+      {
+        "key": "d",
+        "shot": "pn-list",
+        "voice": "Chips pick out overdue orders, ones with no owner, and orders that are not in Flow yet.",
+        "zoom": "chips",
+        "pops": [
+          {
+            "on": "Chips",
+            "kind": "ring",
+            "rect": "chips"
+          }
+        ]
+      },
+      {
+        "key": "e",
+        "shot": "pn-case",
+        "voice": "Open a case to see why it is held, what to fix, and its history.",
+        "zoom": "why",
+        "pops": [
+          {
+            "on": "why",
+            "kind": "ring",
+            "rect": "why"
+          },
+          {
+            "on": "fix",
+            "kind": "sticker",
+            "icon": "🔍",
+            "text": "What to fix",
+            "tone": "teal",
+            "at": [
+              0.12,
+              0.3
+            ]
+          }
+        ]
+      },
+      {
+        "key": "f",
+        "shot": "pn-case",
+        "voice": "Fix the problem in DecoNetwork and the order leaves the pen by itself after the next sync. This screen is read-only.",
+        "zoom": "open",
+        "pops": [
+          {
+            "on": "Fix",
+            "kind": "arrow",
+            "rect": "open",
+            "text": "Open it",
+            "from": "top-right"
+          },
+          {
+            "on": "read-only",
+            "kind": "sticker",
+            "icon": "👀",
+            "text": "Read-only",
+            "tone": "yellow",
+            "at": [
+              0.12,
+              0.5
+            ]
+          },
+          {
+            "on": "read-only",
+            "kind": "confetti"
+          }
+        ]
+      }
     ]
   }
 ]

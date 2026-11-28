@@ -61,6 +61,186 @@
     "Hit Print, and Flow records who printed it and when, so a reprint always has a reason.",
     "And that is labels! Stick them on and keep things moving."
    ]
+  },
+  {
+   "id": "orders-find",
+   "title": "Find any order, fast",
+   "section": "Orders",
+   "level": "Everyone",
+   "summary": "Ready-made views, filters and search on All Orders, then open any order.",
+   "page": "orders",
+   "pageLabel": "All Orders",
+   "seconds": 42,
+   "steps": [
+    "Every open order lives on All Orders, with a reason for where it is and what happens next.",
+    "These chips are ready-made views: overdue, at risk, blocked by stock, ready for dispatch and more.",
+    "Tap Overdue and the list narrows to just those orders, with how many days late each one is.",
+    "Or search by order number, customer, purchase order, producer or bin.",
+    "Like a filter you built? Save it as a view, or export the list to a spreadsheet.",
+    "Click any row to open the order and see everything about it. That is the next video."
+   ]
+  },
+  {
+   "id": "order-why",
+   "title": "Why the system says this",
+   "section": "Orders",
+   "level": "Everyone",
+   "summary": "Open an order and see why Flow decided what it did, plus the tabs for everything else about it.",
+   "page": "orders",
+   "pageLabel": "All Orders",
+   "seconds": 48,
+   "steps": [
+    "Open an order and the top shows its due date, priority, units, value and how much stock is secured.",
+    "Here is the clever part. Flow explains why it made each decision, in plain words.",
+    "Stock allocation shows a score, with bars for what helped, like due date and VIP, and what pulled it down.",
+    "Across the top are tabs for lines and stock, artwork, purchasing, warehouse, exceptions and history.",
+    "Lines and stock lists every item, how many are needed, and exactly how many are short.",
+    "Ready to send the work out? Send to a decorator opens a consignment with this order's lines ready."
+   ]
+  },
+  {
+   "id": "stock-shortage",
+   "title": "Stock and shortage advice",
+   "section": "Stock and buying",
+   "level": "Everyone",
+   "summary": "Find what is short, then let Flow suggest what to do about it.",
+   "page": "stock",
+   "pageLabel": "Stock",
+   "seconds": 40,
+   "steps": [
+    "The Stock page lists every item: what is available, what is reserved, and what is on the way.",
+    "Use the chips to jump to low stock, out of stock, or items short for orders.",
+    "Short for orders shows only the items that customers are waiting on.",
+    "Open an item and Flow advises you: wait, substitute, reorder, split, or tell the customer.",
+    "It lists the orders that need the item, and the purchase orders already on the way.",
+    "And it recommends how many to buy, so raising a purchase order takes seconds."
+   ]
+  },
+  {
+   "id": "supplier-emails",
+   "title": "Review supplier emails",
+   "section": "Stock and buying",
+   "level": "Managers and admins",
+   "summary": "Where supplier emails wait for approval, and why nothing is ever sent by surprise.",
+   "page": "purchasing",
+   "pageLabel": "Purchasing",
+   "seconds": 38,
+   "steps": [
+    "Flow drafts supplier emails for you, but it never sends one until a person approves it.",
+    "Drafts wait here, under Emails. Each one shows what it is about and who it is for.",
+    "This one chases a stock shortage on a purchase order, and is waiting for review.",
+    "Approve and send stays greyed out until the supplier has an email address on file.",
+    "Not right? Cancel it, and nothing is sent.",
+    "Orders running late? Draft chases for late purchase orders writes the emails for you to check."
+   ]
+  },
+  {
+   "id": "goods-in",
+   "title": "Book a delivery in",
+   "section": "Warehouse",
+   "level": "Warehouse and managers",
+   "summary": "Receive a supplier delivery against its purchase order and let Flow flag shortages and damage.",
+   "page": "goods-in",
+   "pageLabel": "Goods in",
+   "seconds": 41,
+   "steps": [
+    "When a delivery arrives, open Goods in and pick the purchase order it is for.",
+    "Each one shows the supplier, how many units are outstanding, and when they were due.",
+    "For each line, enter how many arrived good, damaged, or the wrong item.",
+    "If part of the order is still on its way, tick More coming.",
+    "Add your name and the supplier's delivery note number, then paste links to any photos, and notes.",
+    "Check the summary, press Book in delivery, and stock updates. Shortages or damage raise a supplier issue."
+   ]
+  },
+  {
+   "id": "artwork",
+   "title": "Artwork, proofs and job packs",
+   "section": "Artwork and quality",
+   "level": "Managers and production",
+   "summary": "See whether every order's artwork is ready, how proofs work, and what a job pack is.",
+   "page": "artwork",
+   "pageLabel": "Artwork & Job Packs",
+   "seconds": 44,
+   "steps": [
+    "Artwork and Job Packs shows, for every decorated order, whether the artwork is ready to go.",
+    "Chips pick out orders with missing artwork, unapproved files, or file problems.",
+    "Tabs cover customer proofs, file versions, job packs, and artwork arriving from Google Drive.",
+    "Open an order to see its artwork area by area, with every file version and its approval status.",
+    "Customer proofs record what was sent and what the customer said. An approval only counts for the artwork they saw.",
+    "A job pack bundles the lines, quantities and approved artwork for the decorator."
+   ]
+  },
+  {
+   "id": "quality",
+   "title": "Quality checks and rework",
+   "section": "Artwork and quality",
+   "level": "Warehouse and managers",
+   "summary": "Record a quality check, see what gets checked, and follow rework through to a fix.",
+   "page": "quality",
+   "pageLabel": "Quality",
+   "seconds": 43,
+   "steps": [
+    "Quality shows orders waiting for a check, with rework jobs and replacements alongside.",
+    "Tabs split the work into things to check, rework jobs, past checks, and the checklist.",
+    "Press Record check, choose the order, and mark each point on the checklist as pass or fail.",
+    "Add notes and photo links if you need them, then record the result.",
+    "The checklist lists what gets checked. These starter items are placeholders until your real standards are confirmed.",
+    "If something fails, rework tracks the fix, whether that is a redo or a replacement."
+   ]
+  },
+  {
+   "id": "dispatch",
+   "title": "Dispatch and courier labels",
+   "section": "Warehouse",
+   "level": "Warehouse and managers",
+   "summary": "Pack an order, make the courier labels, see what blocks it, and hand parcels over.",
+   "page": "dispatch",
+   "pageLabel": "Dispatch",
+   "seconds": 42,
+   "steps": [
+    "Dispatch is where finished orders go out: pack, print the courier label, add tracking, and hand over.",
+    "The tiles count what is ready to pack, blocked, packed and waiting, and with the courier.",
+    "Open an order that is ready, enter the parcels and weights, and press Pack and make labels.",
+    "If something is wrong, Flow says exactly what is stopping it, like artwork changing after approval.",
+    "Packed parcels wait for the courier. Hand over scan records the hand-over, one label at a time.",
+    "Marking an order shipped is still done in DecoNetwork."
+   ]
+  },
+  {
+   "id": "exceptions",
+   "title": "Exceptions: raise, assign, resolve",
+   "section": "Admin",
+   "level": "Everyone",
+   "summary": "Work through everything that is wrong or unknown: see it, take it, resolve it, or raise your own.",
+   "page": "exceptions",
+   "pageLabel": "Exceptions",
+   "seconds": 41,
+   "steps": [
+    "Exceptions lists everything wrong or unknown, each with an owner and a next step.",
+    "The tiles show how many are open, critical, overdue, blocking work, or without an owner.",
+    "Needs a person lists the urgent ones, and you can filter by who should handle them.",
+    "Open one to see what is wrong, the recommended action, and the impact on the customer.",
+    "Then take it, add a note, resolve it, mark it not a real issue, or write it off.",
+    "Spotted something Flow missed? Raise an issue, say what is wrong, and give it an owner."
+   ]
+  },
+  {
+   "id": "holding-pen",
+   "title": "The holding pen",
+   "section": "Orders",
+   "level": "Everyone",
+   "summary": "Why an order is held back for a data problem, what it cannot do while held, and how it gets out.",
+   "page": "pen",
+   "pageLabel": "Holding pen",
+   "seconds": 43,
+   "steps": [
+    "When an order has a data problem, it goes into the holding pen so nothing can go wrong with it.",
+    "While it is held, it is left out of production planning and cannot be dispatched or completed.",
+    "The list says what is wrong: no delivery address, no due date, or no shipping method.",
+    "Chips pick out overdue orders, ones with no owner, and orders that are not in Flow yet.",
+    "Open a case to see why it is held, what to fix, and its history.",
+    "Fix the problem in DecoNetwork and the order leaves the pen by itself after the next sync. This screen is read-only."
+   ]
   }
  ]
 }

@@ -15,6 +15,10 @@ export interface UpdateEntry { v: string; date: string; status: UpdateStatus; pr
 export interface PlannedItem { title: string; areas: string[]; detail: string }
 
 export const UPDATES: UpdateEntry[] = [
+  { v: 'v52', date: '2026-11-28', status: 'built', areas: ['Help'], title: 'Ten more how-to videos for everyday work',
+    summary: 'The How-to videos page now has thirteen videos. Ten new ones cover the everyday screens: finding orders, why the system says what it does, stock and shortages, supplier emails, goods in, artwork, quality, dispatch, exceptions and the holding pen.',
+    changes: ['Each video shows the real screen with made-up sample data, and the same steps are written out under it.', 'The new videos are uploaded to the private store, so only signed-in people with a Flow role can watch them.', 'The list of videos still to be made is shorter, and the in-house production videos are marked as waiting for in-house production to be switched on.'],
+    watch: 'Until this is merged the new videos are not on the page. After that, check that a view-only user can play one and that a decorator login cannot.' },
   { v: 'v51', date: '2026-11-27', status: 'live', areas: ['Help'], title: 'How-to videos: the private home for the videos is switched on',
     summary: 'The How-to videos page needed somewhere to keep the video files. The private store and its rules are now live, and the three first videos are uploaded.',
     changes: ['Everyone with a Flow role (including view-only) can watch the videos. Decorators and anyone not signed in cannot.', 'Only an admin can add or replace a video.', 'Only video files up to 200 MB are accepted.'],

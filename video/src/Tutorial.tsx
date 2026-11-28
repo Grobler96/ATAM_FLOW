@@ -14,7 +14,8 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 function camFor(r: Rect | null): Cam {
   if (!r) return FULL;
-  const x = r.x - 0.025, y = r.y - 0.04, w = r.w + 0.05, h = r.h + 0.08;
+  const mw = Math.max(r.w, 0.24), mh = Math.max(r.h, 0.17), rx = r.x + r.w / 2 - mw / 2, ry = r.y + r.h / 2 - mh / 2;   // small targets still get a window of context
+  const x = rx - 0.025, y = ry - 0.04, w = mw + 0.05, h = mh + 0.08;
   const s = clamp(Math.min(1 / w, 1 / h), 1, 1.75), cx = x + w / 2, cy = y + h / 2;
   return { s, tx: clamp(WIN.w / 2 - cx * WIN.w * s, WIN.w - WIN.w * s, 0), ty: clamp(WIN.h / 2 - cy * WIN.h * s, WIN.h - WIN.h * s, 0) };
 }
