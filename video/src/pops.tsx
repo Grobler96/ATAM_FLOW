@@ -95,7 +95,7 @@ export const Confetti: React.FC<{ life: number; ox?: number; oy?: number; seed?:
 };
 
 export const PopView: React.FC<{ p: Pop; t: number; i: number; toScreen: (r: Rect) => Rect; rects: Record<string, Rect>; stepEnd: number }> = ({ p, t, i, toScreen, rects, stepEnd }) => {
-  const life = t - p.t, dur = Math.max(1.2, Math.min(popLife(p), stepEnd - p.t + 0.2));   // never outlives its step
+  const life = t - p.t, dur = Math.max(1.2, p.kind === "ring" ? stepEnd - p.t + 0.2 : Math.min(popLife(p), stepEnd - p.t + 0.2));   // a ring stays for the rest of its step; nothing outlives its step
   if (life < 0 || life > dur || p.kind === "zoom") return null;
   const r = p.rect && rects[p.rect] ? toScreen(rects[p.rect]) : null;
   if (p.kind === "confetti") return <Confetti life={life} seed={`c${p.t}`} />;

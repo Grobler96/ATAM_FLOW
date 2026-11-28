@@ -14,7 +14,7 @@ rec = sherpa_onnx.OfflineRecognizer.from_whisper(
     tokens=os.path.join(W, "base.en-tokens.txt"), language="en", task="transcribe")
 
 # Whisper writes numbers as digits and brand names as it hears them, so both sides are normalised.
-SAME = {"a4": "a four", "100x150mm": "a hundred by one fifty millimetre", "atam": "a t a m", "p o": "po", "q r": "qr", "p o s": "pos", "command centre": "command center", "centre": "center", "millimetre": "millimeter", "a 4": "a four", "100": "a hundred", "150": "one fifty", "500": "five hundred", "360": "three sixty", "35": "thirty five", "£35": "thirty five pounds", "spin pics": "spinpix", "spin pix": "spinpix", "spinpics": "spinpix",
+SAME = {"deco network": "deconetwork", "handover": "hand over", "a4": "a four", "100x150mm": "a hundred by one fifty millimetre", "atam": "a t a m", "p o": "po", "q r": "qr", "p o s": "pos", "command centre": "command center", "centre": "center", "millimetre": "millimeter", "a 4": "a four", "100": "a hundred", "150": "one fifty", "500": "five hundred", "360": "three sixty", "35": "thirty five", "£35": "thirty five pounds", "spin pics": "spinpix", "spin pix": "spinpix", "spinpics": "spinpix",
         "u k": "uk", "q r": "qr", "a o": "ao", "slomo": "slow mo", "slowmo": "slow mo", "spin picks": "spinpix", "dues": "dos", "do's": "dos"}
 def norm(s):
     s = re.sub(r"\[\[([A-Z])\]\]", r"\1", s).lower().replace("-", " ").replace(".", " ")
